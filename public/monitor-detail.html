@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RxMonitor - Service Details</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <div class="glass-bg"></div>
+
+  <div class="container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="logo-area">
+        <span class="logo-icon">📡</span>
+        <h1 id="detail-title">Loading Service...</h1>
+        <span id="detail-status-badge" class="badge">PENDING</span>
+      </div>
+      <div class="header-actions">
+        <a href="/" class="btn btn-secondary">🏠 Dashboard</a>
+        <button id="btn-force-check" class="btn btn-secondary">⚡ Force Check</button>
+        <button id="btn-edit-service" class="btn btn-primary">✏️ Edit Settings</button>
+      </div>
+    </header>
+
+    <!-- Overview Grid -->
+    <section class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 24px;">
+      <div class="stat-card">
+        <div class="stat-info">
+          <h3>Uptime</h3>
+          <p id="detail-uptime" class="stat-val text-green" style="font-size: 24px;">-%</p>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-info">
+          <h3>Avg Latency</h3>
+          <p id="detail-avg-latency" class="stat-val" style="font-size: 24px;">- ms</p>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-info">
+          <h3>Method & Interval</h3>
+          <p id="detail-interval" class="stat-val" style="font-size: 16px; font-weight: 600; margin-top: 6px;">-</p>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-info">
+          <h3>SSL Expiration</h3>
+          <p id="detail-ssl-expiry" class="stat-val" style="font-size: 14px; font-weight: 500; margin-top: 8px;">-</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Target URL Card -->
+    <div class="card" style="margin-bottom: 24px; padding: 16px 24px;">
+      <div style="font-size: 12px; color: var(--color-muted); font-weight: 500; margin-bottom: 4px;">Target URL endpoint</div>
+      <div id="detail-url" style="font-size: 18px; font-weight: 600; word-break: break-all; color: var(--color-primary);">Loading...</div>
+    </div>
+
+    <!-- Charts Section -->
+    <div style="display: flex; gap: 20px; margin-bottom: 24px; flex-wrap: wrap;">
+      <div class="card" style="flex: 2; min-width: 300px; padding: 20px;">
+        <h4 style="margin-bottom: 15px; font-size: 16px; font-weight: 600;">Response Time Trend (ms)</h4>
+        <div style="height: 220px; position: relative;"><canvas id="latencyChart"></canvas></div>
+      </div>
+      <div class="card" style="flex: 1; min-width: 240px; padding: 20px;">
+        <h4 style="margin-bottom: 15px; font-size: 16px; font-weight: 600;">Uptime Ratio</h4>
+        <div style="height: 220px; position: relative;"><canvas id="uptimeChart"></canvas></div>
+      </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px; margin-bottom: 40px;">
+      <!-- Incident Timeline Section -->
+      <div class="card">
+        <div class="card-header">
+          <h2>Incident Timeline (Last 20)</h2>
+        </div>
+        <div id="detail-timeline-list" style="max-height: 380px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; padding: 8px 0;">
+          <div style="text-align: center; color: var(--color-muted); font-size: 13px;">Loading timeline...</div>
+        </div>
+      </div>
+
+      <!-- Logs Section -->
+      <div class="card">
+        <div class="card-header">
+          <h2>Uptime Log History (Last 50)</h2>
+        </div>
+        <div class="table-container" style="max-height: 380px;">
+          <table class="logs-table">
+            <thead>
+              <tr>
+                <th>Time</th>
+                <th>Status</th>
+                <th>Latency</th>
+                <th>Message</th>
+              </tr>
+            </thead>
+            <tbody id="detail-logs-tbody">
+              <tr>
+                <td colspan="4" style="text-align: center; color: var(--color-muted);">Loading logs...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="toast"></div>
+
+  <!-- Edit Monitor Modal -->
+  <div id="modal-monitor" class="modal">
+    <div class="modal-content glass-card">
+      <div class="modal-header">
+        <h3>Edit Monitor Settings</h3>
+        <button class="close-modal">&times;</button>
+      </div>
+      <form id="monitor-form">
+        <input type="hidden" id="monitor-id">
+        <div class="form-group">
+          <label for="monitor-name">Friendly Name</label>
+          <input type="text" id="monitor-name" required>
+        </div>
+        <div class="form-group">
+          <label for="monitor-url">URL Target</label>
+          <input type="url" id="monitor-url" required>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="monitor-method">HTTP Method</label>
+            <select id="monitor-method">
+              <option value="GET">GET</option>
+              <option value="POST">POST</option>
+              <option value="HEAD">HEAD</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="monitor-interval">Check Interval (s)</label>
+            <input type="number" id="monitor-interval" min="10" required>
+          </div>
+          <div class="form-group">
+            <label for="monitor-timeout">Timeout (s)</label>
+            <input type="number" id="monitor-timeout" min="1" max="60" required>
+          </div>
+          <div class="form-group">
+            <label for="monitor-max-retries">Max Retries</label>
+            <input type="number" id="monitor-max-retries" min="1" max="10" required>
+          </div>
+        </div>
+        <div class="form-row" style="margin-bottom: 20px;">
+          <div class="toggle-container" style="margin-bottom: 0; flex: 1;">
+            <label class="switch">
+              <input type="checkbox" id="monitor-is-public">
+              <span class="slider"></span>
+            </label>
+            <span class="toggle-label" style="font-size: 13px;">Show on Public Status Page</span>
+          </div>
+          <div class="toggle-container" style="margin-bottom: 0; flex: 1;">
+            <label class="switch">
+              <input type="checkbox" id="monitor-is-maintenance">
+              <span class="slider"></span>
+            </label>
+            <span class="toggle-label" style="font-size: 13px;">Maintenance Mode</span>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary close-modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const monitorId = urlParams.get('id');
+    const toastEl = document.getElementById('toast');
+    let loadedMonitorObj = null;
+
+    let latencyChartInstance = null;
+    let uptimeChartInstance = null;
+
+    if (!monitorId) {
+      alert('Error: No monitor ID provided in URL.');
+      window.location.href = '/';
+    }
+
+    function showToast(message, type = 'success') {
+      toastEl.textContent = message;
+      toastEl.className = `toast show toast-${type}`;
+      setTimeout(() => {
+        toastEl.classList.remove('show');
+      }, 4000);
+    }
+
+    async function loadDetails() {
+      try {
+        const res = await fetch(`/api/monitors/${monitorId}`);
+        if (!res.ok) throw new Error('Failed to load monitor details.');
+        const data = await res.json();
+        loadedMonitorObj = data;
+
+        // Render header
+        document.getElementById('detail-title').textContent = data.name;
+        document.getElementById('detail-url').textContent = data.url;
+        document.getElementById('detail-interval').textContent = `${data.method} / every ${data.interval}s`;
+        document.getElementById('detail-uptime').textContent = `${data.uptimePct}%`;
+
+        // Render status badge
+        const badge = document.getElementById('detail-status-badge');
+        badge.textContent = data.status;
+        badge.className = `badge`;
+        const statusLower = data.status.toLowerCase();
+        if (statusLower === 'up') {
+          badge.style.background = 'var(--color-success-bg)';
+          badge.style.color = 'var(--color-success)';
+        } else if (statusLower === 'down') {
+          badge.style.background = 'var(--color-error-bg)';
+          badge.style.color = 'var(--color-error)';
+        } else {
+          badge.style.background = 'var(--color-warning-bg)';
+          badge.style.color = 'var(--color-warning)';
+        }
+
+        // Latency calculations
+        const logs = data.logs || [];
+        const validLatencies = logs.filter(l => l.status === 'UP').map(l => l.response_time);
+        
+        if (validLatencies.length > 0) {
+          const avg = Math.round(validLatencies.reduce((a, b) => a + b, 0) / validLatencies.length);
+          const min = Math.min(...validLatencies);
+          const max = Math.max(...validLatencies);
+
+          const sorted = [...validLatencies].sort((a, b) => a - b);
+          const p95Idx = Math.floor(sorted.length * 0.95);
+          const p95 = sorted[p95Idx];
+
+          document.getElementById('detail-avg-latency').textContent = `${avg} ms`;
+        } else {
+          document.getElementById('detail-avg-latency').textContent = 'N/A';
+        }
+
+        // SSL expiration
+        const sslEl = document.getElementById('detail-ssl-expiry');
+        if (data.ssl_expiry) {
+          const expiryDate = new Date(data.ssl_expiry);
+          const daysLeft = Math.ceil((expiryDate - new Date()) / (1000 * 60 * 60 * 24));
+          sslEl.innerHTML = `${expiryDate.toLocaleDateString()} <span style="font-size:11px; color:var(--color-muted)">(${daysLeft}d left)</span>`;
+        } else {
+          sslEl.textContent = 'N/A';
+        }
+
+        // Render Charts
+        renderCharts(logs, data.uptimePct);
+
+        // Render Timeline
+        const timelineList = document.getElementById('detail-timeline-list');
+        const incidents = data.incidents || [];
+        if (incidents.length === 0) {
+          timelineList.innerHTML = `<div style="text-align: center; color: var(--color-muted); font-size: 13px; padding: 20px;">No incidents logged.</div>`;
+        } else {
+          timelineList.innerHTML = incidents.map(inc => {
+            const timeStr = new Date(inc.timestamp).toLocaleString();
+            const icon = inc.event_type === 'DOWN' ? '🔴' : '🟢';
+            const durationStr = inc.event_type === 'UP' && inc.downtime_duration > 0
+              ? `<span style="font-size:11px; color: var(--color-muted); margin-left: 10px;">Downtime: ${Math.floor(inc.downtime_duration/60)}m ${inc.downtime_duration%60}s</span>`
+              : '';
+            return `
+              <div style="font-size: 13px; display: flex; align-items: flex-start; gap: 10px; border-bottom: 1px solid rgba(255,255,255,0.03); padding-bottom: 8px;">
+                <span>${icon}</span>
+                <div style="flex: 1;">
+                  <strong>${inc.event_type}</strong> - ${escapeHTML(inc.message || '')}
+                  ${durationStr}
+                  <div style="font-size: 10px; color: var(--color-muted);">${timeStr}</div>
+                </div>
+              </div>
+            `;
+          }).join('');
+        }
+
+        // Render Logs table
+        const tbody = document.getElementById('detail-logs-tbody');
+        if (logs.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--color-muted);">No logs recorded.</td></tr>`;
+        } else {
+          tbody.innerHTML = logs.map(l => {
+            const timeStr = new Date(l.checked_at).toLocaleString();
+            const statusSpan = l.status === 'UP' 
+              ? `<span class="badge" style="background: var(--color-success-bg); color: var(--color-success); border-color: rgba(16, 185, 129, 0.2);">UP</span>`
+              : l.status === 'PENDING'
+              ? `<span class="badge" style="background: var(--color-warning-bg); color: var(--color-warning); border-color: rgba(245, 158, 11, 0.2);">RETRY</span>`
+              : `<span class="badge" style="background: var(--color-error-bg); color: var(--color-error); border-color: rgba(239, 68, 68, 0.2);">DOWN</span>`;
+            return `
+              <tr>
+                <td>${timeStr}</td>
+                <td>${statusSpan}</td>
+                <td>${l.response_time} ms</td>
+                <td><code>${escapeHTML(l.message || '')}</code></td>
+              </tr>
+            `;
+          }).join('');
+        }
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    }
+
+    function renderCharts(logs, uptimePct) {
+      if (latencyChartInstance) latencyChartInstance.destroy();
+      if (uptimeChartInstance) uptimeChartInstance.destroy();
+
+      const ctxLatency = document.getElementById('latencyChart').getContext('2d');
+      const ctxUptime = document.getElementById('uptimeChart').getContext('2d');
+
+      const recentLogs = [...logs].reverse().slice(-30);
+      const labels = recentLogs.map(log => new Date(log.checked_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+      const latencies = recentLogs.map(log => log.response_time);
+      const borderColors = recentLogs.map(log => log.status === 'UP' ? '#6366f1' : '#ef4444');
+
+      latencyChartInstance = new Chart(ctxLatency, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            data: latencies,
+            borderColor: '#6366f1',
+            backgroundColor: 'rgba(99, 102, 241, 0.1)',
+            borderWidth: 2,
+            tension: 0.3,
+            fill: true,
+            pointBackgroundColor: borderColors,
+            pointBorderColor: borderColors,
+            pointRadius: 4
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { display: false },
+            y: {
+              grid: { color: 'rgba(255, 255, 255, 0.05)' },
+              ticks: { color: '#94a3b8', font: { family: 'Outfit', size: 10 } }
+            }
+          }
+        }
+      });
+
+      uptimeChartInstance = new Chart(ctxUptime, {
+        type: 'doughnut',
+        data: {
+          labels: ['Uptime %', 'Downtime %'],
+          datasets: [{
+            data: [uptimePct, Math.max(0, 100 - uptimePct)],
+            backgroundColor: ['#10b981', '#ef4444'],
+            borderWidth: 0
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: { color: '#e2e8f0', font: { family: 'Outfit', size: 11 } }
+            }
+          },
+          cutout: '70%'
+        }
+      });
+    }
+
+    // Modal operations
+    const modal = document.getElementById('modal-monitor');
+    const form = document.getElementById('monitor-form');
+
+    document.getElementById('btn-edit-service').addEventListener('click', () => {
+      if (!loadedMonitorObj) return;
+      document.getElementById('monitor-id').value = loadedMonitorObj.id;
+      document.getElementById('monitor-name').value = loadedMonitorObj.name;
+      document.getElementById('monitor-url').value = loadedMonitorObj.url;
+      document.getElementById('monitor-method').value = loadedMonitorObj.method;
+      document.getElementById('monitor-interval').value = loadedMonitorObj.interval;
+      document.getElementById('monitor-timeout').value = loadedMonitorObj.timeout;
+      document.getElementById('monitor-max-retries').value = loadedMonitorObj.max_retries || 3;
+      document.getElementById('monitor-is-public').checked = loadedMonitorObj.is_public === 1;
+      document.getElementById('monitor-is-maintenance').checked = loadedMonitorObj.is_maintenance === 1;
+      modal.classList.add('active');
+    });
+
+    document.querySelectorAll('.close-modal').forEach(btn => {
+      btn.addEventListener('click', () => modal.classList.remove('active'));
+    });
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const payload = {
+        name: document.getElementById('monitor-name').value,
+        url: document.getElementById('monitor-url').value,
+        method: document.getElementById('monitor-method').value,
+        interval: parseInt(document.getElementById('monitor-interval').value),
+        timeout: parseInt(document.getElementById('monitor-timeout').value),
+        max_retries: parseInt(document.getElementById('monitor-max-retries').value),
+        is_public: document.getElementById('monitor-is-public').checked ? 1 : 0,
+        is_maintenance: document.getElementById('monitor-is-maintenance').checked ? 1 : 0
+      };
+
+      try {
+        const res = await fetch(`/api/monitors/${monitorId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (!res.ok) throw new Error('Failed to update monitor.');
+        modal.classList.remove('active');
+        showToast('Settings saved successfully.');
+        loadDetails();
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    });
+
+    document.getElementById('btn-force-check').addEventListener('click', async () => {
+      try {
+        const res = await fetch(`/api/monitors/${monitorId}/check`, { method: 'POST' });
+        if (!res.ok) throw new Error('Force check failed.');
+        showToast('Check completed successfully.');
+        loadDetails();
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    });
+
+    function escapeHTML(str) {
+      return str.replace(/[&<>'"]/g, 
+        tag => ({
+          '&': '&amp;',
+          '<': '&lt;',
+          '>': '&gt;',
+          "'": '&#39;',
+          '"': '&quot;'
+        }[tag] || tag)
+      );
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      loadDetails();
+      setInterval(loadDetails, 20000);
+    });
+  </script>
+</body>
+</html>

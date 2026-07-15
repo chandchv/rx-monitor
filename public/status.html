@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>System Status Dashboard</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="public-status-page">
+  <div class="glass-bg"></div>
+
+  <div class="container" style="max-width: 900px; padding-top: 60px;">
+    <!-- Header -->
+    <header class="app-header" style="justify-content: center; text-align: center; flex-direction: column; gap: 10px; padding: 30px;">
+      <div class="logo-area" style="justify-content: center;">
+        <span class="logo-icon" style="font-size: 36px;">🛡️</span>
+        <h1 style="font-size: 28px;">System Status</h1>
+      </div>
+      <p style="color: var(--color-muted); font-size: 14px;">Real-time service operational status and uptime checks.</p>
+      <div id="overall-status-banner" class="badge" style="font-size: 14px; padding: 8px 16px; margin-top: 10px;">
+        Checking services...
+      </div>
+    </header>
+
+    <!-- Public Monitors list -->
+    <div class="card">
+      <div class="card-header">
+        <h2>Operational Status</h2>
+        <span style="font-size: 12px; color: var(--color-muted);" id="last-updated-text">Updating...</span>
+      </div>
+      
+      <div id="public-monitors-list" class="monitors-list">
+        <div class="loading-state">Loading status board...</div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer style="text-align: center; margin-top: 40px; color: var(--color-muted); font-size: 12px;">
+      Powered by <a href="/" style="color: var(--color-primary); text-decoration: none; font-weight: 500;">RxMonitor</a>
+    </footer>
+  </div>
+
+  <script>
+    async function loadStatus() {
+      const listEl = document.getElementById('public-monitors-list');
+      const bannerEl = document.getElementById('overall-status-banner');
+      const updateEl = document.getElementById('last-updated-text');
+
+      try {
+        const res = await fetch('/api/public/monitors');
+        if (!res.ok) throw new Error('Failed to load status data.');
+        const monitors = await res.json();
+        
+        updateEl.textContent = `Last updated: ${new Date().toLocaleTimeString()}`;
+
+        if (monitors.length === 0) {
+          listEl.innerHTML = `<div class="empty-state"><p>No public services are monitored currently.</p></div>`;
+          bannerEl.className = 'badge';
+          bannerEl.style.background = 'rgba(255,255,255,0.05)';
+          bannerEl.style.color = '#fff';
+          bannerEl.textContent = 'No Services Monitored';
+          return;
+        }
+
+        const downCount = monitors.filter(m => m.status === 'DOWN').length;
+        if (downCount === 0) {
+          bannerEl.style.background = 'rgba(16, 185, 129, 0.15)';
+          bannerEl.style.color = 'var(--color-success)';
+          bannerEl.style.borderColor = 'rgba(16, 185, 129, 0.3)';
+          bannerEl.textContent = '🟢 All Services Operational';
+        } else {
+          bannerEl.style.background = 'rgba(239, 68, 68, 0.15)';
+          bannerEl.style.color = 'var(--color-error)';
+          bannerEl.style.borderColor = 'rgba(239, 68, 68, 0.3)';
+          bannerEl.textContent = `🔴 Outage Detected: ${downCount} Service(s) Down`;
+        }
+
+        listEl.innerHTML = monitors.map(monitor => {
+          const statusLower = monitor.status.toLowerCase();
+          const ticksCount = 30;
+          const ticks = [];
+          const recent = monitor.recentLogs || [];
+          
+          const emptyCount = Math.max(0, ticksCount - recent.length);
+          for (let i = 0; i < emptyCount; i++) {
+            ticks.push('<div class="history-tick tick-empty"></div>');
+          }
+          recent.forEach(log => {
+            if (log.status === 'UP') {
+              ticks.push(`<div class="history-tick tick-up" title="UP | ${log.response_time}ms"></div>`);
+            } else {
+              ticks.push(`<div class="history-tick tick-down" title="DOWN"></div>`);
+            }
+          });
+
+          return `
+            <div class="monitor-item" style="grid-template-columns: auto 2fr 1fr 1.5fr; cursor: default;">
+              <div class="status-dot-container">
+                <div class="status-pulse ${statusLower}"></div>
+                <div class="status-dot ${statusLower}"></div>
+              </div>
+              <div class="monitor-info">
+                <h4 style="margin: 0; font-size: 15px;">${escapeHTML(monitor.name)}</h4>
+                <span class="url" style="font-size: 11px;">Operational</span>
+              </div>
+              <div class="monitor-perf">
+                <div class="resp-time" style="font-size: 13px;">${recent.length ? recent[recent.length - 1].response_time + ' ms' : '-- ms'}</div>
+                <div class="uptime-pct" style="font-size: 11px;">${monitor.uptimePct}% uptime</div>
+              </div>
+              <div class="uptime-history">
+                ${ticks.join('')}
+              </div>
+            </div>
+          `;
+        }).join('');
+      } catch (err) {
+        listEl.innerHTML = `<div class="empty-state" style="color: var(--color-error);"><p>Error loading system status: ${err.message}</p></div>`;
+      }
+    }
+
+    function escapeHTML(str) {
+      return str.replace(/[&<>'"]/g, 
+        tag => ({
+          '&': '&amp;',
+          '<': '&lt;',
+          '>': '&gt;',
+          "'": '&#39;',
+          '"': '&quot;'
+        }[tag] || tag)
+      );
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      loadStatus();
+      setInterval(loadStatus, 20000);
+    });
+  </script>
+</body>
+</html>

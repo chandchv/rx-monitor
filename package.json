@@ -1,0 +1,18 @@
+{
+  "name": "rx-monitor",
+  "version": "1.0.0",
+  "description": "Server uptime monitoring and notification system",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.21.0",
+    "nodemailer": "^6.9.15",
+    "sqlite": "^5.1.1",
+    "sqlite3": "^5.1.7"
+  }
+}

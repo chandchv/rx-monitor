@@ -8,11 +8,15 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="theme.js"></script>
 </head>
 <body class="public-status-page">
   <div class="glass-bg"></div>
 
-  <div class="container" style="max-width: 900px; padding-top: 60px;">
+  <div class="container" style="max-width: 900px; padding-top: 60px; position: relative;">
+    <button id="theme-toggle" class="btn btn-secondary" style="position: absolute; top: 15px; right: 24px; padding: 10px; border-radius: 50%; width: 40px; height: 40px; justify-content: center;" title="Toggle Light/Dark Mode">
+      <span class="icon">☀️</span>
+    </button>
     <!-- Header -->
     <header class="app-header" style="justify-content: center; text-align: center; flex-direction: column; gap: 10px; padding: 30px;">
       <div class="logo-area" style="justify-content: center;">

@@ -88,6 +88,40 @@ async function initSchema() {
       downtime_duration INTEGER DEFAULT 0,
       FOREIGN KEY(monitor_id) REFERENCES monitors(id) ON DELETE CASCADE
     );
+
+    CREATE TABLE IF NOT EXISTS api_keys (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      key_hash TEXT UNIQUE NOT NULL,
+      key_prefix TEXT NOT NULL,
+      label TEXT DEFAULT 'Default',
+      created_at TEXT,
+      last_used_at TEXT,
+      is_active INTEGER DEFAULT 1,
+      FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS server_metrics (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      api_key_id INTEGER NOT NULL,
+      user_id INTEGER NOT NULL,
+      hostname TEXT,
+      cpu_percent REAL,
+      memory_percent REAL,
+      disk_percent REAL,
+      load_avg REAL,
+      network_rx_bytes INTEGER DEFAULT 0,
+      network_tx_bytes INTEGER DEFAULT 0,
+      process_count INTEGER DEFAULT 0,
+      uptime_seconds INTEGER DEFAULT 0,
+      collected_at TEXT,
+      FOREIGN KEY(api_key_id) REFERENCES api_keys(id) ON DELETE CASCADE,
+      FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_server_metrics_user ON server_metrics(user_id, collected_at);
+    CREATE INDEX IF NOT EXISTS idx_server_metrics_key ON server_metrics(api_key_id, collected_at);
+    CREATE INDEX IF NOT EXISTS idx_logs_monitor_checked ON logs(monitor_id, checked_at);
   `);
 
   // Dynamically add columns to monitors if they do not exist (migration support)

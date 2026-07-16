@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
@@ -430,7 +431,7 @@ app.post('/api/auth/signup', async (req, res) => {
     const settings = {};
     rows.forEach(r => { settings[r.key] = r.value; });
 
-    const verificationLink = `http://localhost:${PORT}/api/auth/verify?token=${verificationToken}`;
+    const verificationLink = `${process.env.BASE_URL || 'http://localhost:' + PORT}/api/auth/verify?token=${verificationToken}`;
     console.log(`\n✉️ [Email Verification Link for ${email}]: ${verificationLink}\n`);
 
     if (settings.email_enabled === 'true' && settings.email_smtp_host) {
@@ -1100,6 +1101,360 @@ app.post('/api/system-logs/email', async (req, res) => {
   }
 });
 
+// --- API Key Management ---
+
+app.post('/api/keys', requireAuth, async (req, res) => {
+  const { label } = req.body;
+  try {
+    const db = await getDb();
+    // Generate a random API key
+    const rawKey = 'rxm_' + crypto.randomBytes(24).toString('hex');
+    const keyHash = crypto.createHash('sha256').update(rawKey).digest('hex');
+    const keyPrefix = rawKey.substring(0, 12);
+
+    await db.run(
+      'INSERT INTO api_keys (user_id, key_hash, key_prefix, label, created_at, is_active) VALUES (?, ?, ?, ?, ?, 1)',
+      [req.user.id, keyHash, keyPrefix, label || 'Default', new Date().toISOString()]
+    );
+
+    // Return the full key only once — user must save it
+    res.json({ key: rawKey, prefix: keyPrefix, label: label || 'Default' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/keys', requireAuth, async (req, res) => {
+  try {
+    const db = await getDb();
+    const keys = await db.all(
+      'SELECT id, key_prefix, label, created_at, last_used_at, is_active FROM api_keys WHERE user_id = ? ORDER BY created_at DESC',
+      [req.user.id]
+    );
+    res.json(keys);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/keys/:id', requireAuth, async (req, res) => {
+  try {
+    const db = await getDb();
+    await db.run('DELETE FROM api_keys WHERE id = ? AND user_id = ?', [req.params.id, req.user.id]);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --- Server Agent Metrics API ---
+
+// Authenticate agent by API key (no JWT needed)
+async function authenticateAgentKey(req, res) {
+  const authHeader = req.headers['authorization'] || '';
+  const key = authHeader.replace('Bearer ', '').trim();
+  if (!key || !key.startsWith('rxm_')) {
+    res.status(401).json({ error: 'Invalid or missing API key.' });
+    return null;
+  }
+
+  const keyHash = crypto.createHash('sha256').update(key).digest('hex');
+  const db = await getDb();
+  const apiKey = await db.get('SELECT * FROM api_keys WHERE key_hash = ? AND is_active = 1', [keyHash]);
+
+  if (!apiKey) {
+    res.status(401).json({ error: 'API key is invalid or has been revoked.' });
+    return null;
+  }
+
+  // Update last_used_at
+  await db.run('UPDATE api_keys SET last_used_at = ? WHERE id = ?', [new Date().toISOString(), apiKey.id]);
+  return apiKey;
+}
+
+app.post('/api/agent/metrics', async (req, res) => {
+  try {
+    const apiKey = await authenticateAgentKey(req, res);
+    if (!apiKey) return;
+
+    const { hostname, cpu, memory, disk, load, network_rx, network_tx, processes, uptime } = req.body;
+
+    const db = await getDb();
+    await db.run(
+      `INSERT INTO server_metrics 
+        (api_key_id, user_id, hostname, cpu_percent, memory_percent, disk_percent, load_avg, network_rx_bytes, network_tx_bytes, process_count, uptime_seconds, collected_at) 
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [apiKey.id, apiKey.user_id, hostname || 'unknown', cpu || 0, memory || 0, disk || 0, load || 0, network_rx || 0, network_tx || 0, processes || 0, uptime || 0, new Date().toISOString()]
+    );
+
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Get metrics for the authenticated user's servers
+app.get('/api/agent/metrics', requireAuth, async (req, res) => {
+  try {
+    const db = await getDb();
+    const hours = parseInt(req.query.hours) || 24;
+    const keyId = req.query.key_id;
+    const since = new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
+
+    let metrics;
+    if (keyId) {
+      metrics = await db.all(
+        `SELECT * FROM server_metrics WHERE user_id = ? AND api_key_id = ? AND collected_at >= ? ORDER BY collected_at ASC`,
+        [req.user.id, keyId, since]
+      );
+    } else {
+      metrics = await db.all(
+        `SELECT * FROM server_metrics WHERE user_id = ? AND collected_at >= ? ORDER BY collected_at ASC`,
+        [req.user.id, since]
+      );
+    }
+
+    res.json(metrics);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Get latest metric per server (summary view)
+app.get('/api/agent/servers', requireAuth, async (req, res) => {
+  try {
+    const db = await getDb();
+    const servers = await db.all(`
+      SELECT sm.*, ak.label, ak.key_prefix, ak.id as key_id
+      FROM server_metrics sm
+      INNER JOIN api_keys ak ON sm.api_key_id = ak.id
+      WHERE sm.user_id = ?
+        AND sm.id IN (
+          SELECT MAX(id) FROM server_metrics WHERE user_id = ? GROUP BY api_key_id
+        )
+      ORDER BY sm.collected_at DESC
+    `, [req.user.id, req.user.id]);
+
+    res.json(servers);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --- Response Time Analytics ---
+
+app.get('/api/monitors/:id/analytics', async (req, res) => {
+  try {
+    const monitor = await checkMonitorOwnership(req, res, req.params.id);
+    if (!monitor) return;
+
+    const db = await getDb();
+    const hours = parseInt(req.query.hours) || 24;
+    const since = new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
+
+    // Get response time data points
+    const dataPoints = await db.all(
+      `SELECT response_time, status, checked_at FROM logs 
+       WHERE monitor_id = ? AND checked_at >= ? 
+       ORDER BY checked_at ASC`,
+      [req.params.id, since]
+    );
+
+    // Calculate percentiles
+    const times = dataPoints.filter(d => d.status === 'UP').map(d => d.response_time).sort((a, b) => a - b);
+    const p50 = times.length > 0 ? times[Math.floor(times.length * 0.5)] : 0;
+    const p95 = times.length > 0 ? times[Math.floor(times.length * 0.95)] : 0;
+    const p99 = times.length > 0 ? times[Math.floor(times.length * 0.99)] : 0;
+    const avg = times.length > 0 ? Math.round(times.reduce((a, b) => a + b, 0) / times.length) : 0;
+    const min = times.length > 0 ? times[0] : 0;
+    const max = times.length > 0 ? times[times.length - 1] : 0;
+
+    // Uptime heatmap data (last 30 days, grouped by day)
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+    const dailyStats = await db.all(`
+      SELECT 
+        DATE(checked_at) as day,
+        COUNT(*) as total,
+        SUM(CASE WHEN status = 'UP' THEN 1 ELSE 0 END) as up_count
+      FROM logs 
+      WHERE monitor_id = ? AND checked_at >= ?
+      GROUP BY DATE(checked_at)
+      ORDER BY day ASC
+    `, [req.params.id, thirtyDaysAgo]);
+
+    const heatmap = dailyStats.map(d => ({
+      day: d.day,
+      uptime: d.total > 0 ? Math.round((d.up_count / d.total) * 1000) / 10 : 100
+    }));
+
+    // SSL days remaining
+    let sslDaysLeft = null;
+    if (monitor.ssl_expiry) {
+      sslDaysLeft = Math.ceil((new Date(monitor.ssl_expiry) - new Date()) / (1000 * 60 * 60 * 24));
+    }
+
+    // Apdex score (threshold: 500ms satisfied, 2000ms tolerating)
+    const satisfiedThreshold = 500;
+    const toleratingThreshold = 2000;
+    const satisfied = times.filter(t => t <= satisfiedThreshold).length;
+    const tolerating = times.filter(t => t > satisfiedThreshold && t <= toleratingThreshold).length;
+    const apdex = times.length > 0 ? Math.round(((satisfied + tolerating / 2) / times.length) * 100) / 100 : 1.0;
+
+    res.json({
+      dataPoints,
+      percentiles: { p50, p95, p99, avg, min, max },
+      heatmap,
+      sslDaysLeft,
+      apdex,
+      totalChecks: dataPoints.length,
+      upChecks: times.length,
+      downChecks: dataPoints.filter(d => d.status === 'DOWN').length
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --- Agent Install Script (served as plain text) ---
+
+app.get('/install-agent.sh', (req, res) => {
+  const baseUrl = process.env.BASE_URL || `http://localhost:${PORT}`;
+  const script = `#!/bin/bash
+# RxMonitor Server Agent Installer
+# This script installs a lightweight monitoring agent that reports
+# CPU, memory, disk, load, and network metrics to your RxMonitor dashboard.
+#
+# Usage: curl -sSL ${baseUrl}/install-agent.sh | bash -s YOUR_API_KEY
+#
+# The agent runs as a systemd service and pushes metrics every 60 seconds.
+# It only makes outbound HTTPS calls — no ports are opened on your server.
+
+set -e
+
+API_KEY="\${1:-}"
+ENDPOINT="${baseUrl}/api/agent/metrics"
+INSTALL_DIR="/opt/rxmonitor-agent"
+SERVICE_NAME="rxmonitor-agent"
+
+if [ -z "$API_KEY" ]; then
+  echo "❌ Error: API key is required."
+  echo "Usage: curl -sSL ${baseUrl}/install-agent.sh | bash -s YOUR_API_KEY"
+  exit 1
+fi
+
+echo "📡 Installing RxMonitor Agent..."
+echo "   Endpoint: $ENDPOINT"
+echo ""
+
+# Create install directory
+sudo mkdir -p "$INSTALL_DIR"
+
+# Write the agent script
+sudo tee "$INSTALL_DIR/agent.sh" > /dev/null << 'AGENT_SCRIPT'
+#!/bin/bash
+API_KEY="__API_KEY__"
+ENDPOINT="__ENDPOINT__"
+HOSTNAME=$(hostname)
+
+while true; do
+  # CPU usage (percentage)
+  CPU=$(top -bn1 2>/dev/null | grep "Cpu(s)" | awk '{print $2}' || echo "0")
+  
+  # Memory usage (percentage)
+  MEM=$(free 2>/dev/null | awk '/Mem:/ {printf "%.1f", $3/$2 * 100}' || echo "0")
+  
+  # Disk usage (percentage, root partition)
+  DISK=$(df / 2>/dev/null | awk 'NR==2 {print $5}' | tr -d '%' || echo "0")
+  
+  # Load average (1 min)
+  LOAD=$(cat /proc/loadavg 2>/dev/null | awk '{print $1}' || echo "0")
+  
+  # Network bytes (rx/tx on primary interface)
+  IFACE=$(ip route get 1.1.1.1 2>/dev/null | awk '{print $5; exit}' || echo "eth0")
+  NET_RX=$(cat /sys/class/net/$IFACE/statistics/rx_bytes 2>/dev/null || echo "0")
+  NET_TX=$(cat /sys/class/net/$IFACE/statistics/tx_bytes 2>/dev/null || echo "0")
+  
+  # Process count
+  PROCS=$(ps aux 2>/dev/null | wc -l || echo "0")
+  
+  # System uptime in seconds
+  UPTIME=$(awk '{print int($1)}' /proc/uptime 2>/dev/null || echo "0")
+
+  # Push metrics
+  curl -s -X POST "$ENDPOINT" \\
+    -H "Authorization: Bearer $API_KEY" \\
+    -H "Content-Type: application/json" \\
+    -d "{
+      \\"hostname\\": \\"$HOSTNAME\\",
+      \\"cpu\\": $CPU,
+      \\"memory\\": $MEM,
+      \\"disk\\": $DISK,
+      \\"load\\": $LOAD,
+      \\"network_rx\\": $NET_RX,
+      \\"network_tx\\": $NET_TX,
+      \\"processes\\": $PROCS,
+      \\"uptime\\": $UPTIME
+    }" > /dev/null 2>&1
+
+  sleep 60
+done
+AGENT_SCRIPT
+
+# Replace placeholders
+sudo sed -i "s|__API_KEY__|$API_KEY|g" "$INSTALL_DIR/agent.sh"
+sudo sed -i "s|__ENDPOINT__|$ENDPOINT|g" "$INSTALL_DIR/agent.sh"
+sudo chmod +x "$INSTALL_DIR/agent.sh"
+
+# Create systemd service
+sudo tee "/etc/systemd/system/$SERVICE_NAME.service" > /dev/null << EOF
+[Unit]
+Description=RxMonitor Server Agent
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/bin/bash $INSTALL_DIR/agent.sh
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+# Enable and start
+sudo systemctl daemon-reload
+sudo systemctl enable "$SERVICE_NAME"
+sudo systemctl start "$SERVICE_NAME"
+
+echo ""
+echo "✅ RxMonitor Agent installed successfully!"
+echo "   Service: $SERVICE_NAME"
+echo "   Status:  sudo systemctl status $SERVICE_NAME"
+echo "   Logs:    sudo journalctl -u $SERVICE_NAME -f"
+echo "   Remove:  sudo systemctl stop $SERVICE_NAME && sudo rm -rf $INSTALL_DIR /etc/systemd/system/$SERVICE_NAME.service && sudo systemctl daemon-reload"
+echo ""
+echo "📊 Metrics will appear in your dashboard within 60 seconds."
+`;
+
+  res.setHeader('Content-Type', 'text/plain');
+  res.send(script);
+});
+
+// --- Metrics Cleanup (auto-delete old metrics older than 30 days) ---
+
+async function cleanupOldMetrics() {
+  try {
+    const db = await getDb();
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+    await db.run('DELETE FROM server_metrics WHERE collected_at < ?', [thirtyDaysAgo]);
+  } catch (err) {
+    console.error('Metrics cleanup error:', err);
+  }
+}
+
 // Start application
 app.listen(PORT, async () => {
   console.log(`🚀 RxMonitor started on http://localhost:${PORT}`);
@@ -1109,6 +1464,10 @@ app.listen(PORT, async () => {
     await updateCustomDomainCache();
     startDailyScheduler();
     console.log('📅 Daily summary report scheduler active.');
+    // Run metrics cleanup every 6 hours
+    setInterval(cleanupOldMetrics, 6 * 60 * 60 * 1000);
+    cleanupOldMetrics();
+    console.log('🧹 Metrics auto-cleanup scheduled (30-day retention).');
   } catch (err) {
     console.error('Failed to initialize monitoring:', err);
   }

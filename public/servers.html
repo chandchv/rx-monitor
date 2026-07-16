@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RxMonitor - Server Metrics</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="theme.js"></script>
+  <style>
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .server-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 20px;
+      position: relative;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .server-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+    }
+    .server-card .server-name {
+      font-weight: 600;
+      font-size: 1.1em;
+      margin-bottom: 4px;
+    }
+    .server-card .server-hostname {
+      color: var(--color-muted);
+      font-size: 0.85em;
+      margin-bottom: 16px;
+    }
+    .server-card .server-status {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #10b981;
+      box-shadow: 0 0 8px rgba(16, 185, 129, 0.5);
+    }
+    .server-card .server-status.stale {
+      background: #f59e0b;
+      box-shadow: 0 0 8px rgba(245, 158, 11, 0.5);
+    }
+    .metric-bars {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .metric-bar-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .metric-bar-row .label {
+      width: 65px;
+      font-size: 0.8em;
+      color: var(--color-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .metric-bar-row .bar-track {
+      flex: 1;
+      height: 8px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .metric-bar-row .bar-fill {
+      height: 100%;
+      border-radius: 4px;
+      transition: width 0.5s ease;
+    }
+    .metric-bar-row .bar-fill.cpu { background: linear-gradient(90deg, #6366f1, #8b5cf6); }
+    .metric-bar-row .bar-fill.memory { background: linear-gradient(90deg, #06b6d4, #22d3ee); }
+    .metric-bar-row .bar-fill.disk { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+    .metric-bar-row .value {
+      width: 45px;
+      text-align: right;
+      font-size: 0.85em;
+      font-weight: 600;
+    }
+    .chart-container {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .chart-container h3 {
+      margin: 0 0 16px 0;
+      font-size: 1em;
+      font-weight: 500;
+    }
+    .chart-canvas {
+      width: 100%;
+      height: 200px;
+      position: relative;
+    }
+    .chart-canvas canvas {
+      width: 100% !important;
+      height: 100% !important;
+    }
+    .api-keys-section {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .api-keys-section h3 {
+      margin: 0 0 16px 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .key-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      margin-bottom: 8px;
+    }
+    .key-row .key-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .key-row .key-prefix {
+      font-family: monospace;
+      font-size: 0.9em;
+      color: #6366f1;
+    }
+    .key-row .key-label {
+      font-size: 0.8em;
+      color: var(--color-muted);
+    }
+    .key-row .key-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .new-key-display {
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 16px;
+      display: none;
+    }
+    .new-key-display code {
+      display: block;
+      background: rgba(0,0,0,0.2);
+      padding: 10px;
+      border-radius: 6px;
+      font-size: 0.85em;
+      word-break: break-all;
+      margin: 8px 0;
+    }
+    .install-command {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .install-command h3 {
+      margin: 0 0 12px 0;
+      font-size: 1em;
+    }
+    .install-command pre {
+      background: rgba(0,0,0,0.3);
+      padding: 16px;
+      border-radius: 8px;
+      overflow-x: auto;
+      font-size: 0.85em;
+      color: #10b981;
+      margin: 0;
+    }
+    .no-servers {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--color-muted);
+    }
+    .no-servers .icon {
+      font-size: 3em;
+      margin-bottom: 16px;
+    }
+    .time-filter {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    .time-filter button {
+      padding: 6px 14px;
+      border-radius: 6px;
+      border: 1px solid var(--border-color);
+      background: transparent;
+      color: var(--color-text);
+      cursor: pointer;
+      font-size: 0.8em;
+      transition: all 0.2s;
+    }
+    .time-filter button.active {
+      background: #6366f1;
+      border-color: #6366f1;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <div class="glass-bg"></div>
+  
+  <div class="container">
+    <header class="app-header">
+      <div class="logo-area">
+        <span class="logo-icon">🖥️</span>
+        <h1>Server Metrics</h1>
+      </div>
+      <div class="header-actions">
+        <a href="/" class="btn btn-secondary">
+          <span class="icon">🏠</span> Dashboard
+        </a>
+        <button id="theme-toggle" class="btn btn-secondary" style="padding: 10px; border-radius: 50%; width: 40px; height: 40px; justify-content: center;" title="Toggle Theme">
+          <span class="icon">☀️</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- API Keys Section -->
+    <section class="api-keys-section">
+      <h3>
+        <span>🔑 API Keys</span>
+        <button id="btn-create-key" class="btn btn-primary" style="padding: 8px 16px; font-size: 0.85em;">+ Generate Key</button>
+      </h3>
+      <div id="new-key-display" class="new-key-display">
+        <strong>⚠️ Save this key now — it won't be shown again!</strong>
+        <code id="new-key-value"></code>
+        <button id="btn-copy-key" class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.8em;">📋 Copy</button>
+      </div>
+      <div id="keys-list"></div>
+    </section>
+
+    <!-- Install Command -->
+    <section class="install-command">
+      <h3>📦 Install Agent on Your Server</h3>
+      <p style="color: var(--color-muted); font-size: 0.9em; margin: 0 0 12px 0;">
+        Run this on any Linux server you want to monitor. The agent pushes CPU, RAM, disk, load, and network metrics every 60 seconds.
+      </p>
+      <pre id="install-cmd">curl -sSL <span id="install-url"></span>/install-agent.sh | bash -s YOUR_API_KEY</pre>
+    </section>
+
+    <!-- Server Cards -->
+    <section id="servers-grid" class="metrics-grid"></section>
+
+    <!-- Charts -->
+    <div id="charts-section" style="display: none;">
+      <div class="time-filter">
+        <button class="active" data-hours="1">1H</button>
+        <button data-hours="6">6H</button>
+        <button data-hours="24">24H</button>
+        <button data-hours="168">7D</button>
+      </div>
+      <div class="chart-container">
+        <h3>📈 CPU Usage (%)</h3>
+        <div class="chart-canvas"><canvas id="chart-cpu"></canvas></div>
+      </div>
+      <div class="chart-container">
+        <h3>🧠 Memory Usage (%)</h3>
+        <div class="chart-canvas"><canvas id="chart-memory"></canvas></div>
+      </div>
+      <div class="chart-container">
+        <h3>💾 Disk Usage (%)</h3>
+        <div class="chart-canvas"><canvas id="chart-disk"></canvas></div>
+      </div>
+      <div class="chart-container">
+        <h3>⚡ Load Average</h3>
+        <div class="chart-canvas"><canvas id="chart-load"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="servers.js"></script>
+</body>
+</html>

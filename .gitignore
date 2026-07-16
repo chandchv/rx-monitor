@@ -37,3 +37,6 @@ Thumbs.db
 *.sublime-project
 *.sublime-workspace
 .history/
+
+# Environment
+.env

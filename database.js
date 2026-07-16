@@ -28,6 +28,29 @@ async function initSchema() {
       value TEXT
     );
 
+    CREATE TABLE IF NOT EXISTS users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      email TEXT UNIQUE NOT NULL,
+      password TEXT,
+      role TEXT DEFAULT 'user',
+      is_verified INTEGER DEFAULT 0,
+      verification_token TEXT,
+      google_id TEXT,
+      subscription_tier TEXT DEFAULT 'free',
+      created_at TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS payments (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER,
+      order_id TEXT,
+      payment_id TEXT,
+      amount INTEGER,
+      status TEXT,
+      created_at TEXT,
+      FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+    );
+
     CREATE TABLE IF NOT EXISTS monitors (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,
@@ -73,7 +96,9 @@ async function initSchema() {
     { name: 'is_public', type: 'INTEGER DEFAULT 0' },
     { name: 'is_maintenance', type: 'INTEGER DEFAULT 0' },
     { name: 'max_retries', type: 'INTEGER DEFAULT 3' },
-    { name: 'current_fails', type: 'INTEGER DEFAULT 0' }
+    { name: 'current_fails', type: 'INTEGER DEFAULT 0' },
+    { name: 'user_id', type: 'INTEGER REFERENCES users(id) ON DELETE CASCADE' },
+    { name: 'visitor_id', type: 'TEXT' }
   ];
 
   for (const col of columns) {
@@ -98,7 +123,9 @@ async function initSchema() {
     { key: 'email_recipient', value: '' },
     { key: 'custom_domain', value: '' },
     { key: 'daily_report_enabled', value: 'false' },
-    { key: 'daily_report_time', value: '09:00' }
+    { key: 'daily_report_time', value: '09:00' },
+    { key: 'razorpay_key_id', value: '' },
+    { key: 'razorpay_key_secret', value: '' }
   ];
 
   for (const setting of defaultSettings) {

@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RxMonitor - Admin Dashboard</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="theme.js"></script>
+</head>
+<body>
+  <div class="glass-bg"></div>
+  
+  <div class="container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="logo-area">
+        <span class="logo-icon">🛡️</span>
+        <h1>Admin Control Panel</h1>
+      </div>
+      <div class="header-actions">
+        <a href="/" class="btn btn-secondary">
+          <span class="icon">🏠</span> Back to Dashboard
+        </a>
+        <button id="theme-toggle" class="btn btn-secondary" style="padding: 10px; border-radius: 50%; width: 40px; height: 40px; justify-content: center;" title="Toggle Theme">
+          <span class="icon">☀️</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Admin Stats Grid -->
+    <section class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-info">
+          <h3>Total Users</h3>
+          <p id="admin-stat-users" class="stat-val">0</p>
+        </div>
+        <div class="stat-icon bg-blue">👥</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-info">
+          <h3>Premium Subscriptions</h3>
+          <p id="admin-stat-premium" class="stat-val text-green">0</p>
+        </div>
+        <div class="stat-icon bg-green">⭐</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-info">
+          <h3>Total Revenue</h3>
+          <p id="admin-stat-revenue" class="stat-val text-green">₹0</p>
+        </div>
+        <div class="stat-icon bg-green">💳</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-info">
+          <h3>Total Monitors</h3>
+          <p id="admin-stat-monitors" class="stat-val">0</p>
+        </div>
+        <div class="stat-icon bg-blue">📡</div>
+      </div>
+    </section>
+
+    <!-- Users Management Card -->
+    <main class="dashboard-main">
+      <div class="card">
+        <div class="card-header">
+          <h2>Registered Accounts</h2>
+          <button id="btn-refresh-users" class="btn btn-icon" title="Refresh list">🔄</button>
+        </div>
+        
+        <div class="table-container" style="max-height: 600px;">
+          <table class="logs-table" style="font-size: 14px;">
+            <thead>
+              <tr>
+                <th>Registered At</th>
+                <th>Email</th>
+                <th>Role</th>
+                <th>Verified</th>
+                <th>Subscription Tier</th>
+                <th>Monitors Count</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="users-list-tbody">
+              <tr>
+                <td colspan="7" style="text-align: center; color: var(--color-muted); padding: 30px;">Loading users list...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Edit User Modal -->
+  <div id="modal-edit-user" class="modal">
+    <div class="modal-content glass-card">
+      <div class="modal-header">
+        <h3>Edit User Settings</h3>
+        <button class="close-modal">&times;</button>
+      </div>
+      <form id="edit-user-form">
+        <input type="hidden" id="edit-user-id">
+        <div class="form-group">
+          <label for="edit-user-email">User Email</label>
+          <input type="text" id="edit-user-email" disabled style="opacity: 0.7;">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="edit-user-role">Account Role</label>
+            <select id="edit-user-role">
+              <option value="user">User</option>
+              <option value="admin">Admin</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="edit-user-tier">Subscription Tier</label>
+            <select id="edit-user-tier">
+              <option value="free">Free (Limit 5)</option>
+              <option value="premium">Premium (Unlimited)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="edit-user-verified">Email Verification Status</label>
+            <select id="edit-user-verified">
+              <option value="0">Unverified</option>
+              <option value="1">Verified</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary close-modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="toast"></div>
+
+  <script src="admin.js"></script>
+</body>
+</html>

@@ -10,33 +10,150 @@
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="theme.js"></script>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 </head>
 <body>
   <div class="glass-bg"></div>
   
   <div class="container">
-    <!-- Header -->
+    <!-- Header / Navbar -->
     <header class="app-header">
       <div class="logo-area">
         <span class="logo-icon">📡</span>
         <h1>RxMonitor</h1>
         <span class="badge">Active</span>
       </div>
-      <div class="header-actions">
-        <button id="theme-toggle" class="btn btn-secondary" style="padding: 10px; border-radius: 50%; width: 40px; height: 40px; justify-content: center;" title="Toggle Light/Dark Mode">
-          <span class="icon">☀️</span>
-        </button>
-        <a href="/logs.html" class="btn btn-secondary">
-          <span class="icon">📋</span> System Info & Logs
+
+      <!-- Center Nav Links -->
+      <nav class="header-nav">
+        <a href="/" class="nav-link active">
+          <span class="nav-icon">🖥️</span> Dashboard
         </a>
-        <button id="btn-settings" class="btn btn-secondary">
-          <span class="icon">⚙️</span> Settings
-        </button>
+        <a href="/logs.html" class="nav-link">
+          <span class="nav-icon">📋</span> System Logs
+        </a>
+        <a href="/status.html" class="nav-link">
+          <span class="nav-icon">🌐</span> Status Page
+        </a>
+        <a id="nav-admin" href="/admin.html" class="nav-link" style="display:none;">
+          <span class="nav-icon">🛡️</span> Admin
+        </a>
+      </nav>
+
+      <!-- Right-side controls -->
+      <div class="header-actions">
         <button id="btn-add-monitor" class="btn btn-primary">
           <span class="icon">➕</span> Add Monitor
         </button>
+
+        <!-- Theme toggle -->
+        <button id="theme-toggle" class="btn btn-icon-round" title="Toggle theme">
+          <span class="icon">☀️</span>
+        </button>
+
+        <!-- Upgrade badge (free users) -->
+        <button id="btn-upgrade" class="btn btn-upgrade" style="display:none;" title="Upgrade to Premium">
+          <span>⭐</span> Upgrade
+        </button>
+
+        <!-- User Avatar + Dropdown -->
+        <div class="user-menu" id="user-menu" style="display:none;">
+          <button class="user-avatar-btn" id="user-avatar-btn" aria-haspopup="true" aria-expanded="false">
+            <span class="user-avatar-icon" id="user-avatar-icon">👤</span>
+            <span class="user-avatar-email" id="user-greeting"></span>
+            <span class="dropdown-caret">▾</span>
+          </button>
+          <div class="user-dropdown" id="user-dropdown">
+            <div class="dropdown-header">
+              <span id="dropdown-email" class="dropdown-email"></span>
+              <span id="dropdown-tier" class="dropdown-tier-badge"></span>
+            </div>
+            <hr class="dropdown-divider">
+            <button id="btn-settings" class="dropdown-item">
+              <span>⚙️</span> Settings
+            </button>
+            <a id="dropdown-admin" href="/admin.html" class="dropdown-item" style="display:none;">
+              <span>🛡️</span> Admin Panel
+            </a>
+            <hr class="dropdown-divider">
+            <button id="btn-logout" class="dropdown-item dropdown-item-danger">
+              <span>🚪</span> Sign Out
+            </button>
+          </div>
+        </div>
+
+        <!-- Sign In button (guests) -->
+        <button id="btn-login-trigger" class="btn btn-secondary">
+          <span class="icon">🔑</span> Sign In
+        </button>
+
+        <!-- Hamburger (mobile only) -->
+        <button id="btn-hamburger" class="btn btn-icon-round hamburger-btn" title="Menu" aria-label="Open navigation menu" aria-expanded="false">
+          <span class="hamburger-icon">
+            <span></span><span></span><span></span>
+          </span>
+        </button>
       </div>
     </header>
+
+    <!-- Mobile Drawer Overlay -->
+    <div id="mobile-overlay" class="mobile-overlay"></div>
+
+    <!-- Mobile Drawer -->
+    <div id="mobile-drawer" class="mobile-drawer" aria-hidden="true">
+      <div class="mobile-drawer-header">
+        <div class="logo-area" style="gap:8px;">
+          <span class="logo-icon" style="font-size:22px;">📡</span>
+          <span style="font-weight:700; font-size:18px;">RxMonitor</span>
+        </div>
+        <button id="btn-drawer-close" class="btn btn-icon-round" aria-label="Close menu">✕</button>
+      </div>
+
+      <!-- User info strip -->
+      <div id="drawer-user-strip" class="drawer-user-strip" style="display:none;">
+        <div class="drawer-user-avatar">👤</div>
+        <div class="drawer-user-info">
+          <span id="drawer-username" class="drawer-username"></span>
+          <span id="drawer-usertier" class="drawer-usertier"></span>
+        </div>
+      </div>
+
+      <nav class="drawer-nav">
+        <a href="/" class="drawer-nav-link active">
+          <span>🖥️</span> Dashboard
+        </a>
+        <a href="/logs.html" class="drawer-nav-link">
+          <span>📋</span> System Logs
+        </a>
+        <a href="/status.html" class="drawer-nav-link">
+          <span>🌐</span> Status Page
+        </a>
+        <a id="drawer-admin-link" href="/admin.html" class="drawer-nav-link" style="display:none;">
+          <span>🛡️</span> Admin Panel
+        </a>
+      </nav>
+
+      <div class="drawer-divider"></div>
+
+      <div class="drawer-actions">
+        <button id="drawer-btn-add" class="btn btn-primary" style="width:100%; justify-content:center;">
+          <span>➕</span> Add Monitor
+        </button>
+        <button id="drawer-btn-upgrade" class="drawer-upgrade-btn" style="display:none;">
+          <span>⭐</span> Upgrade to Premium
+        </button>
+        <button id="drawer-btn-settings" class="drawer-nav-link" style="width:100%;border:none;cursor:pointer;">
+          <span>⚙️</span> Settings
+        </button>
+        <button id="drawer-btn-login" class="drawer-nav-link" style="width:100%;border:none;cursor:pointer;display:none;">
+          <span>🔑</span> Sign In
+        </button>
+        <button id="drawer-btn-logout" class="drawer-nav-link drawer-logout" style="width:100%;border:none;cursor:pointer;display:none;">
+          <span>🚪</span> Sign Out
+        </button>
+      </div>
+    </div>
 
     <!-- Stats Summary -->
     <section class="stats-grid">
@@ -347,6 +464,60 @@
       <div class="modal-footer">
         <button class="btn btn-secondary close-modal">Close</button>
       </div>
+    </div>
+  </div>
+
+  <!-- Auth Modal -->
+  <div id="modal-auth" class="modal">
+    <div class="modal-content glass-card" style="max-width: 400px;">
+      <div class="modal-header" style="padding-bottom: 10px;">
+        <h3 id="auth-modal-title">Account Access</h3>
+        <button class="close-modal">&times;</button>
+      </div>
+      <div class="tabs" style="margin-bottom: 15px;">
+        <button class="tab-btn active" data-auth-tab="signin-form" style="border-bottom: 2px solid var(--color-primary);">Sign In</button>
+        <button class="tab-btn" data-auth-tab="signup-form">Sign Up</button>
+      </div>
+      
+      <!-- Sign In Tab -->
+      <form id="signin-form" class="auth-tab-pane active" style="padding: 10px 24px 24px 24px;">
+        <div class="form-group" style="margin-bottom: 15px;">
+          <label for="signin-email">Email Address</label>
+          <input type="email" id="signin-email" required placeholder="name@example.com">
+        </div>
+        <div class="form-group" style="margin-bottom: 20px;">
+          <label for="signin-password">Password</label>
+          <input type="password" id="signin-password" required placeholder="••••••••">
+        </div>
+        <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center; margin-bottom: 15px;">Sign In</button>
+        
+        <div style="text-align: center; margin-bottom: 15px; font-size: 12px; color: var(--color-muted); position: relative;">
+          <span style="background: var(--bg-surface); padding: 0 10px; position: relative; z-index: 2;">or connect with</span>
+          <div style="position: absolute; top: 50%; left: 0; right: 0; border-top: 1px solid var(--border-color); z-index: 1;"></div>
+        </div>
+
+        <!-- Google Sign-In button container -->
+        <div style="display: flex; justify-content: center;">
+          <div id="google-signin-btn"></div>
+        </div>
+      </form>
+
+      <!-- Sign Up Tab -->
+      <form id="signup-form" class="auth-tab-pane" style="display: none; padding: 10px 24px 24px 24px;">
+        <div class="form-group" style="margin-bottom: 15px;">
+          <label for="signup-email">Email Address</label>
+          <input type="email" id="signup-email" required placeholder="name@example.com">
+        </div>
+        <div class="form-group" style="margin-bottom: 15px;">
+          <label for="signup-password">Password</label>
+          <input type="password" id="signup-password" required placeholder="••••••••">
+        </div>
+        <div class="form-group" style="margin-bottom: 20px;">
+          <label for="signup-confirm-password">Confirm Password</label>
+          <input type="password" id="signup-confirm-password" required placeholder="••••••••">
+        </div>
+        <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center;">Sign Up & Verify</button>
+      </form>
     </div>
   </div>
 

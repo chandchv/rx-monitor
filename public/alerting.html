@@ -246,7 +246,7 @@
           <div class="form-group">
             <label for="mw-recurrence">Recurrence</label>
             <select id="mw-recurrence">
-              <option value="none">One-time</option>
+              <option value="once">One-time</option>
               <option value="daily">Daily</option>
               <option value="weekly">Weekly</option>
               <option value="monthly">Monthly</option>
@@ -580,7 +580,7 @@
         return;
       }
       tbody.innerHTML = maintenanceWindows.map(w => {
-        const recBadge = w.recurrence === 'none'
+        const recBadge = w.recurrence === 'once'
           ? '<span class="badge" style="background:rgba(99,102,241,0.15);color:#818cf8;border-color:rgba(99,102,241,0.3);">One-time</span>'
           : `<span class="badge">${escapeHTML(w.recurrence)}</span>`;
         return `<tr>
@@ -615,7 +615,7 @@
       document.getElementById('mw-start').value = w.start_time ? w.start_time.slice(0, 16) : '';
       document.getElementById('mw-end').value = w.end_time ? w.end_time.slice(0, 16) : '';
       document.getElementById('mw-timezone').value = w.timezone || 'UTC';
-      document.getElementById('mw-recurrence').value = w.recurrence || 'none';
+      document.getElementById('mw-recurrence').value = w.recurrence || 'once';
       openModal('modal-maintenance');
     }
 

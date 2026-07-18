@@ -245,7 +245,13 @@
       try {
         const res = await fetch('/api/status-incidents', { headers: getRequestHeaders() });
         if (!res.ok) throw new Error('Failed to load incidents');
-        allIncidents = await res.json();
+        const data = await res.json();
+        // API returns { active, resolved } object — combine into flat array
+        if (Array.isArray(data)) {
+          allIncidents = data;
+        } else {
+          allIncidents = [...(data.active || []), ...(data.resolved || [])];
+        }
         renderActiveIncidents();
         renderIncidentsTable();
         renderHistory();

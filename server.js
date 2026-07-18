@@ -2319,7 +2319,7 @@ app.get('/api/escalation-policies', requireAuth, async (req, res) => {
     if (monitorId) {
       policies = await db.all('SELECT * FROM escalation_policies WHERE monitor_id = ?', [monitorId]);
     } else {
-      policies = await db.all('SELECT * FROM escalation_policies WHERE created_by = ?', [req.user.id]);
+      policies = await db.all('SELECT * FROM escalation_policies');
     }
 
     for (const policy of policies) {
@@ -2596,8 +2596,8 @@ app.post('/api/oncall-teams', requireAuth, async (req, res) => {
 
     const db = await getDb();
     const result = await db.run(
-      'INSERT INTO oncall_teams (name, rotation_interval_hours, rotation_start_time, created_by) VALUES (?, ?, ?, ?)',
-      [name, rotation_interval_hours || 168, rotation_start_time || new Date().toISOString(), req.user.id]
+      'INSERT INTO oncall_teams (name, rotation_interval_hours, rotation_start_time, created_at) VALUES (?, ?, ?, ?)',
+      [name, rotation_interval_hours || 168, rotation_start_time || new Date().toISOString(), new Date().toISOString()]
     );
 
     res.status(201).json({ id: result.lastID });
@@ -2609,9 +2609,10 @@ app.post('/api/oncall-teams', requireAuth, async (req, res) => {
 app.get('/api/oncall-teams', requireAuth, async (req, res) => {
   try {
     const db = await getDb();
-    const teams = await db.all('SELECT * FROM oncall_teams WHERE created_by = ?', [req.user.id]);
+    const teams = await db.all('SELECT * FROM oncall_teams');
     for (const team of teams) {
       team.members = await db.all('SELECT * FROM oncall_members WHERE team_id = ? ORDER BY position ASC', [team.id]);
+      team.member_count = team.members.length;
     }
     res.json(teams);
   } catch (err) {

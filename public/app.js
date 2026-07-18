@@ -195,6 +195,7 @@ function init() {
   // Set up auto-refresh every 20 seconds
   setInterval(fetchMonitors, 20000);
   setupEventListeners();
+  initWebSocket();
 }
 
 function updateAuthUI() {
@@ -327,6 +328,24 @@ function switchTab(targetId) {
 }
 
 function setupEventListeners() {
+  // Nav dropdown toggle for touch devices
+  document.querySelectorAll('.nav-dropdown-trigger').forEach(trigger => {
+    trigger.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const dropdown = trigger.closest('.nav-dropdown');
+      const menu = dropdown.querySelector('.nav-dropdown-menu');
+      // Close all other open dropdowns
+      document.querySelectorAll('.nav-dropdown-menu.is-open').forEach(m => {
+        if (m !== menu) m.classList.remove('is-open');
+      });
+      menu.classList.toggle('is-open');
+    });
+  });
+  // Close nav dropdowns on outside click
+  document.addEventListener('click', () => {
+    document.querySelectorAll('.nav-dropdown-menu.is-open').forEach(m => m.classList.remove('is-open'));
+  });
+
   // Modal close buttons
   document.querySelectorAll('.close-modal').forEach(btn => {
     btn.addEventListener('click', (e) => {
@@ -976,4 +995,88 @@ function escapeHTML(str) {
       '"': '&quot;'
     }[tag] || tag)
   );
+}
+
+// === WebSocket Real-time Connection ===
+function initWebSocket() {
+  let ws = null;
+  let reconnectAttempts = 0;
+  const maxAttempts = 10;
+  const maxDelay = 30000; // 30s max backoff
+
+  function connect() {
+    try {
+      ws = new WebSocket(`ws://${window.location.host}`);
+    } catch (err) {
+      scheduleReconnect();
+      return;
+    }
+
+    ws.addEventListener('open', () => {
+      reconnectAttempts = 0;
+      // Subscribe to all monitor events
+      ws.send(JSON.stringify({ action: 'subscribe', monitors: 'all' }));
+    });
+
+    ws.addEventListener('message', (event) => {
+      try {
+        const msg = JSON.parse(event.data);
+        handleWsMessage(msg);
+      } catch (err) {
+        // Ignore malformed messages
+      }
+    });
+
+    ws.addEventListener('close', () => {
+      scheduleReconnect();
+    });
+
+    ws.addEventListener('error', () => {
+      if (ws) ws.close();
+    });
+  }
+
+  function handleWsMessage(msg) {
+    if (msg.type === 'check_result' || msg.event === 'check_result') {
+      // Update the specific monitor's response time and status in the dashboard list
+      const data = msg.data || msg;
+      const monitorId = data.monitor_id || data.monitorId;
+      if (!monitorId) return;
+
+      const monitorItem = document.querySelector(`.monitor-item[data-id="${monitorId}"]`);
+      if (monitorItem) {
+        // Update response time
+        const respTimeEl = monitorItem.querySelector('.resp-time');
+        if (respTimeEl && data.response_time != null) {
+          respTimeEl.textContent = data.response_time + ' ms';
+        }
+
+        // Update status dot
+        const status = (data.status || '').toLowerCase();
+        if (status) {
+          const statusDot = monitorItem.querySelector('.status-dot');
+          const statusPulse = monitorItem.querySelector('.status-pulse');
+          if (statusDot) {
+            statusDot.className = 'status-dot ' + status;
+          }
+          if (statusPulse) {
+            statusPulse.className = 'status-pulse ' + status;
+          }
+        }
+      }
+    } else if (msg.type === 'status_change' || msg.event === 'status_change') {
+      // Full refresh on status change
+      fetchMonitors();
+    }
+  }
+
+  function scheduleReconnect() {
+    if (reconnectAttempts >= maxAttempts) return;
+    // Exponential backoff: 1s, 2s, 4s, 8s, 16s, 30s, 30s...
+    const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), maxDelay);
+    reconnectAttempts++;
+    setTimeout(connect, delay);
+  }
+
+  connect();
 }

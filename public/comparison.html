@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RxMonitor - Compare Monitors</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="theme.js"></script>
+</head>
+<body>
+  <div class="glass-bg"></div>
+
+  <div class="container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="logo-area">
+        <span class="logo-icon">⚖️</span>
+        <h1>Compare Monitors</h1>
+      </div>
+
+      <nav class="header-nav">
+        <a href="/" class="nav-link">
+          <span class="nav-icon">🖥️</span> Dashboard
+        </a>
+        <a href="/servers.html" class="nav-link">
+          <span class="nav-icon">📊</span> Servers
+        </a>
+        <a href="/logs.html" class="nav-link">
+          <span class="nav-icon">📋</span> System Logs
+        </a>
+        <a href="/status.html" class="nav-link">
+          <span class="nav-icon">🌐</span> Status Page
+        </a>
+        <a href="/alerting.html" class="nav-link">
+          <span class="nav-icon">🔔</span> Alerting
+        </a>
+        <a href="/incidents.html" class="nav-link">
+          <span class="nav-icon">⚠️</span> Incidents
+        </a>
+        <a href="/dashboards.html" class="nav-link">
+          <span class="nav-icon">📈</span> Dashboards
+        </a>
+        <a href="/comparison.html" class="nav-link active">
+          <span class="nav-icon">⚖️</span> Compare
+        </a>
+      </nav>
+
+      <div class="header-actions">
+        <button id="theme-toggle" class="btn btn-icon-round" title="Toggle theme">
+          <span class="icon">☀️</span>
+        </button>
+        <a href="/" class="btn btn-secondary">🏠 Back to Dashboard</a>
+      </div>
+    </header>
+
+    <!-- Controls -->
+    <div class="card" style="padding: 20px; margin-bottom: 24px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+        <div>
+          <h4 style="font-size: 14px; font-weight: 600; margin-bottom: 8px;">Select Monitors (2-10)</h4>
+          <div id="monitor-checkboxes" style="display: flex; flex-wrap: wrap; gap: 8px; max-height: 200px; overflow-y: auto;">
+            <span style="font-size: 12px; color: var(--color-muted);">Loading monitors...</span>
+          </div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 8px; align-items: flex-end;">
+          <div style="display: flex; gap: 6px;">
+            <button class="btn btn-secondary time-window-btn" data-window="1h" style="font-size: 11px; padding: 6px 12px;">1h</button>
+            <button class="btn btn-secondary time-window-btn active" data-window="24h" style="font-size: 11px; padding: 6px 12px; background: var(--color-primary); border-color: var(--color-primary); color: #fff;">24h</button>
+            <button class="btn btn-secondary time-window-btn" data-window="6h" style="font-size: 11px; padding: 6px 12px;">6h</button>
+            <button class="btn btn-secondary time-window-btn" data-window="7d" style="font-size: 11px; padding: 6px 12px;">7d</button>
+          </div>
+          <button id="btn-compare" class="btn btn-primary" style="font-size: 12px; padding: 8px 16px;">📊 Compare Selected</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Chart Area -->
+    <div class="card" style="padding: 20px; margin-bottom: 24px;">
+      <h4 style="font-size: 16px; font-weight: 600; margin-bottom: 12px;">Response Time Comparison</h4>
+      <div id="comparison-legend" style="display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 16px; font-size: 12px;"></div>
+      <div style="height: 400px; position: relative;">
+        <canvas id="comparisonChart"></canvas>
+      </div>
+      <div id="comparison-empty" style="display: flex; align-items: center; justify-content: center; height: 300px; color: var(--color-muted); font-size: 14px;">
+        Select 2-10 monitors above and click "Compare Selected" to view overlaid response times.
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="toast"></div>
+
+  <script>
+    const toastEl = document.getElementById('toast');
+    let comparisonChartInstance = null;
+    let currentWindow = '24h';
+
+    const LINE_COLORS = [
+      '#6366f1', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6',
+      '#ec4899', '#14b8a6', '#f97316', '#06b6d4', '#84cc16'
+    ];
+
+    function getRequestHeaders(includeBody = false) {
+      const headers = {};
+      const token = localStorage.getItem('rx-monitor-token');
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+      const visitorId = localStorage.getItem('rx-monitor-visitor-id');
+      if (visitorId) headers['X-Visitor-Id'] = visitorId;
+      if (includeBody) headers['Content-Type'] = 'application/json';
+      return headers;
+    }
+
+    function showToast(message, type = 'success') {
+      toastEl.textContent = message;
+      toastEl.className = `toast show toast-${type}`;
+      setTimeout(() => { toastEl.classList.remove('show'); }, 4000);
+    }
+
+    function escapeHTML(str) {
+      return str.replace(/[&<>'"]/g, tag => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[tag] || tag));
+    }
+
+    // Load monitors for checkboxes
+    async function loadMonitors() {
+      try {
+        const res = await fetch('/api/monitors', { headers: getRequestHeaders() });
+        if (!res.ok) throw new Error('Failed to load monitors');
+        const monitors = await res.json();
+        const container = document.getElementById('monitor-checkboxes');
+        if (monitors.length === 0) {
+          container.innerHTML = '<span style="font-size: 12px; color: var(--color-muted);">No monitors found.</span>';
+          return;
+        }
+        container.innerHTML = monitors.map(m => `
+          <label style="display: flex; align-items: center; gap: 6px; padding: 6px 12px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 6px; cursor: pointer; font-size: 12px; transition: all 0.15s;">
+            <input type="checkbox" class="monitor-checkbox" value="${m.id}" style="accent-color: var(--color-primary);">
+            <span>${escapeHTML(m.name)}</span>
+          </label>
+        `).join('');
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    }
+
+    // Time window buttons
+    document.querySelectorAll('.time-window-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.time-window-btn').forEach(b => {
+          b.style.background = '';
+          b.style.borderColor = '';
+          b.style.color = '';
+        });
+        btn.style.background = 'var(--color-primary)';
+        btn.style.borderColor = 'var(--color-primary)';
+        btn.style.color = '#fff';
+        currentWindow = btn.dataset.window;
+      });
+    });
+
+    // Compare button
+    document.getElementById('btn-compare').addEventListener('click', async () => {
+      const checked = document.querySelectorAll('.monitor-checkbox:checked');
+      const ids = Array.from(checked).map(c => c.value);
+
+      if (ids.length < 2) {
+        showToast('Please select at least 2 monitors to compare.', 'error');
+        return;
+      }
+      if (ids.length > 10) {
+        showToast('Maximum 10 monitors can be compared at once.', 'error');
+        return;
+      }
+
+      await loadComparison(ids, currentWindow);
+    });
+
+    async function loadComparison(monitorIds, timeWindow) {
+      const emptyEl = document.getElementById('comparison-empty');
+      const legendEl = document.getElementById('comparison-legend');
+      const canvas = document.getElementById('comparisonChart');
+
+      emptyEl.style.display = 'none';
+      canvas.style.display = 'block';
+
+      try {
+        const params = new URLSearchParams({ monitors: monitorIds.join(','), window: timeWindow });
+        const res = await fetch(`/api/monitors/comparison?${params.toString()}`, { headers: getRequestHeaders() });
+        if (!res.ok) throw new Error('Failed to fetch comparison data');
+        const data = await res.json();
+        const monitors = data.monitors || data || [];
+
+        // Build datasets
+        const datasets = monitors.map((m, idx) => {
+          const color = LINE_COLORS[idx % LINE_COLORS.length];
+          const points = (m.data || []).map(p => ({
+            x: new Date(p.timestamp || p.checked_at).getTime(),
+            y: p.response_time || p.avg_response_time || 0
+          }));
+          return {
+            label: m.name || `Monitor ${m.id}`,
+            data: points,
+            borderColor: color,
+            backgroundColor: color + '22',
+            borderWidth: 2,
+            tension: 0.3,
+            fill: false,
+            pointRadius: points.length > 50 ? 0 : 3,
+            pointBackgroundColor: color
+          };
+        });
+
+        // Render legend
+        legendEl.innerHTML = datasets.map(ds => `
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <span style="width: 12px; height: 12px; border-radius: 2px; background: ${ds.borderColor}; display: inline-block;"></span>
+            <span style="color: var(--color-text);">${escapeHTML(ds.label)}</span>
+          </div>
+        `).join('');
+
+        // Render chart
+        if (comparisonChartInstance) comparisonChartInstance.destroy();
+
+        const ctx = canvas.getContext('2d');
+        comparisonChartInstance = new Chart(ctx, {
+          type: 'line',
+          data: { datasets },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  title: (items) => new Date(items[0].raw.x).toLocaleString(),
+                  label: (item) => `${item.dataset.label}: ${item.raw.y} ms`
+                }
+              }
+            },
+            scales: {
+              x: {
+                type: 'linear',
+                display: true,
+                grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                ticks: {
+                  color: '#94a3b8',
+                  font: { family: 'Outfit', size: 10 },
+                  callback: (value) => {
+                    const d = new Date(value);
+                    return timeWindow === '7d'
+                      ? d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+                      : d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+                  }
+                }
+              },
+              y: {
+                display: true,
+                grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                ticks: {
+                  color: '#94a3b8',
+                  font: { family: 'Outfit', size: 10 },
+                  callback: (v) => v + ' ms'
+                },
+                title: { display: true, text: 'Response Time (ms)', color: '#94a3b8', font: { family: 'Outfit', size: 11 } }
+              }
+            }
+          }
+        });
+      } catch (err) {
+        showToast(err.message, 'error');
+        emptyEl.style.display = 'flex';
+        emptyEl.textContent = 'Error loading comparison data.';
+        canvas.style.display = 'none';
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      loadMonitors();
+      // Initially hide canvas until comparison is run
+      document.getElementById('comparisonChart').style.display = 'none';
+    });
+  </script>
+</body>
+</html>

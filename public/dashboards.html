@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RxMonitor - Custom Dashboards</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="theme.js"></script>
+  <style>
+    .dashboard-layout {
+      display: grid;
+      grid-template-columns: 260px 1fr;
+      gap: 24px;
+      min-height: 500px;
+    }
+    .sidebar {
+      background: var(--bg-surface);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+      align-self: start;
+      position: sticky;
+      top: 100px;
+    }
+    .sidebar h3 {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--color-muted);
+      margin-bottom: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .dashboard-list {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      margin-bottom: 16px;
+    }
+    .dashboard-list-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 12px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--color-muted);
+      transition: all 0.2s ease;
+      border: 1px solid transparent;
+    }
+    .dashboard-list-item:hover {
+      background: rgba(255,255,255,0.05);
+      color: var(--color-text);
+    }
+    .dashboard-list-item.active {
+      background: rgba(99, 102, 241, 0.15);
+      color: var(--color-primary);
+      border-color: rgba(99, 102, 241, 0.25);
+    }
+    .dashboard-list-item .item-actions {
+      display: flex;
+      gap: 4px;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+    .dashboard-list-item:hover .item-actions {
+      opacity: 1;
+    }
+    .dashboard-list-item .item-actions button {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 12px;
+      padding: 2px 4px;
+      border-radius: 4px;
+    }
+    .dashboard-list-item .item-actions button:hover {
+      background: rgba(255,255,255,0.1);
+    }
+    .widget-grid {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 16px;
+      auto-rows: minmax(120px, auto);
+    }
+    .widget-card {
+      background: var(--bg-surface);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.2s ease;
+    }
+    .widget-card:hover {
+      border-color: rgba(255,255,255,0.15);
+    }
+    .widget-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .widget-header .widget-type-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--color-muted);
+    }
+    .widget-header .widget-delete-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 14px;
+      color: var(--color-muted);
+      padding: 4px;
+      border-radius: 6px;
+      opacity: 0;
+      transition: all 0.2s;
+    }
+    .widget-card:hover .widget-delete-btn {
+      opacity: 1;
+    }
+    .widget-delete-btn:hover {
+      background: var(--color-error-bg);
+      color: var(--color-error);
+    }
+    .widget-body {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      color: var(--color-muted);
+    }
+    .widget-body .widget-value {
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--color-text);
+    }
+    @media (max-width: 900px) {
+      .dashboard-layout {
+        grid-template-columns: 1fr;
+      }
+      .sidebar {
+        position: static;
+      }
+      .widget-grid {
+        grid-template-columns: repeat(6, 1fr);
+      }
+    }
+    @media (max-width: 600px) {
+      .widget-grid {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="glass-bg"></div>
+
+  <div class="container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="logo-area">
+        <span class="logo-icon">📈</span>
+        <h1>Custom Dashboards</h1>
+      </div>
+
+      <nav class="header-nav">
+        <a href="/" class="nav-link"><span class="nav-icon">🖥️</span> Dashboard</a>
+        <a href="/servers.html" class="nav-link"><span class="nav-icon">📊</span> Servers</a>
+        <a href="/logs.html" class="nav-link"><span class="nav-icon">📋</span> System Logs</a>
+        <a href="/status.html" class="nav-link"><span class="nav-icon">🌐</span> Status Page</a>
+        <a href="/alerting.html" class="nav-link"><span class="nav-icon">🔔</span> Alerting</a>
+        <a href="/incidents.html" class="nav-link"><span class="nav-icon">⚠️</span> Incidents</a>
+        <a href="/dashboards.html" class="nav-link active"><span class="nav-icon">📈</span> Dashboards</a>
+        <a href="/admin.html" class="nav-link"><span class="nav-icon">⚙️</span> Admin</a>
+      </nav>
+
+      <div class="header-actions">
+        <button id="theme-toggle" class="btn btn-icon-round" title="Toggle theme">
+          <span class="icon">☀️</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Layout -->
+    <div class="dashboard-layout">
+      <!-- Sidebar -->
+      <aside class="sidebar">
+        <h3>📂 My Dashboards</h3>
+        <div id="dashboard-list" class="dashboard-list">
+          <div class="loading-state" style="padding: 20px; font-size: 12px;">Loading...</div>
+        </div>
+        <button id="btn-new-dashboard" class="btn btn-primary" style="width: 100%; justify-content: center;">➕ New Dashboard</button>
+        <p style="font-size: 11px; color: var(--color-muted); margin-top: 8px; text-align: center;">Max 10 dashboards</p>
+      </aside>
+
+      <!-- Main Content Area -->
+      <main>
+        <div id="dashboard-main-area">
+          <div class="card">
+            <div class="card-header" id="dashboard-header">
+              <h2 id="dashboard-title">Select a Dashboard</h2>
+              <div style="display: flex; gap: 8px;">
+                <button id="btn-add-widget" class="btn btn-primary" style="display: none;">➕ Add Widget</button>
+                <button id="btn-save-layout" class="btn btn-secondary" style="display: none;">💾 Save Layout</button>
+              </div>
+            </div>
+            <div id="widget-grid-container">
+              <div class="empty-state" style="padding: 60px 0;">
+                <p style="color: var(--color-muted); font-size: 15px;">Select or create a dashboard to get started.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+  </div><!-- end container -->
+
+  <!-- ============ MODAL: New Dashboard ============ -->
+  <div id="modal-new-dashboard" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="dashboard-modal-title">New Dashboard</h3>
+        <button class="close-modal">&times;</button>
+      </div>
+      <form id="dashboard-form" style="padding: 24px;">
+        <input type="hidden" id="dash-edit-id">
+        <div class="form-group">
+          <label for="dash-name">Dashboard Name</label>
+          <input type="text" id="dash-name" required maxlength="100" placeholder="e.g. Production Overview">
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary close-modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ============ MODAL: Add Widget ============ -->
+  <div id="modal-add-widget" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Add Widget</h3>
+        <button class="close-modal">&times;</button>
+      </div>
+      <form id="widget-form" style="padding: 24px;">
+        <div class="form-group">
+          <label for="widget-type">Widget Type</label>
+          <select id="widget-type" required>
+            <option value="monitor_status">Monitor Status</option>
+            <option value="response_chart">Response Chart</option>
+            <option value="heatmap">Heatmap</option>
+            <option value="apdex">Apdex Score</option>
+            <option value="sla">SLA Report</option>
+            <option value="error_rate">Error Rate</option>
+            <option value="comparison">Comparison</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="widget-monitor">Monitor (for monitor-specific widgets)</label>
+          <select id="widget-monitor">
+            <option value="">-- All / None --</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="widget-col-span">Column Span (1-12)</label>
+            <input type="number" id="widget-col-span" min="1" max="12" value="4" required>
+          </div>
+          <div class="form-group">
+            <label for="widget-row-span">Row Span (1-4)</label>
+            <input type="number" id="widget-row-span" min="1" max="4" value="2" required>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary close-modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Add Widget</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" class="toast"></div>
+
+  <script>
+    // ============ Helpers ============
+    function getRequestHeaders(includeBody = false) {
+      const headers = {};
+      const token = localStorage.getItem('rx-monitor-token');
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+      const visitorId = localStorage.getItem('rx-monitor-visitor-id');
+      if (visitorId) headers['X-Visitor-Id'] = visitorId;
+      if (includeBody) headers['Content-Type'] = 'application/json';
+      return headers;
+    }
+
+    const toastEl = document.getElementById('toast');
+    function showToast(message, type = 'success') {
+      toastEl.textContent = message;
+      toastEl.className = `toast show toast-${type}`;
+      setTimeout(() => toastEl.classList.remove('show'), 4000);
+    }
+
+    function escapeHTML(str) {
+      if (!str) return '';
+      return str.replace(/[&<>'"]/g, tag => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[tag] || tag));
+    }
+
+    // ============ Modal Helpers ============
+    function openModal(id) { document.getElementById(id).classList.add('active'); }
+    function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+
+    document.querySelectorAll('.close-modal').forEach(btn => {
+      btn.addEventListener('click', () => btn.closest('.modal').classList.remove('active'));
+    });
+    document.querySelectorAll('.modal').forEach(modal => {
+      modal.addEventListener('click', (e) => { if (e.target === modal) modal.classList.remove('active'); });
+    });
+
+    // ============ State ============
+    let dashboards = [];
+    let monitors = [];
+    let selectedDashboardId = null;
+    let currentWidgets = [];
+
+    // ============ Load Data ============
+    async function loadMonitors() {
+      try {
+        const res = await fetch('/api/monitors', { headers: getRequestHeaders() });
+        if (res.ok) monitors = await res.json();
+      } catch (e) { console.error(e); }
+    }
+
+    async function loadDashboards() {
+      try {
+        const res = await fetch('/api/dashboards', { headers: getRequestHeaders() });
+        if (!res.ok) throw new Error('Failed to load dashboards');
+        dashboards = await res.json();
+        renderDashboardList();
+      } catch (e) {
+        showToast(e.message, 'error');
+      }
+    }
+
+    function renderDashboardList() {
+      const container = document.getElementById('dashboard-list');
+      if (dashboards.length === 0) {
+        container.innerHTML = '<div style="text-align: center; padding: 16px; font-size: 12px; color: var(--color-muted);">No dashboards yet. Create one!</div>';
+        return;
+      }
+      container.innerHTML = dashboards.map(d => `
+        <div class="dashboard-list-item ${d.id === selectedDashboardId ? 'active' : ''}" onclick="selectDashboard(${d.id})">
+          <span>📊 ${escapeHTML(d.name)}</span>
+          <div class="item-actions">
+            <button onclick="event.stopPropagation(); renameDashboard(${d.id}, '${escapeHTML(d.name)}')" title="Rename">✏️</button>
+            <button onclick="event.stopPropagation(); deleteDashboard(${d.id})" title="Delete">🗑️</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // ============ Dashboard CRUD ============
+    document.getElementById('btn-new-dashboard').addEventListener('click', () => {
+      if (dashboards.length >= 10) {
+        showToast('Maximum 10 dashboards allowed', 'error');
+        return;
+      }
+      document.getElementById('dashboard-modal-title').textContent = 'New Dashboard';
+      document.getElementById('dashboard-form').reset();
+      document.getElementById('dash-edit-id').value = '';
+      openModal('modal-new-dashboard');
+    });
+
+    document.getElementById('dashboard-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const editId = document.getElementById('dash-edit-id').value;
+      const name = document.getElementById('dash-name').value.trim();
+      if (!name) return;
+
+      try {
+        if (editId) {
+          const res = await fetch(`/api/dashboards/${editId}`, {
+            method: 'PUT',
+            headers: getRequestHeaders(true),
+            body: JSON.stringify({ name })
+          });
+          if (!res.ok) throw new Error('Failed to rename dashboard');
+          showToast('Dashboard renamed');
+        } else {
+          const res = await fetch('/api/dashboards', {
+            method: 'POST',
+            headers: getRequestHeaders(true),
+            body: JSON.stringify({ name })
+          });
+          if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.error || 'Failed to create dashboard'); }
+          showToast('Dashboard created');
+        }
+        closeModal('modal-new-dashboard');
+        await loadDashboards();
+      } catch (e) { showToast(e.message, 'error'); }
+    });
+
+    function renameDashboard(id, currentName) {
+      document.getElementById('dashboard-modal-title').textContent = 'Rename Dashboard';
+      document.getElementById('dash-edit-id').value = id;
+      document.getElementById('dash-name').value = currentName;
+      openModal('modal-new-dashboard');
+    }
+
+    async function deleteDashboard(id) {
+      if (!confirm('Delete this dashboard and all its widgets?')) return;
+      try {
+        const res = await fetch(`/api/dashboards/${id}`, { method: 'DELETE', headers: getRequestHeaders() });
+        if (!res.ok) throw new Error('Failed to delete dashboard');
+        showToast('Dashboard deleted');
+        if (selectedDashboardId === id) {
+          selectedDashboardId = null;
+          renderEmptyMain();
+        }
+        await loadDashboards();
+      } catch (e) { showToast(e.message, 'error'); }
+    }
+
+    // ============ Select & Load Dashboard ============
+    async function selectDashboard(id) {
+      selectedDashboardId = id;
+      renderDashboardList();
+
+      const dash = dashboards.find(d => d.id === id);
+      document.getElementById('dashboard-title').textContent = dash ? dash.name : 'Dashboard';
+      document.getElementById('btn-add-widget').style.display = 'inline-flex';
+      document.getElementById('btn-save-layout').style.display = 'inline-flex';
+
+      // Load widgets
+      try {
+        const res = await fetch(`/api/dashboards/${id}/widgets`, { headers: getRequestHeaders() });
+        if (!res.ok) throw new Error('Failed to load widgets');
+        currentWidgets = await res.json();
+        renderWidgetGrid();
+      } catch (e) {
+        showToast(e.message, 'error');
+        currentWidgets = [];
+        renderWidgetGrid();
+      }
+    }
+
+    function renderEmptyMain() {
+      document.getElementById('dashboard-title').textContent = 'Select a Dashboard';
+      document.getElementById('btn-add-widget').style.display = 'none';
+      document.getElementById('btn-save-layout').style.display = 'none';
+      document.getElementById('widget-grid-container').innerHTML = '<div class="empty-state" style="padding: 60px 0;"><p style="color: var(--color-muted); font-size: 15px;">Select or create a dashboard to get started.</p></div>';
+    }
+
+    // ============ Widget Grid ============
+    function renderWidgetGrid() {
+      const container = document.getElementById('widget-grid-container');
+      if (currentWidgets.length === 0) {
+        container.innerHTML = '<div class="empty-state" style="padding: 60px 0;"><p style="color: var(--color-muted);">No widgets yet. Click "Add Widget" to get started.</p></div>';
+        return;
+      }
+
+      container.innerHTML = `<div class="widget-grid">${currentWidgets.map(w => {
+        const colSpan = w.col_span || 4;
+        const rowSpan = w.row_span || 2;
+        const colStart = w.col_start || 'auto';
+        const rowStart = w.row_start || 'auto';
+        const typeLabels = {
+          monitor_status: '🖥️ Monitor Status',
+          response_chart: '📈 Response Chart',
+          heatmap: '🗓️ Heatmap',
+          apdex: '🎯 Apdex Score',
+          sla: '📋 SLA Report',
+          error_rate: '🚨 Error Rate',
+          comparison: '⚖️ Comparison'
+        };
+        const label = typeLabels[w.widget_type] || w.widget_type;
+        const monitorName = w.monitor_id ? getMonitorName(w.monitor_id) : 'All';
+
+        return `
+          <div class="widget-card" style="grid-column: ${colStart} / span ${colSpan}; grid-row: ${rowStart} / span ${rowSpan};" data-widget-id="${w.id}">
+            <div class="widget-header">
+              <span class="widget-type-label">${label}</span>
+              <button class="widget-delete-btn" onclick="deleteWidget(${w.id})" title="Remove widget">✕</button>
+            </div>
+            <div class="widget-body" id="widget-body-${w.id}">
+              <div class="loading-state" style="font-size: 12px;">Loading...</div>
+            </div>
+            <div style="font-size: 10px; color: var(--color-muted); margin-top: 8px;">${escapeHTML(monitorName)}</div>
+          </div>
+        `;
+      }).join('')}</div>`;
+
+      // Load widget data
+      currentWidgets.forEach(w => loadWidgetData(w));
+    }
+
+    function getMonitorName(id) {
+      const m = monitors.find(x => x.id == id);
+      return m ? m.name : `Monitor #${id}`;
+    }
+
+    async function loadWidgetData(widget) {
+      const el = document.getElementById(`widget-body-${widget.id}`);
+      if (!el) return;
+
+      try {
+        let data = null;
+        const monId = widget.monitor_id;
+
+        switch (widget.widget_type) {
+          case 'monitor_status': {
+            if (!monId) { el.innerHTML = '<span class="widget-value" style="font-size: 18px;">Select a monitor</span>'; return; }
+            const res = await fetch(`/api/monitors/${monId}`, { headers: getRequestHeaders() });
+            if (res.ok) {
+              data = await res.json();
+              const status = data.status || 'UNKNOWN';
+              const color = status === 'UP' ? 'var(--color-success)' : status === 'DOWN' ? 'var(--color-error)' : 'var(--color-warning)';
+              el.innerHTML = `<div style="text-align:center;"><div class="widget-value" style="color:${color};">${status}</div><div style="font-size:12px;color:var(--color-muted);margin-top:4px;">${data.response_time || '-'}ms</div></div>`;
+            } else { el.innerHTML = '<span style="color:var(--color-error);">Failed to load</span>'; }
+            break;
+          }
+          case 'response_chart': {
+            if (!monId) { el.innerHTML = '<span style="font-size:12px;">No monitor selected</span>'; return; }
+            const res = await fetch(`/api/monitors/${monId}/analytics`, { headers: getRequestHeaders() });
+            if (res.ok) {
+              data = await res.json();
+              const avg = data.avg_response_time || data.averageResponseTime || '-';
+              el.innerHTML = `<div style="text-align:center;"><div class="widget-value">${avg}<span style="font-size:14px;color:var(--color-muted);">ms</span></div><div style="font-size:11px;color:var(--color-muted);margin-top:4px;">Avg Response Time</div></div>`;
+            } else { el.innerHTML = '<span style="color:var(--color-error);">Failed to load</span>'; }
+            break;
+          }
+          case 'apdex': {
+            if (!monId) { el.innerHTML = '<span style="font-size:12px;">No monitor selected</span>'; return; }
+            const res = await fetch(`/api/monitors/${monId}/analytics`, { headers: getRequestHeaders() });
+            if (res.ok) {
+              data = await res.json();
+              const apdex = data.apdex !== undefined ? data.apdex : (data.apdexScore || '-');
+              const apdexVal = parseFloat(apdex);
+              const color = apdexVal >= 0.9 ? 'var(--color-success)' : apdexVal >= 0.7 ? 'var(--color-warning)' : 'var(--color-error)';
+              el.innerHTML = `<div style="text-align:center;"><div class="widget-value" style="color:${color};">${typeof apdex === 'number' ? apdex.toFixed(2) : apdex}</div><div style="font-size:11px;color:var(--color-muted);margin-top:4px;">Apdex Score</div></div>`;
+            } else { el.innerHTML = '<span style="color:var(--color-error);">Failed to load</span>'; }
+            break;
+          }
+          case 'sla': {
+            if (!monId) { el.innerHTML = '<span style="font-size:12px;">No monitor selected</span>'; return; }
+            const res = await fetch(`/api/monitors/${monId}/sla`, { headers: getRequestHeaders() });
+            if (res.ok) {
+              data = await res.json();
+              const uptime = data.uptime_percentage || data.uptimePercentage || '-';
+              el.innerHTML = `<div style="text-align:center;"><div class="widget-value" style="color:var(--color-success);">${typeof uptime === 'number' ? uptime.toFixed(3) : uptime}%</div><div style="font-size:11px;color:var(--color-muted);margin-top:4px;">SLA Uptime</div></div>`;
+            } else { el.innerHTML = '<span style="color:var(--color-error);">Failed to load</span>'; }
+            break;
+          }
+          case 'error_rate': {
+            if (!monId) { el.innerHTML = '<span style="font-size:12px;">No monitor selected</span>'; return; }
+            const res = await fetch(`/api/monitors/${monId}/analytics`, { headers: getRequestHeaders() });
+            if (res.ok) {
+              data = await res.json();
+              const errRate = data.error_rate || data.errorRate || 0;
+              const color = errRate > 5 ? 'var(--color-error)' : errRate > 1 ? 'var(--color-warning)' : 'var(--color-success)';
+              el.innerHTML = `<div style="text-align:center;"><div class="widget-value" style="color:${color};">${typeof errRate === 'number' ? errRate.toFixed(1) : errRate}%</div><div style="font-size:11px;color:var(--color-muted);margin-top:4px;">Error Rate</div></div>`;
+            } else { el.innerHTML = '<span style="color:var(--color-error);">Failed to load</span>'; }
+            break;
+          }
+          case 'heatmap': {
+            el.innerHTML = '<div style="text-align:center;"><span style="font-size:24px;">🗓️</span><div style="font-size:11px;color:var(--color-muted);margin-top:4px;">Heatmap (view in detail)</div></div>';
+            break;
+          }
+          case 'comparison': {
+            el.innerHTML = '<div style="text-align:center;"><span style="font-size:24px;">⚖️</span><div style="font-size:11px;color:var(--color-muted);margin-top:4px;">Comparison (view in detail)</div></div>';
+            break;
+          }
+          default:
+            el.innerHTML = '<span style="color:var(--color-muted);">Unknown widget type</span>';
+        }
+      } catch (e) {
+        el.innerHTML = `<span style="color:var(--color-error);font-size:12px;">Error loading data</span>`;
+      }
+    }
+
+    // ============ Add Widget ============
+    document.getElementById('btn-add-widget').addEventListener('click', () => {
+      if (currentWidgets.length >= 20) {
+        showToast('Maximum 20 widgets per dashboard', 'error');
+        return;
+      }
+      document.getElementById('widget-form').reset();
+      // Populate monitor select
+      const sel = document.getElementById('widget-monitor');
+      sel.innerHTML = '<option value="">-- All / None --</option>' +
+        monitors.map(m => `<option value="${m.id}">${escapeHTML(m.name)}</option>`).join('');
+      openModal('modal-add-widget');
+    });
+
+    document.getElementById('widget-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const widgetType = document.getElementById('widget-type').value;
+      const monitorId = document.getElementById('widget-monitor').value || null;
+      const colSpan = parseInt(document.getElementById('widget-col-span').value);
+      const rowSpan = parseInt(document.getElementById('widget-row-span').value);
+
+      if (colSpan < 1 || colSpan > 12) { showToast('Column span must be 1-12', 'error'); return; }
+      if (rowSpan < 1 || rowSpan > 4) { showToast('Row span must be 1-4', 'error'); return; }
+
+      try {
+        const res = await fetch(`/api/dashboards/${selectedDashboardId}/widgets`, {
+          method: 'POST',
+          headers: getRequestHeaders(true),
+          body: JSON.stringify({
+            widget_type: widgetType,
+            monitor_id: monitorId ? parseInt(monitorId) : null,
+            col_span: colSpan,
+            row_span: rowSpan
+          })
+        });
+        if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.error || 'Failed to add widget'); }
+        showToast('Widget added');
+        closeModal('modal-add-widget');
+        await selectDashboard(selectedDashboardId);
+      } catch (e) { showToast(e.message, 'error'); }
+    });
+
+    // ============ Delete Widget ============
+    async function deleteWidget(widgetId) {
+      if (!confirm('Remove this widget?')) return;
+      try {
+        const res = await fetch(`/api/dashboards/${selectedDashboardId}/widgets/${widgetId}`, {
+          method: 'DELETE',
+          headers: getRequestHeaders()
+        });
+        if (!res.ok) throw new Error('Failed to delete widget');
+        showToast('Widget removed');
+        await selectDashboard(selectedDashboardId);
+      } catch (e) { showToast(e.message, 'error'); }
+    }
+
+    // ============ Save Layout ============
+    document.getElementById('btn-save-layout').addEventListener('click', async () => {
+      const widgetElements = document.querySelectorAll('.widget-card');
+      const layout = [];
+      widgetElements.forEach(el => {
+        const id = parseInt(el.dataset.widgetId);
+        const w = currentWidgets.find(x => x.id === id);
+        if (w) {
+          layout.push({
+            id: w.id,
+            col_start: w.col_start || null,
+            col_span: w.col_span || 4,
+            row_start: w.row_start || null,
+            row_span: w.row_span || 2
+          });
+        }
+      });
+
+      try {
+        const res = await fetch(`/api/dashboards/${selectedDashboardId}/layout`, {
+          method: 'PUT',
+          headers: getRequestHeaders(true),
+          body: JSON.stringify({ widgets: layout })
+        });
+        if (!res.ok) throw new Error('Failed to save layout');
+        showToast('Layout saved');
+      } catch (e) { showToast(e.message, 'error'); }
+    });
+
+    // ============ Init ============
+    document.addEventListener('DOMContentLoaded', async () => {
+      await loadMonitors();
+      await loadDashboards();
+    });
+  </script>
+</body>
+</html>

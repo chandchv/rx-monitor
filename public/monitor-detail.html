@@ -122,6 +122,188 @@
       </div>
     </div>
 
+    <!-- Advanced Monitoring Suite Sections -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px; margin-bottom: 24px;">
+      <!-- DNS Resolution Stats -->
+      <div class="card" style="padding: 20px;">
+        <h4 style="margin-bottom: 15px; font-size: 16px; font-weight: 600;">🌐 DNS Resolution Stats</h4>
+        <div id="dns-stats-content">
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px;">
+            <div style="text-align: center; padding: 12px; background: rgba(99,102,241,0.08); border-radius: 8px;">
+              <div style="font-size: 11px; color: var(--color-muted); margin-bottom: 4px;">Avg DNS</div>
+              <div id="dns-avg" style="font-size: 18px; font-weight: 600;">-</div>
+            </div>
+            <div style="text-align: center; padding: 12px; background: rgba(16,185,129,0.08); border-radius: 8px;">
+              <div style="font-size: 11px; color: var(--color-muted); margin-bottom: 4px;">Min</div>
+              <div id="dns-min" style="font-size: 18px; font-weight: 600;">-</div>
+            </div>
+            <div style="text-align: center; padding: 12px; background: rgba(239,68,68,0.08); border-radius: 8px;">
+              <div style="font-size: 11px; color: var(--color-muted); margin-bottom: 4px;">Max</div>
+              <div id="dns-max" style="font-size: 18px; font-weight: 600;">-</div>
+            </div>
+          </div>
+          <div style="display: flex; gap: 16px; margin-bottom: 12px;">
+            <div style="font-size: 12px;"><span style="color: var(--color-muted);">Total Lookups:</span> <strong id="dns-total">-</strong></div>
+            <div style="font-size: 12px;"><span style="color: var(--color-muted);">Failed:</span> <strong id="dns-failed" style="color: #ef4444;">-</strong></div>
+          </div>
+          <div style="margin-top: 12px;">
+            <div style="font-size: 11px; color: var(--color-muted); margin-bottom: 6px;">Recent DNS Times (last 10)</div>
+            <div id="dns-recent-bars" style="display: flex; gap: 4px; align-items: flex-end; height: 40px;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Error Rate -->
+      <div class="card" style="padding: 20px;">
+        <h4 style="margin-bottom: 15px; font-size: 16px; font-weight: 600;">🚨 Error Rate (5xx)</h4>
+        <div id="error-rate-content">
+          <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+            <div style="font-size: 12px; color: var(--color-muted);">Status:</div>
+            <span id="error-rate-status" class="badge" style="background: var(--color-success-bg); color: var(--color-success);">Normal</span>
+          </div>
+          <div style="text-align: center; padding: 16px; background: rgba(239,68,68,0.06); border-radius: 8px; margin-bottom: 12px;">
+            <div style="font-size: 11px; color: var(--color-muted); margin-bottom: 4px;">Errors (last hour)</div>
+            <div id="error-rate-count" style="font-size: 28px; font-weight: 700;">-</div>
+          </div>
+          <div id="error-rate-codes" style="font-size: 12px; color: var(--color-muted);"></div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px; margin-bottom: 24px;">
+      <!-- SLA Report -->
+      <div class="card" style="padding: 20px;">
+        <h4 style="margin-bottom: 15px; font-size: 16px; font-weight: 600;">📋 SLA Report</h4>
+        <div style="margin-bottom: 12px;">
+          <select id="sla-period-select" style="padding: 6px 12px; border-radius: 6px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: inherit; font-size: 12px; cursor: pointer;">
+            <option value="monthly">Monthly</option>
+            <option value="quarterly">Quarterly</option>
+            <option value="yearly">Yearly</option>
+          </select>
+        </div>
+        <div id="sla-content">
+          <div style="text-align: center; padding: 20px; background: rgba(16,185,129,0.06); border-radius: 8px; margin-bottom: 12px;">
+            <div style="font-size: 11px; color: var(--color-muted); margin-bottom: 4px;">SLA Uptime</div>
+            <div id="sla-uptime" style="font-size: 28px; font-weight: 700; color: #10b981;">-</div>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+            <div style="padding: 10px; background: rgba(255,255,255,0.03); border-radius: 6px;">
+              <div style="font-size: 11px; color: var(--color-muted);">Error Budget Remaining</div>
+              <div id="sla-budget-remaining" style="font-size: 14px; font-weight: 600; margin-top: 4px;">-</div>
+            </div>
+            <div style="padding: 10px; background: rgba(255,255,255,0.03); border-radius: 6px;">
+              <div style="font-size: 11px; color: var(--color-muted);">Total Downtime</div>
+              <div id="sla-downtime" style="font-size: 14px; font-weight: 600; margin-top: 4px;">-</div>
+            </div>
+          </div>
+          <div id="sla-breached" style="display: none; margin-top: 12px; padding: 8px 12px; background: rgba(239,68,68,0.1); border-radius: 6px; font-size: 12px; color: #ef4444; font-weight: 600;">⚠️ SLA Budget Breached!</div>
+        </div>
+      </div>
+
+      <!-- Advanced Testing -->
+      <div class="card" style="padding: 20px;">
+        <h4 style="margin-bottom: 15px; font-size: 16px; font-weight: 600;">⚡ Advanced Testing</h4>
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+          <!-- Load Test -->
+          <div style="padding: 12px; background: rgba(255,255,255,0.03); border-radius: 8px;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+              <button id="btn-load-test" class="btn btn-secondary" style="font-size: 11px; padding: 6px 12px;">Run Load Test</button>
+              <input type="number" id="load-test-concurrency" value="50" min="1" max="500" style="width: 60px; padding: 4px 8px; border-radius: 4px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: inherit; font-size: 12px;" title="Concurrency">
+              <span style="font-size: 11px; color: var(--color-muted);">concurrent</span>
+            </div>
+            <div id="load-test-results" style="font-size: 12px; color: var(--color-muted);"></div>
+          </div>
+          <!-- Connection Test -->
+          <div style="padding: 12px; background: rgba(255,255,255,0.03); border-radius: 8px;">
+            <div style="margin-bottom: 8px;">
+              <button id="btn-connection-test" class="btn btn-secondary" style="font-size: 11px; padding: 6px 12px;">Run Connection Test</button>
+            </div>
+            <div id="connection-test-results" style="font-size: 12px; color: var(--color-muted);"></div>
+          </div>
+          <!-- Geographic Check -->
+          <div style="padding: 12px; background: rgba(255,255,255,0.03); border-radius: 8px;">
+            <div style="margin-bottom: 8px;">
+              <button id="btn-geo-check" class="btn btn-secondary" style="font-size: 11px; padding: 6px 12px;">Run Geographic Check</button>
+            </div>
+            <div id="geo-check-results" style="font-size: 12px; color: var(--color-muted);"></div>
+          </div>
+        </div>
+      </div>
+
+    <!-- Synthetic Transactions -->
+    <div class="card" style="padding: 20px; margin-bottom: 24px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+        <h4 style="font-size: 16px; font-weight: 600;">🔄 Synthetic Transactions</h4>
+        <button id="btn-new-synthetic" class="btn btn-primary" style="font-size: 11px; padding: 6px 12px;">➕ New Transaction</button>
+      </div>
+      <div id="synthetic-list" style="font-size: 12px; color: var(--color-muted);">Loading...</div>
+    </div>
+
+    <!-- Certificate Alert Thresholds -->
+    <div class="card" style="padding: 20px; margin-bottom: 24px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+        <h4 style="font-size: 16px; font-weight: 600;">🔐 Certificate Alert Thresholds</h4>
+        <button id="btn-edit-cert-thresholds" class="btn btn-secondary" style="font-size: 11px; padding: 6px 12px;">✏️ Customize</button>
+      </div>
+      <div id="cert-thresholds-content" style="font-size: 12px; color: var(--color-muted);">Loading...</div>
+    </div>
+
+    <!-- Geographic Region Configuration -->
+    <div class="card" style="padding: 20px; margin-bottom: 24px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+        <h4 style="font-size: 16px; font-weight: 600;">🌍 Geographic Regions</h4>
+        <button id="btn-edit-geo-regions" class="btn btn-secondary" style="font-size: 11px; padding: 6px 12px;">✏️ Configure</button>
+      </div>
+      <div id="geo-regions-list" style="font-size: 12px; color: var(--color-muted);">Loading...</div>
+    </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px; margin-bottom: 24px;">
+      <!-- Validation Rules -->
+      <div class="card" style="padding: 20px;">
+        <h4 style="margin-bottom: 15px; font-size: 16px; font-weight: 600;">✅ Validation Rules</h4>
+        <div style="margin-bottom: 12px;">
+          <h5 style="font-size: 13px; font-weight: 600; margin-bottom: 8px; color: var(--color-muted);">Content Rules</h5>
+          <div id="content-rules-list" style="font-size: 12px; margin-bottom: 8px;">
+            <span style="color: var(--color-muted);">No rules configured</span>
+          </div>
+        </div>
+        <div style="margin-bottom: 16px;">
+          <h5 style="font-size: 13px; font-weight: 600; margin-bottom: 8px; color: var(--color-muted);">Header Rules</h5>
+          <div id="header-rules-list" style="font-size: 12px; margin-bottom: 8px;">
+            <span style="color: var(--color-muted);">No rules configured</span>
+          </div>
+        </div>
+        <button id="btn-edit-rules" class="btn btn-secondary" style="font-size: 12px; padding: 6px 14px;">✏️ Edit Rules</button>
+      </div>
+
+      <!-- Redirect Chain -->
+      <div class="card" style="padding: 20px;">
+        <h4 style="margin-bottom: 15px; font-size: 16px; font-weight: 600;">🔗 Redirect Chain</h4>
+        <div id="redirect-chain-content">
+          <div style="font-size: 12px; color: var(--color-muted);">No redirect chain data available.</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px; margin-bottom: 24px;">
+      <!-- Diff Detection -->
+      <div class="card" style="padding: 20px;">
+        <h4 style="margin-bottom: 15px; font-size: 16px; font-weight: 600;">📝 Content Diff Detection</h4>
+        <div id="diff-content">
+          <div style="margin-bottom: 12px; padding: 12px; background: rgba(255,255,255,0.03); border-radius: 8px;">
+            <div style="font-size: 11px; color: var(--color-muted); margin-bottom: 4px;">Baseline</div>
+            <div id="diff-baseline-info" style="font-size: 12px;">No baseline captured</div>
+          </div>
+          <div style="margin-bottom: 12px;">
+            <div style="font-size: 11px; color: var(--color-muted); margin-bottom: 6px;">Recent Diff Results</div>
+            <div id="diff-results-list" style="font-size: 12px; color: var(--color-muted);">No diff results yet</div>
+          </div>
+          <button id="btn-update-baseline" class="btn btn-secondary" style="font-size: 12px; padding: 6px 14px;">📸 Update Baseline</button>
+        </div>
+      </div>
+    </div>
+
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px; margin-bottom: 40px;">
       <!-- Incident Timeline Section -->
       <div class="card">
@@ -146,11 +328,12 @@
                 <th>Status</th>
                 <th>Latency</th>
                 <th>Message</th>
+                <th>Diagnostics</th>
               </tr>
             </thead>
             <tbody id="detail-logs-tbody">
               <tr>
-                <td colspan="4" style="text-align: center; color: var(--color-muted);">Loading logs...</td>
+                <td colspan="5" style="text-align: center; color: var(--color-muted);">Loading logs...</td>
               </tr>
             </tbody>
           </table>
@@ -161,6 +344,66 @@
 
   <!-- Toast Notification -->
   <div id="toast" class="toast"></div>
+
+  <!-- Validation Rules Modal -->
+  <div id="modal-rules" class="modal">
+    <div class="modal-content glass-card" style="max-width: 600px;">
+      <div class="modal-header">
+        <h3>Edit Validation Rules</h3>
+        <button class="close-modal-rules">&times;</button>
+      </div>
+      <div style="padding: 20px;">
+        <!-- Content Rules -->
+        <h4 style="font-size: 14px; margin-bottom: 12px;">Content Rules</h4>
+        <div id="modal-content-rules" style="margin-bottom: 12px;"></div>
+        <div style="display: flex; gap: 8px; margin-bottom: 20px;">
+          <select id="new-content-rule-type" style="padding: 6px 10px; border-radius: 4px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: inherit; font-size: 12px;">
+            <option value="substring">Substring</option>
+            <option value="json_key">JSON Key</option>
+            <option value="regex">Regex</option>
+          </select>
+          <input type="text" id="new-content-rule-value" placeholder="Value to match" style="flex: 1; padding: 6px 10px; border-radius: 4px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: inherit; font-size: 12px;">
+          <button id="btn-add-content-rule" class="btn btn-primary" style="font-size: 11px; padding: 6px 12px;">Add</button>
+        </div>
+
+        <!-- Header Rules -->
+        <h4 style="font-size: 14px; margin-bottom: 12px;">Header Rules</h4>
+        <div id="modal-header-rules" style="margin-bottom: 12px;"></div>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px;">
+          <input type="text" id="new-header-rule-name" placeholder="Header name" style="flex: 1; min-width: 100px; padding: 6px 10px; border-radius: 4px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: inherit; font-size: 12px;">
+          <select id="new-header-rule-type" style="padding: 6px 10px; border-radius: 4px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: inherit; font-size: 12px;">
+            <option value="presence">Presence</option>
+            <option value="exact">Exact Match</option>
+            <option value="contains">Contains</option>
+          </select>
+          <input type="text" id="new-header-rule-value" placeholder="Expected value" style="flex: 1; min-width: 100px; padding: 6px 10px; border-radius: 4px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: inherit; font-size: 12px;">
+          <button id="btn-add-header-rule" class="btn btn-primary" style="font-size: 11px; padding: 6px 12px;">Add</button>
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn btn-secondary close-modal-rules">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Traceroute Modal -->
+  <div id="modal-traceroute" class="modal">
+    <div class="modal-content glass-card" style="max-width: 600px;">
+      <div class="modal-header">
+        <h3>Traceroute Results</h3>
+        <button class="close-modal-traceroute">&times;</button>
+      </div>
+      <div style="padding: 20px;">
+        <div id="traceroute-content" style="font-family: monospace; font-size: 12px; white-space: pre-wrap; max-height: 400px; overflow-y: auto; background: rgba(0,0,0,0.2); padding: 12px; border-radius: 8px;">
+          Loading...
+        </div>
+        <div class="modal-footer" style="margin-top: 16px;">
+          <button class="btn btn-secondary close-modal-traceroute">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- Edit Monitor Modal -->
   <div id="modal-monitor" class="modal">
@@ -222,6 +465,69 @@
           <button type="submit" class="btn btn-primary">Save Changes</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- Synthetic Transaction Modal -->
+  <div id="modal-synthetic" class="modal">
+    <div class="modal-content glass-card" style="max-width: 650px;">
+      <div class="modal-header">
+        <h3>New Synthetic Transaction</h3>
+        <button class="close-modal-synthetic">&times;</button>
+      </div>
+      <div style="padding: 20px;">
+        <div class="form-group" style="margin-bottom: 16px;">
+          <label style="font-size: 13px; font-weight: 500; margin-bottom: 6px; display: block;">Transaction Name</label>
+          <input type="text" id="synthetic-name" placeholder="e.g. Login Flow" style="width: 100%; padding: 8px 12px; border-radius: 6px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: inherit; font-size: 13px;">
+        </div>
+        <div style="margin-bottom: 12px;">
+          <label style="font-size: 13px; font-weight: 500; margin-bottom: 6px; display: block;">Steps</label>
+          <div id="synthetic-steps-list" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px;"></div>
+          <button type="button" id="btn-add-synthetic-step" class="btn btn-secondary" style="font-size: 11px; padding: 6px 12px;">➕ Add Step</button>
+        </div>
+        <div class="modal-footer" style="margin-top: 16px;">
+          <button type="button" class="btn btn-secondary close-modal-synthetic">Cancel</button>
+          <button type="button" id="btn-save-synthetic" class="btn btn-primary">Create Transaction</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Certificate Thresholds Modal -->
+  <div id="modal-cert-thresholds" class="modal">
+    <div class="modal-content glass-card" style="max-width: 500px;">
+      <div class="modal-header">
+        <h3>Certificate Alert Thresholds</h3>
+        <button class="close-modal-cert-thresholds">&times;</button>
+      </div>
+      <div style="padding: 20px;">
+        <p style="font-size: 12px; color: var(--color-muted); margin-bottom: 16px;">Configure when alerts fire based on days until certificate expiration.</p>
+        <div id="cert-thresholds-rows" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px;"></div>
+        <button type="button" id="btn-add-cert-threshold" class="btn btn-secondary" style="font-size: 11px; padding: 6px 12px;">➕ Add Threshold</button>
+        <div class="modal-footer" style="margin-top: 16px;">
+          <button type="button" class="btn btn-secondary close-modal-cert-thresholds">Cancel</button>
+          <button type="button" id="btn-save-cert-thresholds" class="btn btn-primary">Save Thresholds</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Geographic Regions Modal -->
+  <div id="modal-geo-regions" class="modal">
+    <div class="modal-content glass-card" style="max-width: 550px;">
+      <div class="modal-header">
+        <h3>Geographic Region Configuration</h3>
+        <button class="close-modal-geo-regions">&times;</button>
+      </div>
+      <div style="padding: 20px;">
+        <p style="font-size: 12px; color: var(--color-muted); margin-bottom: 16px;">Define regions and their endpoint URLs for geographic latency checks.</p>
+        <div id="geo-regions-rows" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px;"></div>
+        <button type="button" id="btn-add-geo-region" class="btn btn-secondary" style="font-size: 11px; padding: 6px 12px;">➕ Add Region</button>
+        <div class="modal-footer" style="margin-top: 16px;">
+          <button type="button" class="btn btn-secondary close-modal-geo-regions">Cancel</button>
+          <button type="button" id="btn-save-geo-regions" class="btn btn-primary">Save Regions</button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -346,25 +652,37 @@
         // Render Logs table
         const tbody = document.getElementById('detail-logs-tbody');
         if (logs.length === 0) {
-          tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--color-muted);">No logs recorded.</td></tr>`;
+          tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--color-muted);">No logs recorded.</td></tr>`;
         } else {
-          tbody.innerHTML = logs.map(l => {
+          tbody.innerHTML = logs.map((l, idx) => {
             const timeStr = new Date(l.checked_at).toLocaleString();
             const statusSpan = l.status === 'UP' 
               ? `<span class="badge" style="background: var(--color-success-bg); color: var(--color-success); border-color: rgba(16, 185, 129, 0.2);">UP</span>`
               : l.status === 'PENDING'
               ? `<span class="badge" style="background: var(--color-warning-bg); color: var(--color-warning); border-color: rgba(245, 158, 11, 0.2);">RETRY</span>`
               : `<span class="badge" style="background: var(--color-error-bg); color: var(--color-error); border-color: rgba(239, 68, 68, 0.2);">DOWN</span>`;
+            // Show traceroute/screenshot buttons for the most recent DOWN log
+            let diagnosticBtns = '';
+            if (l.status === 'DOWN' && l.id) {
+              diagnosticBtns = `
+                <button class="btn btn-secondary" style="font-size: 10px; padding: 3px 8px; margin-right: 4px;" onclick="viewTraceroute(${l.id})">🔍 Traceroute</button>
+                <a href="/api/logs/${l.id}/screenshot" target="_blank" class="btn btn-secondary" style="font-size: 10px; padding: 3px 8px; text-decoration: none;">📷 Screenshot</a>
+              `;
+            }
             return `
               <tr>
                 <td>${timeStr}</td>
                 <td>${statusSpan}</td>
                 <td>${l.response_time} ms</td>
                 <td><code>${escapeHTML(l.message || '')}</code></td>
+                <td>${diagnosticBtns}</td>
               </tr>
             `;
           }).join('');
         }
+
+        // Render Redirect Chain
+        renderRedirectChain(data.redirectChain || []);
       } catch (err) {
         showToast(err.message, 'error');
       }
@@ -512,6 +830,7 @@
     document.addEventListener('DOMContentLoaded', () => {
       loadDetails();
       loadAnalytics();
+      loadAdvancedData();
       setInterval(loadDetails, 20000);
       setInterval(loadAnalytics, 60000);
     });
@@ -592,6 +911,856 @@
         }
       } catch (err) {
         console.error('Analytics load error:', err);
+      }
+    }
+
+    // === ADVANCED MONITORING DATA ===
+
+    function renderRedirectChain(chain) {
+      const container = document.getElementById('redirect-chain-content');
+      if (!chain || chain.length === 0) {
+        container.innerHTML = '<div style="font-size: 12px; color: var(--color-muted);">No redirects detected — direct response.</div>';
+        return;
+      }
+      let html = '<div class="table-container" style="max-height: 200px;"><table class="logs-table" style="font-size: 12px;"><thead><tr><th>Hop</th><th>URL</th><th>Status</th><th>Time</th></tr></thead><tbody>';
+      chain.forEach(hop => {
+        html += `<tr>
+          <td>${hop.hop_order || hop.hopOrder || '-'}</td>
+          <td style="word-break: break-all; max-width: 200px;">${escapeHTML(hop.url || '')}</td>
+          <td><span class="badge" style="font-size: 10px;">${hop.status_code || hop.statusCode || '-'}</span></td>
+          <td>${hop.response_time_ms || hop.responseTimeMs || '-'} ms</td>
+        </tr>`;
+      });
+      html += '</tbody></table></div>';
+      container.innerHTML = html;
+    }
+
+    async function loadAdvancedData() {
+      await Promise.allSettled([
+        loadDnsStats(),
+        loadErrorRate(),
+        loadSlaReport(),
+        loadLatestTests(),
+        loadValidationRules(),
+        loadDiffDetection(),
+        loadSyntheticTransactions(),
+        loadCertThresholds(),
+        loadGeoRegions()
+      ]);
+    }
+
+    // --- DNS Stats ---
+    async function loadDnsStats() {
+      try {
+        const res = await fetch(`/api/monitors/${monitorId}/dns-stats?hours=24`, { headers: getRequestHeaders() });
+        if (!res.ok) return;
+        const data = await res.json();
+
+        document.getElementById('dns-avg').textContent = (data.stats?.avg ?? '-') + ' ms';
+        document.getElementById('dns-min').textContent = (data.stats?.min ?? '-') + ' ms';
+        document.getElementById('dns-max').textContent = (data.stats?.max ?? '-') + ' ms';
+        document.getElementById('dns-total').textContent = data.totalLookups ?? '-';
+        document.getElementById('dns-failed').textContent = data.failedLookups ?? '0';
+
+        // Render recent times as mini bars
+        const barsContainer = document.getElementById('dns-recent-bars');
+        const recentTimes = data.recentTimes || [];
+        if (recentTimes.length > 0) {
+          const maxTime = Math.max(...recentTimes, 1);
+          barsContainer.innerHTML = recentTimes.slice(-10).map(t => {
+            const height = Math.max(4, (t / maxTime) * 36);
+            const color = t < 50 ? '#10b981' : t < 150 ? '#f59e0b' : '#ef4444';
+            return `<div style="width: 16px; height: ${height}px; background: ${color}; border-radius: 2px;" title="${t} ms"></div>`;
+          }).join('');
+        } else {
+          barsContainer.innerHTML = '<span style="font-size: 11px; color: var(--color-muted);">No data</span>';
+        }
+      } catch (err) {
+        console.error('DNS stats error:', err);
+      }
+    }
+
+    // --- Error Rate ---
+    async function loadErrorRate() {
+      try {
+        const res = await fetch(`/api/monitors/${monitorId}/error-rate?hours=24`, { headers: getRequestHeaders() });
+        if (!res.ok) return;
+        const data = await res.json();
+
+        // Sum errors in last hour (last 60 entries since each is per-minute)
+        const entries = Array.isArray(data) ? data : [];
+        const lastHourEntries = entries.slice(-60);
+        const totalErrors = lastHourEntries.reduce((sum, e) => sum + (e.count || 0), 0);
+
+        document.getElementById('error-rate-count').textContent = totalErrors;
+
+        // Determine spike status
+        const statusEl = document.getElementById('error-rate-status');
+        if (totalErrors > 10) {
+          statusEl.textContent = '🔴 Spike Detected';
+          statusEl.style.background = 'var(--color-error-bg)';
+          statusEl.style.color = 'var(--color-error)';
+        } else if (totalErrors > 3) {
+          statusEl.textContent = '🟡 Elevated';
+          statusEl.style.background = 'var(--color-warning-bg)';
+          statusEl.style.color = 'var(--color-warning)';
+        } else {
+          statusEl.textContent = '🟢 Normal';
+          statusEl.style.background = 'var(--color-success-bg)';
+          statusEl.style.color = 'var(--color-success)';
+        }
+
+        // Show error codes
+        const allCodes = {};
+        lastHourEntries.forEach(e => {
+          if (e.codes) {
+            Object.entries(e.codes).forEach(([code, count]) => {
+              allCodes[code] = (allCodes[code] || 0) + count;
+            });
+          }
+        });
+        const codesEl = document.getElementById('error-rate-codes');
+        const codeEntries = Object.entries(allCodes);
+        if (codeEntries.length > 0) {
+          codesEl.innerHTML = codeEntries.map(([code, count]) =>
+            `<span class="badge" style="font-size: 10px; margin-right: 4px;">${code}: ${count}</span>`
+          ).join('');
+        } else {
+          codesEl.textContent = '';
+        }
+      } catch (err) {
+        console.error('Error rate load error:', err);
+      }
+    }
+
+    // --- SLA Report ---
+    async function loadSlaReport(period = 'monthly') {
+      try {
+        const res = await fetch(`/api/monitors/${monitorId}/sla?period=${period}`, { headers: getRequestHeaders() });
+        if (!res.ok) return;
+        const data = await res.json();
+
+        document.getElementById('sla-uptime').textContent = (data.uptime_percentage !== undefined)
+          ? data.uptime_percentage.toFixed(3) + '%'
+          : '-';
+
+        if (data.error_budget) {
+          document.getElementById('sla-budget-remaining').textContent =
+            data.error_budget.remaining_percentage !== undefined
+              ? data.error_budget.remaining_percentage.toFixed(1) + '%'
+              : '-';
+          
+          const breachedEl = document.getElementById('sla-breached');
+          if (data.error_budget.breached) {
+            breachedEl.style.display = 'block';
+          } else {
+            breachedEl.style.display = 'none';
+          }
+        }
+
+        // Total downtime
+        const downtimeSec = data.total_downtime_seconds || 0;
+        const dtMin = Math.floor(downtimeSec / 60);
+        const dtSec = downtimeSec % 60;
+        document.getElementById('sla-downtime').textContent = dtMin > 0 ? `${dtMin}m ${dtSec}s` : `${dtSec}s`;
+
+        // Color the uptime
+        const uptimeEl = document.getElementById('sla-uptime');
+        if (data.uptime_percentage >= 99.9) uptimeEl.style.color = '#10b981';
+        else if (data.uptime_percentage >= 99) uptimeEl.style.color = '#f59e0b';
+        else uptimeEl.style.color = '#ef4444';
+      } catch (err) {
+        console.error('SLA report error:', err);
+      }
+    }
+
+    document.getElementById('sla-period-select').addEventListener('change', (e) => {
+      loadSlaReport(e.target.value);
+    });
+
+    // --- Advanced Testing ---
+    async function loadLatestTests() {
+      try {
+        // Load latest load test results
+        const ltRes = await fetch(`/api/monitors/${monitorId}/load-test`, { headers: getRequestHeaders() });
+        if (ltRes.ok) {
+          const ltData = await ltRes.json();
+          if (ltData && ltData.summary) {
+            renderLoadTestResults(ltData);
+          }
+        }
+      } catch (err) { /* silent */ }
+
+      try {
+        // Load latest connection test results
+        const ctRes = await fetch(`/api/monitors/${monitorId}/connection-test`, { headers: getRequestHeaders() });
+        if (ctRes.ok) {
+          const ctData = await ctRes.json();
+          if (ctData && ctData.result) {
+            renderConnectionTestResults(ctData.result);
+          }
+        }
+      } catch (err) { /* silent */ }
+    }
+
+    function renderLoadTestResults(data) {
+      const container = document.getElementById('load-test-results');
+      const s = data.summary || data;
+      container.innerHTML = `
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 8px;">
+          <div style="text-align: center; padding: 6px; background: rgba(99,102,241,0.06); border-radius: 4px;">
+            <div style="font-size: 10px; color: var(--color-muted);">Avg</div>
+            <div style="font-weight: 600; font-size: 13px;">${s.avg_response_time || s.avgResponseTime || '-'} ms</div>
+          </div>
+          <div style="text-align: center; padding: 6px; background: rgba(16,185,129,0.06); border-radius: 4px;">
+            <div style="font-size: 10px; color: var(--color-muted);">Success</div>
+            <div style="font-weight: 600; font-size: 13px; color: #10b981;">${s.success_rate || s.successRate || '-'}%</div>
+          </div>
+          <div style="text-align: center; padding: 6px; background: rgba(239,68,68,0.06); border-radius: 4px;">
+            <div style="font-size: 10px; color: var(--color-muted);">Failed</div>
+            <div style="font-weight: 600; font-size: 13px; color: #ef4444;">${s.failed_requests || s.failedRequests || 0}</div>
+          </div>
+        </div>
+        <div style="font-size: 10px; color: var(--color-muted); margin-top: 6px;">Concurrency: ${s.concurrency || '-'} | Total: ${s.total_requests || s.totalRequests || '-'} requests</div>
+      `;
+    }
+
+    function renderConnectionTestResults(data) {
+      const container = document.getElementById('connection-test-results');
+      container.innerHTML = `
+        <div style="margin-top: 8px; display: flex; flex-wrap: wrap; gap: 8px;">
+          <span class="badge" style="font-size: 10px;">DNS: ${data.dns_time || data.dnsTime || '-'} ms</span>
+          <span class="badge" style="font-size: 10px;">TCP: ${data.tcp_time || data.tcpTime || '-'} ms</span>
+          <span class="badge" style="font-size: 10px;">TLS: ${data.tls_time || data.tlsTime || '-'} ms</span>
+          <span class="badge" style="font-size: 10px;">TTFB: ${data.ttfb || '-'} ms</span>
+          <span class="badge" style="font-size: 10px;">Total: ${data.total_time || data.totalTime || '-'} ms</span>
+        </div>
+      `;
+    }
+
+    document.getElementById('btn-load-test').addEventListener('click', async () => {
+      const concurrency = parseInt(document.getElementById('load-test-concurrency').value) || 50;
+      const btn = document.getElementById('btn-load-test');
+      btn.disabled = true;
+      btn.textContent = 'Running...';
+      document.getElementById('load-test-results').innerHTML = '<span style="color: var(--color-muted);">Running load test...</span>';
+      try {
+        const res = await fetch(`/api/monitors/${monitorId}/load-test`, {
+          method: 'POST',
+          headers: getRequestHeaders(true),
+          body: JSON.stringify({ concurrency })
+        });
+        if (!res.ok) throw new Error('Load test failed');
+        const data = await res.json();
+        renderLoadTestResults(data);
+        showToast('Load test completed.');
+      } catch (err) {
+        document.getElementById('load-test-results').innerHTML = `<span style="color: #ef4444;">Error: ${escapeHTML(err.message)}</span>`;
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Run Load Test';
+      }
+    });
+
+    document.getElementById('btn-connection-test').addEventListener('click', async () => {
+      const btn = document.getElementById('btn-connection-test');
+      btn.disabled = true;
+      btn.textContent = 'Running...';
+      document.getElementById('connection-test-results').innerHTML = '<span style="color: var(--color-muted);">Running connection test...</span>';
+      try {
+        const res = await fetch(`/api/monitors/${monitorId}/connection-test`, {
+          method: 'POST',
+          headers: getRequestHeaders()
+        });
+        if (!res.ok) throw new Error('Connection test failed');
+        const data = await res.json();
+        renderConnectionTestResults(data.result || data);
+        showToast('Connection test completed.');
+      } catch (err) {
+        document.getElementById('connection-test-results').innerHTML = `<span style="color: #ef4444;">Error: ${escapeHTML(err.message)}</span>`;
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Run Connection Test';
+      }
+    });
+
+    document.getElementById('btn-geo-check').addEventListener('click', async () => {
+      const btn = document.getElementById('btn-geo-check');
+      btn.disabled = true;
+      btn.textContent = 'Running...';
+      document.getElementById('geo-check-results').innerHTML = '<span style="color: var(--color-muted);">Running geographic check...</span>';
+      try {
+        const res = await fetch(`/api/monitors/${monitorId}/geo-results`, { headers: getRequestHeaders() });
+        if (!res.ok) throw new Error('Geographic check failed');
+        const data = await res.json();
+        const results = Array.isArray(data) ? data : (data.results || []);
+        if (results.length === 0) {
+          document.getElementById('geo-check-results').innerHTML = '<span style="color: var(--color-muted);">No geographic data available.</span>';
+        } else {
+          document.getElementById('geo-check-results').innerHTML = results.map(r => `
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+              <span style="font-weight: 500;">${escapeHTML(r.region || r.location || '-')}</span>
+              <span class="badge" style="font-size: 10px; background: ${r.status === 'UP' || r.success ? 'var(--color-success-bg)' : 'var(--color-error-bg)'}; color: ${r.status === 'UP' || r.success ? 'var(--color-success)' : 'var(--color-error)'};">${r.status || (r.success ? 'UP' : 'DOWN')}</span>
+              <span style="color: var(--color-muted);">${r.response_time || r.responseTime || '-'} ms</span>
+            </div>
+          `).join('');
+        }
+        showToast('Geographic check completed.');
+      } catch (err) {
+        document.getElementById('geo-check-results').innerHTML = `<span style="color: #ef4444;">Error: ${escapeHTML(err.message)}</span>`;
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Run Geographic Check';
+      }
+    });
+
+    // --- Validation Rules ---
+    let currentContentRules = [];
+    let currentHeaderRules = [];
+
+    async function loadValidationRules() {
+      try {
+        const [crRes, hrRes] = await Promise.all([
+          fetch(`/api/monitors/${monitorId}/content-rules`, { headers: getRequestHeaders() }),
+          fetch(`/api/monitors/${monitorId}/header-rules`, { headers: getRequestHeaders() })
+        ]);
+
+        if (crRes.ok) {
+          const crData = await crRes.json();
+          currentContentRules = Array.isArray(crData) ? crData : (crData.rules || []);
+        }
+        if (hrRes.ok) {
+          const hrData = await hrRes.json();
+          currentHeaderRules = Array.isArray(hrData) ? hrData : (hrData.rules || []);
+        }
+
+        renderValidationRulesLists();
+      } catch (err) {
+        console.error('Validation rules load error:', err);
+      }
+    }
+
+    function renderValidationRulesLists() {
+      const contentListEl = document.getElementById('content-rules-list');
+      const headerListEl = document.getElementById('header-rules-list');
+
+      if (currentContentRules.length === 0) {
+        contentListEl.innerHTML = '<span style="color: var(--color-muted);">No rules configured</span>';
+      } else {
+        contentListEl.innerHTML = currentContentRules.map(r => `
+          <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 4px;">
+            <span class="badge" style="font-size: 10px;">${escapeHTML(r.type)}</span>
+            <code style="font-size: 11px;">${escapeHTML(r.value || '')}</code>
+          </div>
+        `).join('');
+      }
+
+      if (currentHeaderRules.length === 0) {
+        headerListEl.innerHTML = '<span style="color: var(--color-muted);">No rules configured</span>';
+      } else {
+        headerListEl.innerHTML = currentHeaderRules.map(r => `
+          <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 4px;">
+            <strong style="font-size: 11px;">${escapeHTML(r.header_name || r.headerName || '')}</strong>
+            <span class="badge" style="font-size: 10px;">${escapeHTML(r.type)}</span>
+            <code style="font-size: 11px;">${escapeHTML(r.expected_value || r.expectedValue || '')}</code>
+          </div>
+        `).join('');
+      }
+    }
+
+    // Rules modal
+    const rulesModal = document.getElementById('modal-rules');
+    document.getElementById('btn-edit-rules').addEventListener('click', () => {
+      renderModalRules();
+      rulesModal.classList.add('active');
+    });
+    document.querySelectorAll('.close-modal-rules').forEach(btn => {
+      btn.addEventListener('click', () => rulesModal.classList.remove('active'));
+    });
+
+    function renderModalRules() {
+      const contentRulesEl = document.getElementById('modal-content-rules');
+      const headerRulesEl = document.getElementById('modal-header-rules');
+
+      if (currentContentRules.length === 0) {
+        contentRulesEl.innerHTML = '<div style="font-size: 12px; color: var(--color-muted); margin-bottom: 8px;">No content rules</div>';
+      } else {
+        contentRulesEl.innerHTML = currentContentRules.map((r, i) => `
+          <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 6px; padding: 6px 8px; background: rgba(255,255,255,0.03); border-radius: 4px;">
+            <span class="badge" style="font-size: 10px;">${escapeHTML(r.type)}</span>
+            <code style="font-size: 11px; flex: 1;">${escapeHTML(r.value || '')}</code>
+            <button class="btn btn-secondary" style="font-size: 10px; padding: 2px 8px; color: #ef4444;" onclick="deleteContentRule(${i})">✕</button>
+          </div>
+        `).join('');
+      }
+
+      if (currentHeaderRules.length === 0) {
+        headerRulesEl.innerHTML = '<div style="font-size: 12px; color: var(--color-muted); margin-bottom: 8px;">No header rules</div>';
+      } else {
+        headerRulesEl.innerHTML = currentHeaderRules.map((r, i) => `
+          <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 6px; padding: 6px 8px; background: rgba(255,255,255,0.03); border-radius: 4px;">
+            <strong style="font-size: 11px;">${escapeHTML(r.header_name || r.headerName || '')}</strong>
+            <span class="badge" style="font-size: 10px;">${escapeHTML(r.type)}</span>
+            <code style="font-size: 11px; flex: 1;">${escapeHTML(r.expected_value || r.expectedValue || '')}</code>
+            <button class="btn btn-secondary" style="font-size: 10px; padding: 2px 8px; color: #ef4444;" onclick="deleteHeaderRule(${i})">✕</button>
+          </div>
+        `).join('');
+      }
+    }
+
+    document.getElementById('btn-add-content-rule').addEventListener('click', async () => {
+      const type = document.getElementById('new-content-rule-type').value;
+      const value = document.getElementById('new-content-rule-value').value.trim();
+      if (!value) return showToast('Please enter a value', 'error');
+
+      try {
+        const rules = [...currentContentRules, { type, value }];
+        const res = await fetch(`/api/monitors/${monitorId}/content-rules`, {
+          method: 'POST',
+          headers: getRequestHeaders(true),
+          body: JSON.stringify({ rules })
+        });
+        if (!res.ok) throw new Error('Failed to save content rules');
+        currentContentRules = rules;
+        document.getElementById('new-content-rule-value').value = '';
+        renderModalRules();
+        renderValidationRulesLists();
+        showToast('Content rule added.');
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    });
+
+    document.getElementById('btn-add-header-rule').addEventListener('click', async () => {
+      const header_name = document.getElementById('new-header-rule-name').value.trim();
+      const type = document.getElementById('new-header-rule-type').value;
+      const expected_value = document.getElementById('new-header-rule-value').value.trim();
+      if (!header_name) return showToast('Please enter a header name', 'error');
+
+      try {
+        const rules = [...currentHeaderRules, { header_name, type, expected_value }];
+        const res = await fetch(`/api/monitors/${monitorId}/header-rules`, {
+          method: 'POST',
+          headers: getRequestHeaders(true),
+          body: JSON.stringify({ rules })
+        });
+        if (!res.ok) throw new Error('Failed to save header rules');
+        currentHeaderRules = rules;
+        document.getElementById('new-header-rule-name').value = '';
+        document.getElementById('new-header-rule-value').value = '';
+        renderModalRules();
+        renderValidationRulesLists();
+        showToast('Header rule added.');
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    });
+
+    async function deleteContentRule(index) {
+      const rules = currentContentRules.filter((_, i) => i !== index);
+      try {
+        const res = await fetch(`/api/monitors/${monitorId}/content-rules`, {
+          method: 'POST',
+          headers: getRequestHeaders(true),
+          body: JSON.stringify({ rules })
+        });
+        if (!res.ok) throw new Error('Failed to save content rules');
+        currentContentRules = rules;
+        renderModalRules();
+        renderValidationRulesLists();
+        showToast('Content rule removed.');
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    }
+
+    async function deleteHeaderRule(index) {
+      const rules = currentHeaderRules.filter((_, i) => i !== index);
+      try {
+        const res = await fetch(`/api/monitors/${monitorId}/header-rules`, {
+          method: 'POST',
+          headers: getRequestHeaders(true),
+          body: JSON.stringify({ rules })
+        });
+        if (!res.ok) throw new Error('Failed to save header rules');
+        currentHeaderRules = rules;
+        renderModalRules();
+        renderValidationRulesLists();
+        showToast('Header rule removed.');
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    }
+
+    // --- Diff Detection ---
+    async function loadDiffDetection() {
+      try {
+        const res = await fetch(`/api/monitors/${monitorId}/diff`, { headers: getRequestHeaders() });
+        if (!res.ok) return;
+        const data = await res.json();
+
+        const baselineEl = document.getElementById('diff-baseline-info');
+        if (data.baseline) {
+          const captured = data.baseline.captured_at ? new Date(data.baseline.captured_at).toLocaleString() : 'Unknown';
+          baselineEl.innerHTML = `
+            <div>Hash: <code style="font-size: 11px;">${escapeHTML((data.baseline.hash || '').substring(0, 16))}...</code></div>
+            <div style="margin-top: 4px;">Length: ${data.baseline.content_length || '-'} bytes | Captured: ${captured}</div>
+          `;
+        } else {
+          baselineEl.textContent = 'No baseline captured';
+        }
+
+        const resultsEl = document.getElementById('diff-results-list');
+        const diffs = data.results || data.diffs || [];
+        if (diffs.length === 0) {
+          resultsEl.innerHTML = '<span style="color: var(--color-muted);">No diff results yet</span>';
+        } else {
+          resultsEl.innerHTML = diffs.slice(0, 5).map(d => {
+            const pct = d.diff_percentage !== undefined ? d.diff_percentage.toFixed(1) : '-';
+            const alertIcon = d.alerted ? '🔔' : '';
+            const color = d.diff_percentage > 20 ? '#ef4444' : d.diff_percentage > 5 ? '#f59e0b' : '#10b981';
+            const timeStr = d.checked_at ? new Date(d.checked_at).toLocaleString() : '';
+            return `
+              <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px; padding: 6px 8px; background: rgba(255,255,255,0.03); border-radius: 4px;">
+                <span style="font-weight: 600; color: ${color};">${pct}%</span>
+                <span style="font-size: 11px; color: var(--color-muted);">${timeStr}</span>
+                <span>${alertIcon}</span>
+              </div>
+            `;
+          }).join('');
+        }
+      } catch (err) {
+        console.error('Diff detection error:', err);
+      }
+    }
+
+    document.getElementById('btn-update-baseline').addEventListener('click', async () => {
+      const btn = document.getElementById('btn-update-baseline');
+      btn.disabled = true;
+      btn.textContent = 'Capturing...';
+      try {
+        const res = await fetch(`/api/monitors/${monitorId}/diff/baseline`, {
+          method: 'POST',
+          headers: getRequestHeaders()
+        });
+        if (!res.ok) throw new Error('Failed to update baseline');
+        showToast('Baseline updated successfully.');
+        await loadDiffDetection();
+      } catch (err) {
+        showToast(err.message, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '📸 Update Baseline';
+      }
+    });
+
+    // --- Traceroute Modal ---
+    const tracerouteModal = document.getElementById('modal-traceroute');
+    document.querySelectorAll('.close-modal-traceroute').forEach(btn => {
+      btn.addEventListener('click', () => tracerouteModal.classList.remove('active'));
+    });
+
+    // === SYNTHETIC TRANSACTIONS ===
+    async function loadSyntheticTransactions() {
+      const container = document.getElementById('synthetic-list');
+      try {
+        const res = await fetch(`/api/monitors/${monitorId}/synthetic`, { headers: getRequestHeaders() });
+        if (!res.ok) { container.textContent = 'Failed to load.'; return; }
+        const transactions = await res.json();
+        if (!transactions || transactions.length === 0) {
+          container.innerHTML = '<span style="color: var(--color-muted);">No synthetic transactions configured.</span>';
+          return;
+        }
+        let html = '<div class="table-container" style="max-height: 250px;"><table class="logs-table" style="font-size: 12px;"><thead><tr><th>Name</th><th>Steps</th><th>Last Run</th><th>Status</th><th>Actions</th></tr></thead><tbody>';
+        transactions.forEach(t => {
+          const stepsCount = t.steps ? t.steps.length : 0;
+          const lastRun = t.last_run ? new Date(t.last_run).toLocaleString() : 'Never';
+          const statusBadge = t.last_status === 'passed'
+            ? '<span class="badge" style="background: var(--color-success-bg); color: var(--color-success);">Passed</span>'
+            : t.last_status === 'failed'
+            ? '<span class="badge" style="background: var(--color-error-bg); color: var(--color-error);">Failed</span>'
+            : '<span class="badge" style="background: rgba(255,255,255,0.05); color: var(--color-muted);">—</span>';
+          html += `<tr>
+            <td>${escapeHTML(t.name || '')}</td>
+            <td>${stepsCount} step${stepsCount !== 1 ? 's' : ''}</td>
+            <td>${lastRun}</td>
+            <td>${statusBadge}</td>
+            <td>
+              <button class="btn btn-secondary" style="font-size: 10px; padding: 3px 8px; margin-right: 4px;" onclick="executeSynthetic('${t.id}')">▶️ Execute</button>
+              <button class="btn btn-secondary" style="font-size: 10px; padding: 3px 8px; color: #ef4444;" onclick="deleteSynthetic('${t.id}')">🗑️</button>
+            </td>
+          </tr>`;
+        });
+        html += '</tbody></table></div>';
+        container.innerHTML = html;
+      } catch (err) {
+        container.innerHTML = `<span style="color: #ef4444;">Error: ${escapeHTML(err.message)}</span>`;
+      }
+    }
+
+    async function executeSynthetic(transactionId) {
+      try {
+        const res = await fetch(`/api/synthetic/${transactionId}/execute`, { method: 'POST', headers: getRequestHeaders() });
+        if (!res.ok) throw new Error('Execution failed');
+        const result = await res.json();
+        showToast(`Transaction ${result.status || 'completed'}.`);
+        await loadSyntheticTransactions();
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    }
+
+    async function deleteSynthetic(transactionId) {
+      if (!confirm('Delete this synthetic transaction?')) return;
+      try {
+        const res = await fetch(`/api/synthetic/${transactionId}`, { method: 'DELETE', headers: getRequestHeaders() });
+        if (!res.ok) throw new Error('Delete failed');
+        showToast('Transaction deleted.');
+        await loadSyntheticTransactions();
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    }
+
+    // Synthetic Modal
+    const syntheticModal = document.getElementById('modal-synthetic');
+    document.querySelectorAll('.close-modal-synthetic').forEach(btn => {
+      btn.addEventListener('click', () => syntheticModal.classList.remove('active'));
+    });
+
+    document.getElementById('btn-new-synthetic').addEventListener('click', () => {
+      document.getElementById('synthetic-name').value = '';
+      document.getElementById('synthetic-steps-list').innerHTML = '';
+      addSyntheticStepRow();
+      syntheticModal.classList.add('active');
+    });
+
+    function addSyntheticStepRow(url = '', method = 'GET', timeout = 10) {
+      const container = document.getElementById('synthetic-steps-list');
+      const row = document.createElement('div');
+      row.style.cssText = 'display: flex; gap: 6px; align-items: center;';
+      row.innerHTML = `
+        <input type="url" placeholder="https://..." value="${escapeHTML(url)}" class="synth-step-url" style="flex: 2; padding: 6px 10px; border-radius: 4px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: inherit; font-size: 12px;">
+        <select class="synth-step-method" style="padding: 6px 8px; border-radius: 4px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: inherit; font-size: 12px;">
+          <option value="GET" ${method === 'GET' ? 'selected' : ''}>GET</option>
+          <option value="POST" ${method === 'POST' ? 'selected' : ''}>POST</option>
+          <option value="PUT" ${method === 'PUT' ? 'selected' : ''}>PUT</option>
+          <option value="DELETE" ${method === 'DELETE' ? 'selected' : ''}>DELETE</option>
+        </select>
+        <input type="number" value="${timeout}" min="1" max="60" class="synth-step-timeout" style="width: 50px; padding: 6px 8px; border-radius: 4px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: inherit; font-size: 12px;" title="Timeout (s)">
+        <button type="button" class="btn btn-secondary" style="font-size: 10px; padding: 4px 8px; color: #ef4444;" onclick="this.parentElement.remove()">✕</button>
+      `;
+      container.appendChild(row);
+    }
+
+    document.getElementById('btn-add-synthetic-step').addEventListener('click', () => addSyntheticStepRow());
+
+    document.getElementById('btn-save-synthetic').addEventListener('click', async () => {
+      const name = document.getElementById('synthetic-name').value.trim();
+      if (!name) { showToast('Transaction name is required.', 'error'); return; }
+      const stepRows = document.querySelectorAll('#synthetic-steps-list > div');
+      const steps = [];
+      stepRows.forEach(row => {
+        const url = row.querySelector('.synth-step-url').value.trim();
+        const method = row.querySelector('.synth-step-method').value;
+        const timeout = parseInt(row.querySelector('.synth-step-timeout').value) || 10;
+        if (url) steps.push({ url, method, timeout });
+      });
+      if (steps.length === 0) { showToast('At least one step is required.', 'error'); return; }
+      try {
+        const res = await fetch(`/api/monitors/${monitorId}/synthetic`, {
+          method: 'POST',
+          headers: getRequestHeaders(true),
+          body: JSON.stringify({ name, steps })
+        });
+        if (!res.ok) throw new Error('Failed to create transaction');
+        syntheticModal.classList.remove('active');
+        showToast('Synthetic transaction created.');
+        await loadSyntheticTransactions();
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    });
+
+    // === CERTIFICATE THRESHOLDS ===
+    let currentCertThresholds = [];
+
+    async function loadCertThresholds() {
+      const container = document.getElementById('cert-thresholds-content');
+      try {
+        const res = await fetch(`/api/monitors/${monitorId}/cert-thresholds`, { headers: getRequestHeaders() });
+        if (!res.ok) { container.textContent = 'Failed to load.'; return; }
+        const data = await res.json();
+        currentCertThresholds = data.thresholds || data || [];
+        if (!currentCertThresholds.length) {
+          container.innerHTML = '<span style="color: var(--color-muted);">Using default thresholds (30d warning, 7d critical).</span>';
+          return;
+        }
+        container.innerHTML = currentCertThresholds.map(t => {
+          const severityColor = t.severity === 'critical' ? '#ef4444' : t.severity === 'warning' ? '#f59e0b' : '#6366f1';
+          return `<div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+            <span class="badge" style="background: ${severityColor}22; color: ${severityColor}; font-size: 10px;">${escapeHTML(t.severity || 'info')}</span>
+            <span>Alert when ≤ <strong>${t.days}</strong> days remaining</span>
+          </div>`;
+        }).join('');
+      } catch (err) {
+        container.innerHTML = `<span style="color: #ef4444;">Error: ${escapeHTML(err.message)}</span>`;
+      }
+    }
+
+    const certThresholdsModal = document.getElementById('modal-cert-thresholds');
+    document.querySelectorAll('.close-modal-cert-thresholds').forEach(btn => {
+      btn.addEventListener('click', () => certThresholdsModal.classList.remove('active'));
+    });
+
+    document.getElementById('btn-edit-cert-thresholds').addEventListener('click', () => {
+      const container = document.getElementById('cert-thresholds-rows');
+      container.innerHTML = '';
+      const thresholds = currentCertThresholds.length ? currentCertThresholds : [{ days: 30, severity: 'warning' }, { days: 7, severity: 'critical' }];
+      thresholds.forEach(t => addCertThresholdRow(t.days, t.severity));
+      certThresholdsModal.classList.add('active');
+    });
+
+    function addCertThresholdRow(days = 14, severity = 'warning') {
+      const container = document.getElementById('cert-thresholds-rows');
+      const row = document.createElement('div');
+      row.style.cssText = 'display: flex; gap: 8px; align-items: center;';
+      row.innerHTML = `
+        <input type="number" value="${days}" min="1" max="365" class="cert-threshold-days" style="width: 70px; padding: 6px 10px; border-radius: 4px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: inherit; font-size: 12px;" placeholder="Days">
+        <span style="font-size: 12px; color: var(--color-muted);">days →</span>
+        <select class="cert-threshold-severity" style="padding: 6px 10px; border-radius: 4px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: inherit; font-size: 12px;">
+          <option value="info" ${severity === 'info' ? 'selected' : ''}>Info</option>
+          <option value="warning" ${severity === 'warning' ? 'selected' : ''}>Warning</option>
+          <option value="critical" ${severity === 'critical' ? 'selected' : ''}>Critical</option>
+        </select>
+        <button type="button" class="btn btn-secondary" style="font-size: 10px; padding: 4px 8px; color: #ef4444;" onclick="this.parentElement.remove()">✕</button>
+      `;
+      container.appendChild(row);
+    }
+
+    document.getElementById('btn-add-cert-threshold').addEventListener('click', () => addCertThresholdRow());
+
+    document.getElementById('btn-save-cert-thresholds').addEventListener('click', async () => {
+      const rows = document.querySelectorAll('#cert-thresholds-rows > div');
+      const thresholds = [];
+      rows.forEach(row => {
+        const days = parseInt(row.querySelector('.cert-threshold-days').value);
+        const severity = row.querySelector('.cert-threshold-severity').value;
+        if (days > 0) thresholds.push({ days, severity });
+      });
+      try {
+        const res = await fetch(`/api/monitors/${monitorId}/cert-thresholds`, {
+          method: 'PUT',
+          headers: getRequestHeaders(true),
+          body: JSON.stringify({ thresholds })
+        });
+        if (!res.ok) throw new Error('Failed to save thresholds');
+        certThresholdsModal.classList.remove('active');
+        showToast('Certificate thresholds saved.');
+        await loadCertThresholds();
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    });
+
+    // === GEOGRAPHIC REGIONS ===
+    let currentGeoRegions = [];
+
+    async function loadGeoRegions() {
+      const container = document.getElementById('geo-regions-list');
+      try {
+        const res = await fetch(`/api/monitors/${monitorId}/geo-regions`, { headers: getRequestHeaders() });
+        if (!res.ok) { container.textContent = 'Failed to load.'; return; }
+        const data = await res.json();
+        currentGeoRegions = data.regions || data || [];
+        if (!currentGeoRegions.length) {
+          container.innerHTML = '<span style="color: var(--color-muted);">No custom regions configured. Using defaults.</span>';
+          return;
+        }
+        container.innerHTML = currentGeoRegions.map(r => `
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+            <span style="font-weight: 500;">🌐 ${escapeHTML(r.name || r.region || '')}</span>
+            <span style="color: var(--color-muted); font-size: 11px;">${escapeHTML(r.endpoint_url || r.url || '')}</span>
+          </div>
+        `).join('');
+      } catch (err) {
+        container.innerHTML = `<span style="color: #ef4444;">Error: ${escapeHTML(err.message)}</span>`;
+      }
+    }
+
+    const geoRegionsModal = document.getElementById('modal-geo-regions');
+    document.querySelectorAll('.close-modal-geo-regions').forEach(btn => {
+      btn.addEventListener('click', () => geoRegionsModal.classList.remove('active'));
+    });
+
+    document.getElementById('btn-edit-geo-regions').addEventListener('click', () => {
+      const container = document.getElementById('geo-regions-rows');
+      container.innerHTML = '';
+      if (currentGeoRegions.length) {
+        currentGeoRegions.forEach(r => addGeoRegionRow(r.name || r.region || '', r.endpoint_url || r.url || ''));
+      } else {
+        addGeoRegionRow();
+      }
+      geoRegionsModal.classList.add('active');
+    });
+
+    function addGeoRegionRow(name = '', endpoint_url = '') {
+      const container = document.getElementById('geo-regions-rows');
+      const row = document.createElement('div');
+      row.style.cssText = 'display: flex; gap: 6px; align-items: center;';
+      row.innerHTML = `
+        <input type="text" value="${escapeHTML(name)}" placeholder="Region name" class="geo-region-name" style="flex: 1; padding: 6px 10px; border-radius: 4px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: inherit; font-size: 12px;">
+        <input type="url" value="${escapeHTML(endpoint_url)}" placeholder="https://region-endpoint.example.com" class="geo-region-url" style="flex: 2; padding: 6px 10px; border-radius: 4px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: inherit; font-size: 12px;">
+        <button type="button" class="btn btn-secondary" style="font-size: 10px; padding: 4px 8px; color: #ef4444;" onclick="this.parentElement.remove()">✕</button>
+      `;
+      container.appendChild(row);
+    }
+
+    document.getElementById('btn-add-geo-region').addEventListener('click', () => addGeoRegionRow());
+
+    document.getElementById('btn-save-geo-regions').addEventListener('click', async () => {
+      const rows = document.querySelectorAll('#geo-regions-rows > div');
+      const regions = [];
+      rows.forEach(row => {
+        const name = row.querySelector('.geo-region-name').value.trim();
+        const endpoint_url = row.querySelector('.geo-region-url').value.trim();
+        if (name && endpoint_url) regions.push({ name, endpoint_url });
+      });
+      try {
+        const res = await fetch(`/api/monitors/${monitorId}/geo-regions`, {
+          method: 'POST',
+          headers: getRequestHeaders(true),
+          body: JSON.stringify({ regions })
+        });
+        if (!res.ok) throw new Error('Failed to save regions');
+        geoRegionsModal.classList.remove('active');
+        showToast('Geographic regions saved.');
+        await loadGeoRegions();
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    });
+
+    async function viewTraceroute(logId) {
+      tracerouteModal.classList.add('active');
+      const contentEl = document.getElementById('traceroute-content');
+      contentEl.textContent = 'Loading traceroute data...';
+      try {
+        const res = await fetch(`/api/logs/${logId}/traceroute`, { headers: getRequestHeaders() });
+        if (!res.ok) throw new Error('No traceroute data available');
+        const data = await res.json();
+
+        if (data.hops && Array.isArray(data.hops)) {
+          contentEl.textContent = data.hops.map(hop =>
+            `${String(hop.hop || hop.ttl || '').padStart(2)} | ${(hop.ip || hop.address || '*').padEnd(16)} | ${hop.rtt || hop.time || '*'} ms | ${hop.hostname || ''}`
+          ).join('\n');
+        } else if (typeof data === 'string') {
+          contentEl.textContent = data;
+        } else {
+          contentEl.textContent = JSON.stringify(data, null, 2);
+        }
+      } catch (err) {
+        contentEl.textContent = 'Error: ' + err.message;
       }
     }
   </script>

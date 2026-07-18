@@ -114,6 +114,10 @@ body {
   text-decoration: none;
   transition: all 0.2s ease;
   white-space: nowrap;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-family: var(--font-family);
 }
 
 .nav-link:hover {
@@ -128,6 +132,86 @@ body {
 }
 
 .nav-icon { font-size: 14px; }
+
+/* --- Nav Dropdown --- */
+.nav-dropdown {
+  position: relative;
+}
+
+.nav-dropdown-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-muted);
+  text-decoration: none;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-family: var(--font-family);
+}
+
+.nav-dropdown-trigger:hover {
+  background: rgba(255,255,255,0.07);
+  color: var(--color-text);
+}
+
+.nav-dropdown-trigger .dropdown-caret {
+  font-size: 10px;
+  transition: transform 0.2s ease;
+}
+
+.nav-dropdown:hover .nav-dropdown-trigger .dropdown-caret {
+  transform: rotate(180deg);
+}
+
+.nav-dropdown-menu {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-top: 6px;
+  padding: 6px;
+  background: rgba(15, 17, 28, 0.95);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  min-width: 180px;
+  z-index: 200;
+}
+
+.nav-dropdown:hover .nav-dropdown-menu {
+  display: block;
+}
+
+.nav-dropdown-menu.is-open {
+  display: block;
+}
+
+.nav-dropdown-item {
+  display: block;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-muted);
+  text-decoration: none;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.nav-dropdown-item:hover {
+  background: rgba(255,255,255,0.07);
+  color: var(--color-text);
+}
 
 /* --- Right Controls --- */
 .header-actions {
@@ -1129,10 +1213,16 @@ input:checked + .slider:before {
 
   .header-nav::-webkit-scrollbar { display: none; }
 
-  .nav-link {
+  .nav-link,
+  .nav-dropdown-trigger {
     padding: 6px 10px;
     font-size: 12px;
     flex-shrink: 0;
+  }
+
+  .nav-dropdown-menu {
+    left: 0;
+    transform: none;
   }
 
   .header-actions {
@@ -1143,13 +1233,15 @@ input:checked + .slider:before {
 }
 
 @media (max-width: 600px) {
-  .header-nav { display: none; }
+  .header-nav { display: none !important; }
   .app-header {
-    grid-template-columns: auto auto;
+    grid-template-columns: 1fr auto;
     grid-template-rows: auto;
+    overflow: visible;
   }
   .user-avatar-email { display: none; }
   .btn-add-monitor-text { display: none; }
+  .logo-area h1 { font-size: 15px; }
 }
 
 /* ============================================================
@@ -1385,9 +1477,31 @@ input:checked + .slider:before {
   /* Keep add-monitor and theme-toggle but hide sign-in (it's in drawer) */
   #btn-login-trigger { display: none !important; }
 
-  /* Single-column header grid */
+  /* Single-column header grid — logo left, actions right */
   .app-header {
     grid-template-columns: 1fr auto;
     grid-template-rows: auto;
+    padding: 10px 12px;
+    gap: 8px;
+    overflow: visible;
+  }
+
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+
+  /* Ensure logo area doesn't push actions off screen */
+  .logo-area {
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .logo-area h1 {
+    font-size: 16px;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 }

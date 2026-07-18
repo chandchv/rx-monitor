@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RxMonitor - App Logs</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="theme.js"></script>
+</head>
+<body>
+  <div class="glass-bg"></div>
+
+  <div class="container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="logo-area">
+        <span class="logo-icon">📜</span>
+        <h1>App Logs</h1>
+      </div>
+
+      <nav class="header-nav">
+        <a href="/" class="nav-link">
+          <span class="nav-icon">🖥️</span> Dashboard
+        </a>
+        <a href="/servers.html" class="nav-link">
+          <span class="nav-icon">📊</span> Servers
+        </a>
+        <a href="/logs.html" class="nav-link">
+          <span class="nav-icon">📋</span> System Logs
+        </a>
+        <a href="/app-logs.html" class="nav-link active">
+          <span class="nav-icon">📜</span> App Logs
+        </a>
+        <a href="/status.html" class="nav-link">
+          <span class="nav-icon">🌐</span> Status Page
+        </a>
+        <a href="/alerting.html" class="nav-link">
+          <span class="nav-icon">🔔</span> Alerting
+        </a>
+        <a href="/incidents.html" class="nav-link">
+          <span class="nav-icon">⚠️</span> Incidents
+        </a>
+        <a href="/dashboards.html" class="nav-link">
+          <span class="nav-icon">📈</span> Dashboards
+        </a>
+        <a href="/comparison.html" class="nav-link">
+          <span class="nav-icon">⚖️</span> Compare
+        </a>
+      </nav>
+
+      <div class="header-actions">
+        <button id="theme-toggle" class="btn btn-icon-round" title="Toggle theme">
+          <span class="icon">☀️</span>
+        </button>
+        <a href="/" class="btn btn-secondary">🏠 Back to Dashboard</a>
+      </div>
+    </header>
+
+    <!-- Filter Controls -->
+    <div class="card" style="padding: 20px; margin-bottom: 24px;">
+      <h4 style="font-size: 14px; font-weight: 600; margin-bottom: 12px;">🔍 Filter Logs</h4>
+      <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end;">
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <label style="font-size: 11px; color: var(--color-muted);">Hostname</label>
+          <select id="filter-hostname" style="padding: 8px 12px; border-radius: 6px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: inherit; font-size: 12px; min-width: 150px;">
+            <option value="">All Hosts</option>
+          </select>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <label style="font-size: 11px; color: var(--color-muted);">Severity</label>
+          <select id="filter-severity" style="padding: 8px 12px; border-radius: 6px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: inherit; font-size: 12px; min-width: 120px;">
+            <option value="">All Levels</option>
+            <option value="debug">Debug</option>
+            <option value="info">Info</option>
+            <option value="warn">Warn</option>
+            <option value="error">Error</option>
+            <option value="fatal">Fatal</option>
+          </select>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <label style="font-size: 11px; color: var(--color-muted);">Start Time</label>
+          <input type="datetime-local" id="filter-start" style="padding: 8px 12px; border-radius: 6px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: inherit; font-size: 12px;">
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <label style="font-size: 11px; color: var(--color-muted);">End Time</label>
+          <input type="datetime-local" id="filter-end" style="padding: 8px 12px; border-radius: 6px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: inherit; font-size: 12px;">
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <label style="font-size: 11px; color: var(--color-muted);">Keyword</label>
+          <input type="text" id="filter-keyword" placeholder="Search messages..." style="padding: 8px 12px; border-radius: 6px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: inherit; font-size: 12px; min-width: 180px;">
+        </div>
+        <button id="btn-search" class="btn btn-primary" style="font-size: 12px; padding: 8px 16px;">🔎 Search</button>
+        <button id="btn-clear" class="btn btn-secondary" style="font-size: 12px; padding: 8px 16px;">✕ Clear</button>
+      </div>
+    </div>
+
+    <!-- Results Table -->
+    <div class="card" style="margin-bottom: 24px;">
+      <div class="card-header">
+        <h2>Log Entries</h2>
+        <span id="results-count" style="font-size: 12px; color: var(--color-muted);"></span>
+      </div>
+      <div class="table-container" style="max-height: 600px;">
+        <table class="logs-table">
+          <thead>
+            <tr>
+              <th>Hostname</th>
+              <th>Timestamp</th>
+              <th>Severity</th>
+              <th>Message</th>
+            </tr>
+          </thead>
+          <tbody id="logs-tbody">
+            <tr>
+              <td colspan="4" style="text-align: center; color: var(--color-muted); padding: 40px;">Use the filters above to search application logs.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Pagination -->
+    <div id="pagination" style="display: flex; justify-content: center; align-items: center; gap: 12px; margin-bottom: 40px;">
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="toast"></div>
+
+  <script>
+    const toastEl = document.getElementById('toast');
+    let currentPage = 1;
+    const pageSize = 50;
+
+    function getRequestHeaders(includeBody = false) {
+      const headers = {};
+      const token = localStorage.getItem('rx-monitor-token');
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+      const visitorId = localStorage.getItem('rx-monitor-visitor-id');
+      if (visitorId) headers['X-Visitor-Id'] = visitorId;
+      if (includeBody) headers['Content-Type'] = 'application/json';
+      return headers;
+    }
+
+    function showToast(message, type = 'success') {
+      toastEl.textContent = message;
+      toastEl.className = `toast show toast-${type}`;
+      setTimeout(() => { toastEl.classList.remove('show'); }, 4000);
+    }
+
+    function escapeHTML(str) {
+      if (!str) return '';
+      return str.replace(/[&<>'"]/g, tag => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[tag] || tag));
+    }
+
+    function getSeverityBadge(severity) {
+      const colors = {
+        debug: { bg: 'rgba(148,163,184,0.15)', text: '#94a3b8' },
+        info: { bg: 'rgba(99,102,241,0.15)', text: '#818cf8' },
+        warn: { bg: 'rgba(245,158,11,0.15)', text: '#fbbf24' },
+        error: { bg: 'rgba(239,68,68,0.15)', text: '#ef4444' },
+        fatal: { bg: 'rgba(220,38,38,0.25)', text: '#fca5a5' }
+      };
+      const c = colors[severity] || colors.info;
+      return `<span class="badge" style="background: ${c.bg}; color: ${c.text}; border-color: ${c.text}33; font-size: 10px;">${(severity || 'info').toUpperCase()}</span>`;
+    }
+
+    async function loadHostnames() {
+      try {
+        const res = await fetch('/api/logs/hostnames', { headers: getRequestHeaders() });
+        if (!res.ok) return;
+        const hostnames = await res.json();
+        const select = document.getElementById('filter-hostname');
+        (hostnames || []).forEach(h => {
+          const opt = document.createElement('option');
+          opt.value = h;
+          opt.textContent = h;
+          select.appendChild(opt);
+        });
+      } catch (err) {
+        // Non-critical, hostname filter just won't populate
+      }
+    }
+
+    async function searchLogs(page = 1) {
+      currentPage = page;
+      const hostname = document.getElementById('filter-hostname').value;
+      const severity = document.getElementById('filter-severity').value;
+      const startTime = document.getElementById('filter-start').value;
+      const endTime = document.getElementById('filter-end').value;
+      const keyword = document.getElementById('filter-keyword').value.trim();
+
+      const params = new URLSearchParams();
+      if (hostname) params.set('hostname', hostname);
+      if (severity) params.set('severity', severity);
+      if (startTime) params.set('startTime', new Date(startTime).toISOString());
+      if (endTime) params.set('endTime', new Date(endTime).toISOString());
+      if (keyword) params.set('keyword', keyword);
+      params.set('page', page);
+      params.set('pageSize', pageSize);
+
+      const tbody = document.getElementById('logs-tbody');
+      tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--color-muted); padding: 20px;">Searching...</td></tr>';
+
+      try {
+        const res = await fetch(`/api/logs?${params.toString()}`, { headers: getRequestHeaders() });
+        if (!res.ok) throw new Error('Failed to fetch logs');
+        const data = await res.json();
+
+        const logs = data.logs || data.entries || data || [];
+        const total = data.total || data.totalCount || logs.length;
+
+        document.getElementById('results-count').textContent = `${total} result${total !== 1 ? 's' : ''} found`;
+
+        if (logs.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--color-muted); padding: 40px;">No logs found matching your criteria.</td></tr>';
+          renderPagination(0, page);
+          return;
+        }
+
+        tbody.innerHTML = logs.map(log => `
+          <tr>
+            <td style="white-space: nowrap; font-weight: 500;">${escapeHTML(log.hostname || log.host || '-')}</td>
+            <td style="white-space: nowrap; font-size: 11px;">${new Date(log.timestamp || log.created_at).toLocaleString()}</td>
+            <td>${getSeverityBadge(log.severity || log.level)}</td>
+            <td style="max-width: 400px; word-break: break-word;"><code style="font-size: 11px;">${escapeHTML(log.message || log.msg || '')}</code></td>
+          </tr>
+        `).join('');
+
+        renderPagination(total, page);
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: #ef4444; padding: 20px;">Error: ${escapeHTML(err.message)}</td></tr>`;
+        showToast(err.message, 'error');
+      }
+    }
+
+    function renderPagination(total, currentPage) {
+      const container = document.getElementById('pagination');
+      const totalPages = Math.ceil(total / pageSize);
+
+      if (totalPages <= 1) {
+        container.innerHTML = '';
+        return;
+      }
+
+      let html = '';
+      html += `<button class="btn btn-secondary" style="font-size: 11px; padding: 6px 12px;" ${currentPage <= 1 ? 'disabled' : ''} onclick="searchLogs(${currentPage - 1})">← Prev</button>`;
+      html += `<span style="font-size: 12px; color: var(--color-muted);">Page ${currentPage} of ${totalPages}</span>`;
+      html += `<button class="btn btn-secondary" style="font-size: 11px; padding: 6px 12px;" ${currentPage >= totalPages ? 'disabled' : ''} onclick="searchLogs(${currentPage + 1})">Next →</button>`;
+
+      container.innerHTML = html;
+    }
+
+    // Event listeners
+    document.getElementById('btn-search').addEventListener('click', () => searchLogs(1));
+    document.getElementById('btn-clear').addEventListener('click', () => {
+      document.getElementById('filter-hostname').value = '';
+      document.getElementById('filter-severity').value = '';
+      document.getElementById('filter-start').value = '';
+      document.getElementById('filter-end').value = '';
+      document.getElementById('filter-keyword').value = '';
+      document.getElementById('logs-tbody').innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--color-muted); padding: 40px;">Use the filters above to search application logs.</td></tr>';
+      document.getElementById('pagination').innerHTML = '';
+      document.getElementById('results-count').textContent = '';
+    });
+
+    // Allow Enter key to trigger search
+    document.getElementById('filter-keyword').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') searchLogs(1);
+    });
+
+    document.addEventListener('DOMContentLoaded', () => {
+      loadHostnames();
+    });
+  </script>
+</body>
+</html>

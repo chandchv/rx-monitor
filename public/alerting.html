@@ -1,0 +1,990 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RxMonitor - Alerting Management</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="theme.js"></script>
+</head>
+<body>
+  <div class="glass-bg"></div>
+
+  <div class="container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="logo-area">
+        <span class="logo-icon">🔔</span>
+        <h1>Alerting Management</h1>
+      </div>
+
+      <nav class="header-nav">
+        <a href="/" class="nav-link">
+          <span class="nav-icon">🖥️</span> Dashboard
+        </a>
+        <a href="/servers.html" class="nav-link">
+          <span class="nav-icon">📊</span> Servers
+        </a>
+        <a href="/logs.html" class="nav-link">
+          <span class="nav-icon">📋</span> System Logs
+        </a>
+        <a href="/status.html" class="nav-link">
+          <span class="nav-icon">🌐</span> Status Page
+        </a>
+        <a href="/alerting.html" class="nav-link active">
+          <span class="nav-icon">🔔</span> Alerting
+        </a>
+        <a href="/incidents.html" class="nav-link">
+          <span class="nav-icon">⚠️</span> Incidents
+        </a>
+        <a href="/dashboards.html" class="nav-link">
+          <span class="nav-icon">📈</span> Dashboards
+        </a>
+      </nav>
+
+      <div class="header-actions">
+        <button id="theme-toggle" class="btn btn-icon-round" title="Toggle theme">
+          <span class="icon">☀️</span>
+        </button>
+        <a href="/" class="btn btn-secondary">🏠 Back to Dashboard</a>
+      </div>
+    </header>
+
+    <!-- Tab Navigation -->
+    <div class="card" style="padding: 0; margin-bottom: 24px;">
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="tab-escalation">🚨 Escalation Policies</button>
+        <button class="tab-btn" data-tab="tab-maintenance">🔧 Maintenance Windows</button>
+        <button class="tab-btn" data-tab="tab-dedup">🔕 Alert Deduplication</button>
+        <button class="tab-btn" data-tab="tab-oncall">📞 On-Call Rotation</button>
+      </div>
+    </div>
+
+    <!-- ============ TAB: Escalation Policies ============ -->
+    <div id="tab-escalation" class="tab-pane active">
+      <div class="card">
+        <div class="card-header">
+          <h2>Escalation Policies</h2>
+          <button id="btn-add-escalation" class="btn btn-primary">➕ New Policy</button>
+        </div>
+        <div class="table-container" style="max-height: 500px;">
+          <table class="logs-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Monitor</th>
+                <th>Tiers</th>
+                <th>Created</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="escalation-tbody">
+              <tr><td colspan="5" class="loading-state">Loading...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ TAB: Maintenance Windows ============ -->
+    <div id="tab-maintenance" class="tab-pane">
+      <div class="card">
+        <div class="card-header">
+          <h2>Maintenance Windows</h2>
+          <button id="btn-add-maintenance" class="btn btn-primary">➕ New Window</button>
+        </div>
+        <div class="table-container" style="max-height: 500px;">
+          <table class="logs-table">
+            <thead>
+              <tr>
+                <th>Monitor</th>
+                <th>Start</th>
+                <th>End</th>
+                <th>Timezone</th>
+                <th>Recurrence</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="maintenance-tbody">
+              <tr><td colspan="6" class="loading-state">Loading...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ TAB: Alert Deduplication ============ -->
+    <div id="tab-dedup" class="tab-pane">
+      <div class="card">
+        <div class="card-header">
+          <h2>Alert Deduplication Settings</h2>
+        </div>
+        <p style="color: var(--color-muted); font-size: 13px; margin-bottom: 16px;">
+          Configure the suppression window per monitor. Duplicate alerts within this window will be suppressed.
+        </p>
+        <div id="dedup-list" style="display: flex; flex-direction: column; gap: 12px;">
+          <div class="loading-state">Loading monitors...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ TAB: On-Call Rotation ============ -->
+    <div id="tab-oncall" class="tab-pane">
+      <div class="card" style="margin-bottom: 24px;">
+        <div class="card-header">
+          <h2>On-Call Teams</h2>
+          <button id="btn-add-team" class="btn btn-primary">➕ New Team</button>
+        </div>
+        <div class="table-container" style="max-height: 300px;">
+          <table class="logs-table">
+            <thead>
+              <tr>
+                <th>Team Name</th>
+                <th>Rotation Interval</th>
+                <th>Rotation Start</th>
+                <th>Members</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="oncall-teams-tbody">
+              <tr><td colspan="5" class="loading-state">Loading...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Team Detail Panel (shown when a team is selected) -->
+      <div id="team-detail-panel" class="card" style="display: none;">
+        <div class="card-header">
+          <h2 id="team-detail-title">Team Members</h2>
+          <div style="display: flex; gap: 8px;">
+            <button id="btn-add-member" class="btn btn-secondary">👤 Add Member</button>
+            <button id="btn-add-override" class="btn btn-secondary">📅 Add Override</button>
+          </div>
+        </div>
+
+        <h4 style="font-size: 14px; margin-bottom: 12px; color: var(--color-muted);">Members</h4>
+        <div class="table-container" style="max-height: 250px; margin-bottom: 20px;">
+          <table class="logs-table">
+            <thead>
+              <tr>
+                <th>Position</th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Telegram</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="members-tbody">
+              <tr><td colspan="5" class="loading-state">No members</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h4 style="font-size: 14px; margin-bottom: 12px; color: var(--color-muted);">Overrides</h4>
+        <div class="table-container" style="max-height: 200px;">
+          <table class="logs-table">
+            <thead>
+              <tr>
+                <th>Member</th>
+                <th>Start</th>
+                <th>End</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="overrides-tbody">
+              <tr><td colspan="4" class="loading-state">No overrides</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- end container -->
+
+  <!-- ============ MODAL: Escalation Policy ============ -->
+  <div id="modal-escalation" class="modal">
+    <div class="modal-content glass-card wide-modal">
+      <div class="modal-header">
+        <h3 id="escalation-modal-title">New Escalation Policy</h3>
+        <button class="close-modal">&times;</button>
+      </div>
+      <form id="escalation-form" style="padding: 24px;">
+        <input type="hidden" id="esc-id">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="esc-name">Policy Name</label>
+            <input type="text" id="esc-name" required placeholder="e.g. Critical API Escalation">
+          </div>
+          <div class="form-group">
+            <label for="esc-monitor">Monitor</label>
+            <select id="esc-monitor" required></select>
+          </div>
+        </div>
+
+        <h4 style="font-size: 14px; margin-bottom: 12px; color: var(--color-muted);">Escalation Tiers</h4>
+        <div id="esc-tiers-container" style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 16px;"></div>
+        <button type="button" id="btn-add-tier" class="btn btn-secondary" style="margin-bottom: 20px;">➕ Add Tier</button>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary close-modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Policy</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ============ MODAL: Maintenance Window ============ -->
+  <div id="modal-maintenance" class="modal">
+    <div class="modal-content glass-card">
+      <div class="modal-header">
+        <h3 id="maintenance-modal-title">New Maintenance Window</h3>
+        <button class="close-modal">&times;</button>
+      </div>
+      <form id="maintenance-form" style="padding: 24px;">
+        <input type="hidden" id="mw-id">
+        <div class="form-group">
+          <label for="mw-monitor">Monitor</label>
+          <select id="mw-monitor" required></select>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="mw-start">Start Time</label>
+            <input type="datetime-local" id="mw-start" required>
+          </div>
+          <div class="form-group">
+            <label for="mw-end">End Time</label>
+            <input type="datetime-local" id="mw-end" required>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="mw-timezone">Timezone</label>
+            <select id="mw-timezone" required>
+              <option value="UTC">UTC</option>
+              <option value="America/New_York">America/New_York</option>
+              <option value="America/Chicago">America/Chicago</option>
+              <option value="America/Denver">America/Denver</option>
+              <option value="America/Los_Angeles">America/Los_Angeles</option>
+              <option value="Europe/London">Europe/London</option>
+              <option value="Europe/Paris">Europe/Paris</option>
+              <option value="Europe/Berlin">Europe/Berlin</option>
+              <option value="Asia/Tokyo">Asia/Tokyo</option>
+              <option value="Asia/Shanghai">Asia/Shanghai</option>
+              <option value="Asia/Kolkata">Asia/Kolkata</option>
+              <option value="Australia/Sydney">Australia/Sydney</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="mw-recurrence">Recurrence</label>
+            <select id="mw-recurrence">
+              <option value="none">One-time</option>
+              <option value="daily">Daily</option>
+              <option value="weekly">Weekly</option>
+              <option value="monthly">Monthly</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary close-modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Window</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ============ MODAL: On-Call Team ============ -->
+  <div id="modal-team" class="modal">
+    <div class="modal-content glass-card">
+      <div class="modal-header">
+        <h3 id="team-modal-title">New On-Call Team</h3>
+        <button class="close-modal">&times;</button>
+      </div>
+      <form id="team-form" style="padding: 24px;">
+        <input type="hidden" id="team-id">
+        <div class="form-group">
+          <label for="team-name">Team Name</label>
+          <input type="text" id="team-name" required placeholder="e.g. Backend Engineers">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="team-rotation">Rotation Interval (hours)</label>
+            <input type="number" id="team-rotation" min="1" max="720" value="168" required>
+            <small>168 = weekly, 24 = daily, or custom 1-720h</small>
+          </div>
+          <div class="form-group">
+            <label for="team-rotation-start">Rotation Start Time</label>
+            <input type="datetime-local" id="team-rotation-start" required>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary close-modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Team</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ============ MODAL: Add Member ============ -->
+  <div id="modal-member" class="modal">
+    <div class="modal-content glass-card">
+      <div class="modal-header">
+        <h3>Add Team Member</h3>
+        <button class="close-modal">&times;</button>
+      </div>
+      <form id="member-form" style="padding: 24px;">
+        <div class="form-group">
+          <label for="member-name">Name</label>
+          <input type="text" id="member-name" required placeholder="John Doe">
+        </div>
+        <div class="form-group">
+          <label for="member-email">Email</label>
+          <input type="email" id="member-email" required placeholder="john@example.com">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="member-telegram">Telegram Chat ID (optional)</label>
+            <input type="text" id="member-telegram" placeholder="-100123456789">
+          </div>
+          <div class="form-group">
+            <label for="member-position">Position (order)</label>
+            <input type="number" id="member-position" min="1" max="50" value="1" required>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary close-modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Add Member</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ============ MODAL: Add Override ============ -->
+  <div id="modal-override" class="modal">
+    <div class="modal-content glass-card">
+      <div class="modal-header">
+        <h3>Add Schedule Override</h3>
+        <button class="close-modal">&times;</button>
+      </div>
+      <form id="override-form" style="padding: 24px;">
+        <div class="form-group">
+          <label for="override-member">Member</label>
+          <select id="override-member" required></select>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="override-start">Start Time</label>
+            <input type="datetime-local" id="override-start" required>
+          </div>
+          <div class="form-group">
+            <label for="override-end">End Time</label>
+            <input type="datetime-local" id="override-end" required>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary close-modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Add Override</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" class="toast"></div>
+
+  <script>
+    // ============ Helpers ============
+    function getRequestHeaders(includeBody = false) {
+      const headers = {};
+      const token = localStorage.getItem('rx-monitor-token');
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+      const visitorId = localStorage.getItem('rx-monitor-visitor-id');
+      if (visitorId) headers['X-Visitor-Id'] = visitorId;
+      if (includeBody) headers['Content-Type'] = 'application/json';
+      return headers;
+    }
+
+    const toastEl = document.getElementById('toast');
+    function showToast(message, type = 'success') {
+      toastEl.textContent = message;
+      toastEl.className = `toast show toast-${type}`;
+      setTimeout(() => toastEl.classList.remove('show'), 4000);
+    }
+
+    function escapeHTML(str) {
+      if (!str) return '';
+      return str.replace(/[&<>'"]/g, tag => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[tag] || tag));
+    }
+
+    let monitors = [];
+    async function loadMonitors() {
+      try {
+        const res = await fetch('/api/monitors', { headers: getRequestHeaders() });
+        if (res.ok) monitors = await res.json();
+      } catch (e) { console.error(e); }
+    }
+
+    function populateMonitorSelect(selectEl) {
+      selectEl.innerHTML = '<option value="">-- Select Monitor --</option>' +
+        monitors.map(m => `<option value="${m.id}">${escapeHTML(m.name)}</option>`).join('');
+    }
+
+    function getMonitorName(id) {
+      const m = monitors.find(x => x.id == id);
+      return m ? m.name : `ID: ${id}`;
+    }
+
+    // ============ Tabs ============
+    document.querySelectorAll('.tabs .tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tabs .tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById(btn.dataset.tab).classList.add('active');
+      });
+    });
+
+    // ============ Modal Helpers ============
+    function openModal(id) { document.getElementById(id).classList.add('active'); }
+    function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+
+    document.querySelectorAll('.close-modal').forEach(btn => {
+      btn.addEventListener('click', () => {
+        btn.closest('.modal').classList.remove('active');
+      });
+    });
+
+    // Close modals on backdrop click
+    document.querySelectorAll('.modal').forEach(modal => {
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) modal.classList.remove('active');
+      });
+    });
+
+    // ============ ESCALATION POLICIES ============
+    let escalationPolicies = [];
+
+    async function loadEscalationPolicies() {
+      try {
+        const res = await fetch('/api/escalation-policies', { headers: getRequestHeaders() });
+        if (!res.ok) throw new Error('Failed to load escalation policies');
+        escalationPolicies = await res.json();
+        renderEscalationTable();
+      } catch (e) {
+        showToast(e.message, 'error');
+      }
+    }
+
+    function renderEscalationTable() {
+      const tbody = document.getElementById('escalation-tbody');
+      if (escalationPolicies.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--color-muted);">No escalation policies configured.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = escalationPolicies.map(p => {
+        const tiers = p.tiers ? (Array.isArray(p.tiers) ? p.tiers : JSON.parse(p.tiers)) : [];
+        return `<tr>
+          <td style="font-weight:500;">${escapeHTML(p.name)}</td>
+          <td>${escapeHTML(getMonitorName(p.monitor_id))}</td>
+          <td><span class="badge">${tiers.length} tier${tiers.length !== 1 ? 's' : ''}</span></td>
+          <td>${p.created_at ? new Date(p.created_at).toLocaleDateString() : '-'}</td>
+          <td>
+            <button class="btn btn-secondary" style="padding:6px 10px;font-size:12px;" onclick="editEscalation(${p.id})">✏️</button>
+            <button class="btn btn-danger" style="padding:6px 10px;font-size:12px;" onclick="deleteEscalation(${p.id})">🗑️</button>
+          </td>
+        </tr>`;
+      }).join('');
+    }
+
+    function createTierRow(tier = {}) {
+      const div = document.createElement('div');
+      div.className = 'tier-row';
+      div.style.cssText = 'display:grid;grid-template-columns:60px 1fr 1fr 100px 40px;gap:8px;align-items:center;padding:10px;background:rgba(255,255,255,0.02);border:1px solid var(--border-color);border-radius:8px;';
+      div.innerHTML = `
+        <input type="number" class="tier-level" min="1" max="10" value="${tier.level || 1}" style="width:100%;background:rgba(255,255,255,0.04);border:1px solid var(--border-color);border-radius:6px;padding:8px;color:white;font-family:var(--font-family);font-size:13px;">
+        <select class="tier-channel" style="width:100%;background:rgba(255,255,255,0.04);border:1px solid var(--border-color);border-radius:6px;padding:8px;color:white;font-family:var(--font-family);font-size:13px;">
+          <option value="telegram" ${tier.channel === 'telegram' ? 'selected' : ''}>Telegram</option>
+          <option value="email" ${tier.channel === 'email' ? 'selected' : ''}>Email</option>
+        </select>
+        <input type="text" class="tier-contact" value="${escapeHTML(tier.contact || '')}" placeholder="Contact (email or chat ID)" style="width:100%;background:rgba(255,255,255,0.04);border:1px solid var(--border-color);border-radius:6px;padding:8px;color:white;font-family:var(--font-family);font-size:13px;">
+        <input type="number" class="tier-delay" min="1" max="60" value="${tier.delay_minutes || 5}" style="width:100%;background:rgba(255,255,255,0.04);border:1px solid var(--border-color);border-radius:6px;padding:8px;color:white;font-family:var(--font-family);font-size:13px;" title="Delay (minutes)">
+        <button type="button" class="btn btn-danger" style="padding:6px 8px;font-size:12px;" onclick="this.closest('.tier-row').remove()">✕</button>
+      `;
+      return div;
+    }
+
+    document.getElementById('btn-add-tier').addEventListener('click', () => {
+      const container = document.getElementById('esc-tiers-container');
+      const tierCount = container.children.length;
+      if (tierCount >= 10) { showToast('Maximum 10 tiers allowed', 'error'); return; }
+      container.appendChild(createTierRow({ level: tierCount + 1 }));
+    });
+
+    document.getElementById('btn-add-escalation').addEventListener('click', () => {
+      document.getElementById('escalation-modal-title').textContent = 'New Escalation Policy';
+      document.getElementById('escalation-form').reset();
+      document.getElementById('esc-id').value = '';
+      populateMonitorSelect(document.getElementById('esc-monitor'));
+      const container = document.getElementById('esc-tiers-container');
+      container.innerHTML = '';
+      container.appendChild(createTierRow({ level: 1, channel: 'telegram', delay_minutes: 5 }));
+      container.appendChild(createTierRow({ level: 2, channel: 'email', delay_minutes: 15 }));
+      container.appendChild(createTierRow({ level: 3, channel: 'telegram', delay_minutes: 30 }));
+      openModal('modal-escalation');
+    });
+
+    function editEscalation(id) {
+      const policy = escalationPolicies.find(p => p.id === id);
+      if (!policy) return;
+      document.getElementById('escalation-modal-title').textContent = 'Edit Escalation Policy';
+      document.getElementById('esc-id').value = policy.id;
+      document.getElementById('esc-name').value = policy.name;
+      populateMonitorSelect(document.getElementById('esc-monitor'));
+      document.getElementById('esc-monitor').value = policy.monitor_id;
+      const container = document.getElementById('esc-tiers-container');
+      container.innerHTML = '';
+      const tiers = Array.isArray(policy.tiers) ? policy.tiers : JSON.parse(policy.tiers || '[]');
+      tiers.forEach(t => container.appendChild(createTierRow(t)));
+      openModal('modal-escalation');
+    }
+
+    async function deleteEscalation(id) {
+      if (!confirm('Delete this escalation policy?')) return;
+      try {
+        const res = await fetch(`/api/escalation-policies/${id}`, { method: 'DELETE', headers: getRequestHeaders() });
+        if (!res.ok) throw new Error('Failed to delete');
+        showToast('Escalation policy deleted');
+        loadEscalationPolicies();
+      } catch (e) { showToast(e.message, 'error'); }
+    }
+
+    document.getElementById('escalation-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const id = document.getElementById('esc-id').value;
+      const tiers = [];
+      document.querySelectorAll('#esc-tiers-container .tier-row').forEach(row => {
+        tiers.push({
+          level: parseInt(row.querySelector('.tier-level').value),
+          channel: row.querySelector('.tier-channel').value,
+          contact: row.querySelector('.tier-contact').value,
+          delay_minutes: parseInt(row.querySelector('.tier-delay').value)
+        });
+      });
+
+      if (tiers.length < 3) { showToast('Minimum 3 tiers required', 'error'); return; }
+      if (tiers.length > 10) { showToast('Maximum 10 tiers allowed', 'error'); return; }
+
+      const payload = {
+        name: document.getElementById('esc-name').value,
+        monitor_id: parseInt(document.getElementById('esc-monitor').value),
+        tiers: tiers
+      };
+
+      try {
+        const url = id ? `/api/escalation-policies/${id}` : '/api/escalation-policies';
+        const method = id ? 'PUT' : 'POST';
+        const res = await fetch(url, {
+          method, headers: getRequestHeaders(true), body: JSON.stringify(payload)
+        });
+        if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.error || 'Failed to save'); }
+        showToast(id ? 'Policy updated' : 'Policy created');
+        closeModal('modal-escalation');
+        loadEscalationPolicies();
+      } catch (e) { showToast(e.message, 'error'); }
+    });
+
+    // ============ MAINTENANCE WINDOWS ============
+    let maintenanceWindows = [];
+
+    async function loadMaintenanceWindows() {
+      try {
+        const res = await fetch('/api/maintenance-windows', { headers: getRequestHeaders() });
+        if (!res.ok) throw new Error('Failed to load maintenance windows');
+        maintenanceWindows = await res.json();
+        renderMaintenanceTable();
+      } catch (e) { showToast(e.message, 'error'); }
+    }
+
+    function renderMaintenanceTable() {
+      const tbody = document.getElementById('maintenance-tbody');
+      if (maintenanceWindows.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--color-muted);">No maintenance windows configured.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = maintenanceWindows.map(w => {
+        const recBadge = w.recurrence === 'none'
+          ? '<span class="badge" style="background:rgba(99,102,241,0.15);color:#818cf8;border-color:rgba(99,102,241,0.3);">One-time</span>'
+          : `<span class="badge">${escapeHTML(w.recurrence)}</span>`;
+        return `<tr>
+          <td style="font-weight:500;">${escapeHTML(getMonitorName(w.monitor_id))}</td>
+          <td>${new Date(w.start_time).toLocaleString()}</td>
+          <td>${new Date(w.end_time).toLocaleString()}</td>
+          <td>${escapeHTML(w.timezone || 'UTC')}</td>
+          <td>${recBadge}</td>
+          <td>
+            <button class="btn btn-secondary" style="padding:6px 10px;font-size:12px;" onclick="editMaintenance(${w.id})">✏️</button>
+            <button class="btn btn-danger" style="padding:6px 10px;font-size:12px;" onclick="deleteMaintenance(${w.id})">🗑️</button>
+          </td>
+        </tr>`;
+      }).join('');
+    }
+
+    document.getElementById('btn-add-maintenance').addEventListener('click', () => {
+      document.getElementById('maintenance-modal-title').textContent = 'New Maintenance Window';
+      document.getElementById('maintenance-form').reset();
+      document.getElementById('mw-id').value = '';
+      populateMonitorSelect(document.getElementById('mw-monitor'));
+      openModal('modal-maintenance');
+    });
+
+    function editMaintenance(id) {
+      const w = maintenanceWindows.find(x => x.id === id);
+      if (!w) return;
+      document.getElementById('maintenance-modal-title').textContent = 'Edit Maintenance Window';
+      document.getElementById('mw-id').value = w.id;
+      populateMonitorSelect(document.getElementById('mw-monitor'));
+      document.getElementById('mw-monitor').value = w.monitor_id;
+      document.getElementById('mw-start').value = w.start_time ? w.start_time.slice(0, 16) : '';
+      document.getElementById('mw-end').value = w.end_time ? w.end_time.slice(0, 16) : '';
+      document.getElementById('mw-timezone').value = w.timezone || 'UTC';
+      document.getElementById('mw-recurrence').value = w.recurrence || 'none';
+      openModal('modal-maintenance');
+    }
+
+    async function deleteMaintenance(id) {
+      if (!confirm('Delete this maintenance window?')) return;
+      try {
+        const res = await fetch(`/api/maintenance-windows/${id}`, { method: 'DELETE', headers: getRequestHeaders() });
+        if (!res.ok) throw new Error('Failed to delete');
+        showToast('Maintenance window deleted');
+        loadMaintenanceWindows();
+      } catch (e) { showToast(e.message, 'error'); }
+    }
+
+    document.getElementById('maintenance-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const id = document.getElementById('mw-id').value;
+      const payload = {
+        monitor_id: parseInt(document.getElementById('mw-monitor').value),
+        start_time: document.getElementById('mw-start').value,
+        end_time: document.getElementById('mw-end').value,
+        timezone: document.getElementById('mw-timezone').value,
+        recurrence: document.getElementById('mw-recurrence').value
+      };
+
+      try {
+        const url = id ? `/api/maintenance-windows/${id}` : '/api/maintenance-windows';
+        const method = id ? 'PUT' : 'POST';
+        const res = await fetch(url, {
+          method, headers: getRequestHeaders(true), body: JSON.stringify(payload)
+        });
+        if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.error || 'Failed to save'); }
+        showToast(id ? 'Window updated' : 'Window created');
+        closeModal('modal-maintenance');
+        loadMaintenanceWindows();
+      } catch (e) { showToast(e.message, 'error'); }
+    });
+
+    // ============ ALERT DEDUPLICATION ============
+    async function loadDeduplication() {
+      const container = document.getElementById('dedup-list');
+      if (monitors.length === 0) {
+        container.innerHTML = '<div style="text-align:center;color:var(--color-muted);padding:20px;">No monitors found. Add monitors first.</div>';
+        return;
+      }
+      container.innerHTML = monitors.map(m => `
+        <div style="display:flex;align-items:center;gap:16px;padding:14px 18px;background:rgba(255,255,255,0.02);border:1px solid var(--border-color);border-radius:10px;">
+          <div style="flex:1;">
+            <div style="font-weight:500;font-size:14px;">${escapeHTML(m.name)}</div>
+            <div style="font-size:11px;color:var(--color-muted);">${escapeHTML(m.url)}</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <label style="font-size:12px;color:var(--color-muted);">Suppression window:</label>
+            <input type="number" id="dedup-${m.id}" min="5" max="1440" value="30"
+              style="width:80px;background:rgba(255,255,255,0.04);border:1px solid var(--border-color);border-radius:6px;padding:8px;color:white;font-family:var(--font-family);font-size:13px;">
+            <span style="font-size:12px;color:var(--color-muted);">min</span>
+            <button class="btn btn-primary" style="padding:6px 12px;font-size:12px;" onclick="saveDedup(${m.id})">Save</button>
+          </div>
+        </div>
+      `).join('');
+
+      // Load current values
+      for (const m of monitors) {
+        try {
+          const res = await fetch(`/api/monitors/${m.id}/deduplication`, { headers: getRequestHeaders() });
+          if (res.ok) {
+            const data = await res.json();
+            const input = document.getElementById(`dedup-${m.id}`);
+            if (input && data.window_minutes) input.value = data.window_minutes;
+          }
+        } catch (e) { /* ignore */ }
+      }
+    }
+
+    async function saveDedup(monitorId) {
+      const input = document.getElementById(`dedup-${monitorId}`);
+      const val = parseInt(input.value);
+      if (val < 5 || val > 1440) { showToast('Value must be between 5 and 1440 minutes', 'error'); return; }
+      try {
+        const res = await fetch(`/api/monitors/${monitorId}/deduplication`, {
+          method: 'PUT', headers: getRequestHeaders(true),
+          body: JSON.stringify({ window_minutes: val })
+        });
+        if (!res.ok) throw new Error('Failed to update');
+        showToast('Deduplication window updated');
+      } catch (e) { showToast(e.message, 'error'); }
+    }
+
+    // ============ ON-CALL ROTATION ============
+    let oncallTeams = [];
+    let selectedTeamId = null;
+
+    async function loadOncallTeams() {
+      try {
+        const res = await fetch('/api/oncall-teams', { headers: getRequestHeaders() });
+        if (!res.ok) throw new Error('Failed to load on-call teams');
+        oncallTeams = await res.json();
+        renderTeamsTable();
+      } catch (e) { showToast(e.message, 'error'); }
+    }
+
+    function renderTeamsTable() {
+      const tbody = document.getElementById('oncall-teams-tbody');
+      if (oncallTeams.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--color-muted);">No on-call teams configured.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = oncallTeams.map(t => {
+        const intervalLabel = t.rotation_interval_hours === 24 ? 'Daily'
+          : t.rotation_interval_hours === 168 ? 'Weekly'
+          : `${t.rotation_interval_hours}h (Custom)`;
+        return `<tr style="cursor:pointer;" onclick="selectTeam(${t.id})">
+          <td style="font-weight:500;">${escapeHTML(t.name)}</td>
+          <td><span class="badge">${intervalLabel}</span></td>
+          <td>${t.rotation_start_time ? new Date(t.rotation_start_time).toLocaleString() : '-'}</td>
+          <td>${t.member_count || '-'}</td>
+          <td>
+            <button class="btn btn-secondary" style="padding:6px 10px;font-size:12px;" onclick="event.stopPropagation();editTeam(${t.id})">✏️</button>
+            <button class="btn btn-danger" style="padding:6px 10px;font-size:12px;" onclick="event.stopPropagation();deleteTeam(${t.id})">🗑️</button>
+          </td>
+        </tr>`;
+      }).join('');
+    }
+
+    document.getElementById('btn-add-team').addEventListener('click', () => {
+      document.getElementById('team-modal-title').textContent = 'New On-Call Team';
+      document.getElementById('team-form').reset();
+      document.getElementById('team-id').value = '';
+      openModal('modal-team');
+    });
+
+    function editTeam(id) {
+      const t = oncallTeams.find(x => x.id === id);
+      if (!t) return;
+      document.getElementById('team-modal-title').textContent = 'Edit On-Call Team';
+      document.getElementById('team-id').value = t.id;
+      document.getElementById('team-name').value = t.name;
+      document.getElementById('team-rotation').value = t.rotation_interval_hours;
+      document.getElementById('team-rotation-start').value = t.rotation_start_time ? t.rotation_start_time.slice(0, 16) : '';
+      openModal('modal-team');
+    }
+
+    async function deleteTeam(id) {
+      if (!confirm('Delete this on-call team and all its members?')) return;
+      try {
+        const res = await fetch(`/api/oncall-teams/${id}`, { method: 'DELETE', headers: getRequestHeaders() });
+        if (!res.ok) throw new Error('Failed to delete');
+        showToast('Team deleted');
+        if (selectedTeamId === id) {
+          selectedTeamId = null;
+          document.getElementById('team-detail-panel').style.display = 'none';
+        }
+        loadOncallTeams();
+      } catch (e) { showToast(e.message, 'error'); }
+    }
+
+    document.getElementById('team-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const id = document.getElementById('team-id').value;
+      const payload = {
+        name: document.getElementById('team-name').value,
+        rotation_interval_hours: parseInt(document.getElementById('team-rotation').value),
+        rotation_start_time: document.getElementById('team-rotation-start').value
+      };
+
+      try {
+        const url = id ? `/api/oncall-teams/${id}` : '/api/oncall-teams';
+        const method = id ? 'PUT' : 'POST';
+        const res = await fetch(url, {
+          method, headers: getRequestHeaders(true), body: JSON.stringify(payload)
+        });
+        if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.error || 'Failed to save'); }
+        showToast(id ? 'Team updated' : 'Team created');
+        closeModal('modal-team');
+        loadOncallTeams();
+      } catch (e) { showToast(e.message, 'error'); }
+    });
+
+    // ============ TEAM DETAIL: Members & Overrides ============
+    let teamMembers = [];
+    let teamOverrides = [];
+
+    async function selectTeam(id) {
+      selectedTeamId = id;
+      const team = oncallTeams.find(t => t.id === id);
+      document.getElementById('team-detail-title').textContent = `${team ? team.name : 'Team'} - Members & Overrides`;
+      document.getElementById('team-detail-panel').style.display = 'block';
+      await Promise.all([loadMembers(), loadOverrides()]);
+    }
+
+    async function loadMembers() {
+      if (!selectedTeamId) return;
+      try {
+        const res = await fetch(`/api/oncall-teams/${selectedTeamId}/members`, { headers: getRequestHeaders() });
+        if (!res.ok) throw new Error('Failed to load members');
+        teamMembers = await res.json();
+        renderMembersTable();
+      } catch (e) { showToast(e.message, 'error'); }
+    }
+
+    function renderMembersTable() {
+      const tbody = document.getElementById('members-tbody');
+      if (teamMembers.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--color-muted);">No members added yet.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = teamMembers.map(m => `<tr>
+        <td>${m.position}</td>
+        <td style="font-weight:500;">${escapeHTML(m.name)}</td>
+        <td>${escapeHTML(m.email || '-')}</td>
+        <td>${escapeHTML(m.telegram_chat_id || '-')}</td>
+        <td>
+          <button class="btn btn-danger" style="padding:6px 10px;font-size:12px;" onclick="deleteMember(${m.id})">🗑️</button>
+        </td>
+      </tr>`).join('');
+    }
+
+    document.getElementById('btn-add-member').addEventListener('click', () => {
+      document.getElementById('member-form').reset();
+      document.getElementById('member-position').value = teamMembers.length + 1;
+      openModal('modal-member');
+    });
+
+    document.getElementById('member-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const payload = {
+        name: document.getElementById('member-name').value,
+        email: document.getElementById('member-email').value,
+        telegram_chat_id: document.getElementById('member-telegram').value || null,
+        position: parseInt(document.getElementById('member-position').value)
+      };
+
+      try {
+        const res = await fetch(`/api/oncall-teams/${selectedTeamId}/members`, {
+          method: 'POST', headers: getRequestHeaders(true), body: JSON.stringify(payload)
+        });
+        if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.error || 'Failed to add member'); }
+        showToast('Member added');
+        closeModal('modal-member');
+        loadMembers();
+      } catch (e) { showToast(e.message, 'error'); }
+    });
+
+    async function deleteMember(memberId) {
+      if (!confirm('Remove this member from the team?')) return;
+      try {
+        const res = await fetch(`/api/oncall-teams/${selectedTeamId}/members/${memberId}`, {
+          method: 'DELETE', headers: getRequestHeaders()
+        });
+        if (!res.ok) throw new Error('Failed to remove member');
+        showToast('Member removed');
+        loadMembers();
+      } catch (e) { showToast(e.message, 'error'); }
+    }
+
+    // ============ OVERRIDES ============
+    async function loadOverrides() {
+      if (!selectedTeamId) return;
+      try {
+        const res = await fetch(`/api/oncall-teams/${selectedTeamId}/overrides`, { headers: getRequestHeaders() });
+        if (!res.ok) throw new Error('Failed to load overrides');
+        teamOverrides = await res.json();
+        renderOverridesTable();
+      } catch (e) { showToast(e.message, 'error'); }
+    }
+
+    function renderOverridesTable() {
+      const tbody = document.getElementById('overrides-tbody');
+      if (teamOverrides.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--color-muted);">No overrides configured.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = teamOverrides.map(o => {
+        const member = teamMembers.find(m => m.id === o.member_id);
+        return `<tr>
+          <td style="font-weight:500;">${member ? escapeHTML(member.name) : `ID: ${o.member_id}`}</td>
+          <td>${new Date(o.start_time).toLocaleString()}</td>
+          <td>${new Date(o.end_time).toLocaleString()}</td>
+          <td>
+            <button class="btn btn-danger" style="padding:6px 10px;font-size:12px;" onclick="deleteOverride(${o.id})">🗑️</button>
+          </td>
+        </tr>`;
+      }).join('');
+    }
+
+    document.getElementById('btn-add-override').addEventListener('click', () => {
+      document.getElementById('override-form').reset();
+      const select = document.getElementById('override-member');
+      select.innerHTML = teamMembers.map(m => `<option value="${m.id}">${escapeHTML(m.name)}</option>`).join('');
+      if (teamMembers.length === 0) {
+        showToast('Add team members first', 'error');
+        return;
+      }
+      openModal('modal-override');
+    });
+
+    document.getElementById('override-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const payload = {
+        member_id: parseInt(document.getElementById('override-member').value),
+        start_time: document.getElementById('override-start').value,
+        end_time: document.getElementById('override-end').value
+      };
+
+      try {
+        const res = await fetch(`/api/oncall-teams/${selectedTeamId}/overrides`, {
+          method: 'POST', headers: getRequestHeaders(true), body: JSON.stringify(payload)
+        });
+        if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.error || 'Failed to add override'); }
+        showToast('Override added');
+        closeModal('modal-override');
+        loadOverrides();
+      } catch (e) { showToast(e.message, 'error'); }
+    });
+
+    async function deleteOverride(overrideId) {
+      if (!confirm('Delete this override?')) return;
+      try {
+        const res = await fetch(`/api/oncall-teams/${selectedTeamId}/overrides/${overrideId}`, {
+          method: 'DELETE', headers: getRequestHeaders()
+        });
+        if (!res.ok) throw new Error('Failed to delete override');
+        showToast('Override deleted');
+        loadOverrides();
+      } catch (e) { showToast(e.message, 'error'); }
+    }
+
+    // ============ INITIALIZATION ============
+    document.addEventListener('DOMContentLoaded', async () => {
+      await loadMonitors();
+      loadEscalationPolicies();
+      loadMaintenanceWindows();
+      loadDeduplication();
+      loadOncallTeams();
+    });
+  </script>
+</body>
+</html>

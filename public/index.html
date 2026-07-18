@@ -25,7 +25,7 @@
         <span class="badge">Active</span>
       </div>
 
-      <!-- Center Nav Links -->
+      <!-- Center Nav Links (grouped with dropdowns) -->
       <nav class="header-nav">
         <a href="/" class="nav-link active">
           <span class="nav-icon">🖥️</span> Dashboard
@@ -33,12 +33,41 @@
         <a href="/servers.html" class="nav-link">
           <span class="nav-icon">📊</span> Servers
         </a>
-        <a href="/logs.html" class="nav-link">
-          <span class="nav-icon">📋</span> System Logs
-        </a>
-        <a href="/status.html" class="nav-link">
-          <span class="nav-icon">🌐</span> Status Page
-        </a>
+
+        <!-- Monitoring Dropdown -->
+        <div class="nav-dropdown">
+          <button class="nav-link nav-dropdown-trigger">
+            <span class="nav-icon">🔍</span> Monitoring <span class="dropdown-caret">▾</span>
+          </button>
+          <div class="nav-dropdown-menu">
+            <a href="/alerting.html" class="nav-dropdown-item">🔔 Alerting</a>
+            <a href="/incidents.html" class="nav-dropdown-item">⚠️ Incidents</a>
+            <a href="/status.html" class="nav-dropdown-item">🌐 Status Page</a>
+          </div>
+        </div>
+
+        <!-- Logs Dropdown -->
+        <div class="nav-dropdown">
+          <button class="nav-link nav-dropdown-trigger">
+            <span class="nav-icon">📋</span> Logs <span class="dropdown-caret">▾</span>
+          </button>
+          <div class="nav-dropdown-menu">
+            <a href="/logs.html" class="nav-dropdown-item">📋 System Logs</a>
+            <a href="/app-logs.html" class="nav-dropdown-item">📜 App Logs</a>
+          </div>
+        </div>
+
+        <!-- Analytics Dropdown -->
+        <div class="nav-dropdown">
+          <button class="nav-link nav-dropdown-trigger">
+            <span class="nav-icon">📈</span> Analytics <span class="dropdown-caret">▾</span>
+          </button>
+          <div class="nav-dropdown-menu">
+            <a href="/dashboards.html" class="nav-dropdown-item">📈 Dashboards</a>
+            <a href="/comparison.html" class="nav-dropdown-item">⚖️ Compare</a>
+          </div>
+        </div>
+
         <a id="nav-admin" href="/admin.html" class="nav-link" style="display:none;">
           <span class="nav-icon">🛡️</span> Admin
         </a>
@@ -126,11 +155,29 @@
         <a href="/" class="drawer-nav-link active">
           <span>🖥️</span> Dashboard
         </a>
+        <a href="/servers.html" class="drawer-nav-link">
+          <span>📊</span> Servers
+        </a>
         <a href="/logs.html" class="drawer-nav-link">
           <span>📋</span> System Logs
         </a>
+        <a href="/app-logs.html" class="drawer-nav-link">
+          <span>📜</span> App Logs
+        </a>
         <a href="/status.html" class="drawer-nav-link">
           <span>🌐</span> Status Page
+        </a>
+        <a href="/alerting.html" class="drawer-nav-link">
+          <span>🔔</span> Alerting
+        </a>
+        <a href="/incidents.html" class="drawer-nav-link">
+          <span>⚠️</span> Incidents
+        </a>
+        <a href="/dashboards.html" class="drawer-nav-link">
+          <span>📈</span> Dashboards
+        </a>
+        <a href="/comparison.html" class="drawer-nav-link">
+          <span>⚖️</span> Compare
         </a>
         <a id="drawer-admin-link" href="/admin.html" class="drawer-nav-link" style="display:none;">
           <span>🛡️</span> Admin Panel

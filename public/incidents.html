@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RxMonitor - Incidents</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="theme.js"></script>
+</head>
+<body>
+  <div class="glass-bg"></div>
+
+  <div class="container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="logo-area">
+        <span class="logo-icon">⚠️</span>
+        <h1>Incidents</h1>
+      </div>
+
+      <nav class="header-nav">
+        <a href="/" class="nav-link"><span class="nav-icon">🖥️</span> Dashboard</a>
+        <a href="/servers.html" class="nav-link"><span class="nav-icon">📊</span> Servers</a>
+        <a href="/logs.html" class="nav-link"><span class="nav-icon">📋</span> System Logs</a>
+        <a href="/status.html" class="nav-link"><span class="nav-icon">🌐</span> Status Page</a>
+        <a href="/alerting.html" class="nav-link"><span class="nav-icon">🔔</span> Alerting</a>
+        <a href="/incidents.html" class="nav-link active"><span class="nav-icon">⚠️</span> Incidents</a>
+        <a href="/dashboards.html" class="nav-link"><span class="nav-icon">📈</span> Dashboards</a>
+        <a href="/admin.html" class="nav-link"><span class="nav-icon">⚙️</span> Admin</a>
+      </nav>
+
+      <div class="header-actions">
+        <button id="theme-toggle" class="btn btn-icon-round" title="Toggle theme">
+          <span class="icon">☀️</span>
+        </button>
+        <a href="/" class="btn btn-secondary">🏠 Back to Dashboard</a>
+      </div>
+    </header>
+
+    <!-- Tab Navigation -->
+    <div class="card" style="padding: 0; margin-bottom: 24px;">
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="tab-status-incidents">📢 Status Page Incidents</button>
+        <button class="tab-btn" data-tab="tab-timelines">📊 Incident Timelines</button>
+      </div>
+    </div>
+
+    <!-- ============ TAB: Status Page Incidents ============ -->
+    <div id="tab-status-incidents" class="tab-pane active">
+      <!-- Active Incidents Summary -->
+      <div id="active-incidents-section" class="card" style="margin-bottom: 24px;">
+        <div class="card-header">
+          <h2>🔴 Active Incidents</h2>
+          <button id="btn-create-incident" class="btn btn-primary">➕ Create Incident</button>
+        </div>
+        <div id="active-incidents-list" style="display: flex; flex-direction: column; gap: 12px;">
+          <div class="loading-state">Loading...</div>
+        </div>
+      </div>
+
+      <!-- All Incidents Table -->
+      <div class="card" style="margin-bottom: 24px;">
+        <div class="card-header">
+          <h2>All Incidents</h2>
+        </div>
+        <div class="table-container" style="max-height: 400px;">
+          <table class="logs-table">
+            <thead>
+              <tr>
+                <th>Title</th>
+                <th>Status</th>
+                <th>Created</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="incidents-tbody">
+              <tr><td colspan="4" class="loading-state">Loading...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Resolved History -->
+      <div class="card">
+        <div class="card-header">
+          <h2>📜 History (Last 7 days)</h2>
+        </div>
+        <div class="table-container" style="max-height: 300px;">
+          <table class="logs-table">
+            <thead>
+              <tr>
+                <th>Title</th>
+                <th>Resolved At</th>
+                <th>Duration</th>
+              </tr>
+            </thead>
+            <tbody id="history-tbody">
+              <tr><td colspan="3" class="loading-state">Loading...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ TAB: Incident Timelines ============ -->
+    <div id="tab-timelines" class="tab-pane">
+      <div class="card">
+        <div class="card-header">
+          <h2>Incident Timeline</h2>
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <label style="font-size: 13px; color: var(--color-muted);">Monitor:</label>
+            <select id="timeline-monitor-select" style="background: rgba(255,255,255,0.04); border: 1px solid var(--border-color); border-radius: 8px; padding: 8px 12px; color: var(--color-text); font-family: var(--font-family); font-size: 13px;">
+              <option value="">-- Select Monitor --</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Timeline Display -->
+        <div id="timeline-container" style="padding: 12px 0;">
+          <div class="empty-state" style="padding: 40px 0;">
+            <p style="color: var(--color-muted);">Select a monitor to view its incident timeline.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- end container -->
+
+  <!-- ============ MODAL: Create Incident ============ -->
+  <div id="modal-create-incident" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Create Incident</h3>
+        <button class="close-modal">&times;</button>
+      </div>
+      <form id="create-incident-form" style="padding: 24px;">
+        <div class="form-group">
+          <label for="incident-title">Title</label>
+          <input type="text" id="incident-title" required maxlength="200" placeholder="e.g. API Gateway degraded performance">
+          <small>Max 200 characters</small>
+        </div>
+        <div class="form-group">
+          <label for="incident-description">Description</label>
+          <textarea id="incident-description" required maxlength="2000" placeholder="Describe the incident and its impact..." style="width: 100%; min-height: 120px; background: rgba(255,255,255,0.04); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; color: var(--color-text); font-family: var(--font-family); font-size: 14px; resize: vertical;"></textarea>
+          <small>Max 2000 characters</small>
+        </div>
+        <div class="form-group">
+          <label for="incident-status">Status</label>
+          <select id="incident-status" required>
+            <option value="investigating">Investigating</option>
+            <option value="identified">Identified</option>
+            <option value="monitoring">Monitoring</option>
+            <option value="resolved">Resolved</option>
+          </select>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary close-modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Create Incident</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ============ MODAL: Update Incident ============ -->
+  <div id="modal-update-incident" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Update Incident</h3>
+        <button class="close-modal">&times;</button>
+      </div>
+      <form id="update-incident-form" style="padding: 24px;">
+        <input type="hidden" id="update-incident-id">
+        <div class="form-group">
+          <label for="update-message">Update Message</label>
+          <textarea id="update-message" required maxlength="2000" placeholder="Provide an update on the incident status..." style="width: 100%; min-height: 100px; background: rgba(255,255,255,0.04); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; color: var(--color-text); font-family: var(--font-family); font-size: 14px; resize: vertical;"></textarea>
+        </div>
+        <div class="form-group">
+          <label for="update-status">Change Status</label>
+          <select id="update-status" required>
+            <option value="investigating">Investigating</option>
+            <option value="identified">Identified</option>
+            <option value="monitoring">Monitoring</option>
+            <option value="resolved">Resolved</option>
+          </select>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary close-modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Post Update</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" class="toast"></div>
+
+  <script>
+    // ============ Helpers ============
+    function getRequestHeaders(includeBody = false) {
+      const headers = {};
+      const token = localStorage.getItem('rx-monitor-token');
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+      const visitorId = localStorage.getItem('rx-monitor-visitor-id');
+      if (visitorId) headers['X-Visitor-Id'] = visitorId;
+      if (includeBody) headers['Content-Type'] = 'application/json';
+      return headers;
+    }
+
+    const toastEl = document.getElementById('toast');
+    function showToast(message, type = 'success') {
+      toastEl.textContent = message;
+      toastEl.className = `toast show toast-${type}`;
+      setTimeout(() => toastEl.classList.remove('show'), 4000);
+    }
+
+    function escapeHTML(str) {
+      if (!str) return '';
+      return str.replace(/[&<>'"]/g, tag => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[tag] || tag));
+    }
+
+    function getStatusBadge(status) {
+      const colors = {
+        investigating: { bg: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', border: 'rgba(239, 68, 68, 0.3)' },
+        identified: { bg: 'rgba(245, 158, 11, 0.15)', color: '#f59e0b', border: 'rgba(245, 158, 11, 0.3)' },
+        monitoring: { bg: 'rgba(99, 102, 241, 0.15)', color: '#818cf8', border: 'rgba(99, 102, 241, 0.3)' },
+        resolved: { bg: 'rgba(16, 185, 129, 0.15)', color: '#10b981', border: 'rgba(16, 185, 129, 0.3)' }
+      };
+      const c = colors[status] || colors.investigating;
+      return `<span class="badge" style="background:${c.bg};color:${c.color};border-color:${c.border};">${status}</span>`;
+    }
+
+    // ============ Tabs ============
+    document.querySelectorAll('.tabs .tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tabs .tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById(btn.dataset.tab).classList.add('active');
+      });
+    });
+
+    // ============ Modal Helpers ============
+    function openModal(id) { document.getElementById(id).classList.add('active'); }
+    function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+
+    document.querySelectorAll('.close-modal').forEach(btn => {
+      btn.addEventListener('click', () => btn.closest('.modal').classList.remove('active'));
+    });
+    document.querySelectorAll('.modal').forEach(modal => {
+      modal.addEventListener('click', (e) => { if (e.target === modal) modal.classList.remove('active'); });
+    });
+
+    // ============ Status Page Incidents ============
+    let allIncidents = [];
+    let monitors = [];
+
+    async function loadMonitors() {
+      try {
+        const res = await fetch('/api/monitors', { headers: getRequestHeaders() });
+        if (res.ok) monitors = await res.json();
+      } catch (e) { console.error(e); }
+    }
+
+    async function loadStatusIncidents() {
+      try {
+        const res = await fetch('/api/status-incidents', { headers: getRequestHeaders() });
+        if (!res.ok) throw new Error('Failed to load incidents');
+        allIncidents = await res.json();
+        renderActiveIncidents();
+        renderIncidentsTable();
+        renderHistory();
+      } catch (e) {
+        showToast(e.message, 'error');
+      }
+    }
+
+    function renderActiveIncidents() {
+      const container = document.getElementById('active-incidents-list');
+      const active = allIncidents.filter(i => i.status !== 'resolved');
+      if (active.length === 0) {
+        container.innerHTML = '<div class="empty-state" style="padding: 20px;"><p style="color: var(--color-success);">✅ No active incidents</p></div>';
+        return;
+      }
+      container.innerHTML = active.map(i => `
+        <div style="display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 10px;">
+          <div style="flex: 1;">
+            <div style="font-weight: 600; font-size: 15px; margin-bottom: 4px;">${escapeHTML(i.title)}</div>
+            <div style="font-size: 12px; color: var(--color-muted);">${escapeHTML(i.description || '').substring(0, 100)}${(i.description || '').length > 100 ? '...' : ''}</div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 12px;">
+            ${getStatusBadge(i.status)}
+            <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px;" onclick="openUpdateModal(${i.id}, '${i.status}')">📝 Update</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function renderIncidentsTable() {
+      const tbody = document.getElementById('incidents-tbody');
+      const nonResolved = allIncidents.filter(i => i.status !== 'resolved');
+      if (nonResolved.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--color-muted);">No active incidents.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = nonResolved.map(i => `<tr>
+        <td style="font-weight: 500;">${escapeHTML(i.title)}</td>
+        <td>${getStatusBadge(i.status)}</td>
+        <td>${i.created_at ? new Date(i.created_at).toLocaleString() : '-'}</td>
+        <td>
+          <button class="btn btn-secondary" style="padding:6px 10px;font-size:12px;" onclick="openUpdateModal(${i.id}, '${i.status}')">📝 Update</button>
+        </td>
+      </tr>`).join('');
+    }
+
+    function renderHistory() {
+      const tbody = document.getElementById('history-tbody');
+      const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+      const resolved = allIncidents.filter(i => i.status === 'resolved' && new Date(i.resolved_at || i.updated_at) >= sevenDaysAgo);
+      if (resolved.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:var(--color-muted);">No resolved incidents in the last 7 days.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = resolved.map(i => {
+        const created = new Date(i.created_at);
+        const resolvedAt = new Date(i.resolved_at || i.updated_at);
+        const durationMs = resolvedAt - created;
+        const durationStr = formatDuration(durationMs);
+        return `<tr>
+          <td style="font-weight: 500;">${escapeHTML(i.title)}</td>
+          <td>${resolvedAt.toLocaleString()}</td>
+          <td>${durationStr}</td>
+        </tr>`;
+      }).join('');
+    }
+
+    function formatDuration(ms) {
+      if (ms < 0) return '-';
+      const minutes = Math.floor(ms / 60000);
+      if (minutes < 60) return `${minutes}m`;
+      const hours = Math.floor(minutes / 60);
+      const mins = minutes % 60;
+      if (hours < 24) return `${hours}h ${mins}m`;
+      const days = Math.floor(hours / 24);
+      return `${days}d ${hours % 24}h`;
+    }
+
+    // ============ Create Incident ============
+    document.getElementById('btn-create-incident').addEventListener('click', () => {
+      document.getElementById('create-incident-form').reset();
+      openModal('modal-create-incident');
+    });
+
+    document.getElementById('create-incident-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const title = document.getElementById('incident-title').value.trim();
+      const description = document.getElementById('incident-description').value.trim();
+      const status = document.getElementById('incident-status').value;
+
+      if (title.length > 200) { showToast('Title must be 200 characters or less', 'error'); return; }
+      if (description.length > 2000) { showToast('Description must be 2000 characters or less', 'error'); return; }
+
+      try {
+        const res = await fetch('/api/status-incidents', {
+          method: 'POST',
+          headers: getRequestHeaders(true),
+          body: JSON.stringify({ title, description, status })
+        });
+        if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.error || 'Failed to create incident'); }
+        showToast('Incident created');
+        closeModal('modal-create-incident');
+        loadStatusIncidents();
+      } catch (e) { showToast(e.message, 'error'); }
+    });
+
+    // ============ Update Incident ============
+    function openUpdateModal(id, currentStatus) {
+      document.getElementById('update-incident-id').value = id;
+      document.getElementById('update-status').value = currentStatus;
+      document.getElementById('update-message').value = '';
+      openModal('modal-update-incident');
+    }
+
+    document.getElementById('update-incident-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const id = document.getElementById('update-incident-id').value;
+      const message = document.getElementById('update-message').value.trim();
+      const status = document.getElementById('update-status').value;
+
+      if (!message) { showToast('Update message is required', 'error'); return; }
+
+      try {
+        const res = await fetch(`/api/status-incidents/${id}`, {
+          method: 'PUT',
+          headers: getRequestHeaders(true),
+          body: JSON.stringify({ message, status })
+        });
+        if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.error || 'Failed to update incident'); }
+        showToast('Incident updated');
+        closeModal('modal-update-incident');
+        loadStatusIncidents();
+      } catch (e) { showToast(e.message, 'error'); }
+    });
+
+    // ============ Incident Timelines ============
+    function populateTimelineMonitorSelect() {
+      const sel = document.getElementById('timeline-monitor-select');
+      sel.innerHTML = '<option value="">-- Select Monitor --</option>' +
+        monitors.map(m => `<option value="${m.id}">${escapeHTML(m.name)}</option>`).join('');
+    }
+
+    document.getElementById('timeline-monitor-select').addEventListener('change', async (e) => {
+      const monitorId = e.target.value;
+      const container = document.getElementById('timeline-container');
+      if (!monitorId) {
+        container.innerHTML = '<div class="empty-state" style="padding: 40px 0;"><p style="color: var(--color-muted);">Select a monitor to view its incident timeline.</p></div>';
+        return;
+      }
+      container.innerHTML = '<div class="loading-state">Loading timeline...</div>';
+      try {
+        // Get the monitor's incidents
+        const monRes = await fetch(`/api/monitors/${monitorId}`, { headers: getRequestHeaders() });
+        if (!monRes.ok) throw new Error('Failed to load monitor data');
+        const monitorData = await monRes.json();
+        const incidents = monitorData.incidents || [];
+
+        if (incidents.length === 0) {
+          container.innerHTML = '<div class="empty-state" style="padding: 40px 0;"><p style="color: var(--color-muted);">No incidents recorded for this monitor.</p></div>';
+          return;
+        }
+
+        // Get the most recent incident's timeline
+        const latestIncident = incidents[0];
+        const timelineRes = await fetch(`/api/incidents/${latestIncident.id}/timeline`, { headers: getRequestHeaders() });
+        let timeline = [];
+        if (timelineRes.ok) {
+          timeline = await timelineRes.json();
+        }
+
+        // Also try events endpoint
+        const eventsRes = await fetch(`/api/incidents/${latestIncident.id}/events`, { headers: getRequestHeaders() });
+        let events = [];
+        if (eventsRes.ok) {
+          events = await eventsRes.json();
+        }
+
+        const allEvents = [...timeline, ...events].sort((a, b) => new Date(a.timestamp || a.created_at) - new Date(b.timestamp || b.created_at));
+        renderTimeline(latestIncident, allEvents);
+      } catch (e) {
+        container.innerHTML = `<div class="empty-state" style="padding: 40px 0;"><p style="color: var(--color-error);">Error: ${escapeHTML(e.message)}</p></div>`;
+      }
+    });
+
+    function renderTimeline(incident, events) {
+      const container = document.getElementById('timeline-container');
+
+      const eventTypeIcons = {
+        failure_detected: '🔴',
+        retry_attempt: '🔄',
+        escalation_sent: '📤',
+        acknowledged: '👁️',
+        recovery_detected: '✅'
+      };
+
+      const eventTypeColors = {
+        failure_detected: 'var(--color-error)',
+        retry_attempt: 'var(--color-warning)',
+        escalation_sent: 'var(--color-primary)',
+        acknowledged: '#818cf8',
+        recovery_detected: 'var(--color-success)'
+      };
+
+      // Calculate downtime if we have failure_detected and recovery_detected
+      let downtimeStr = '-';
+      const failureEvent = events.find(e => (e.event_type || e.type) === 'failure_detected');
+      const recoveryEvent = events.find(e => (e.event_type || e.type) === 'recovery_detected');
+      if (failureEvent && recoveryEvent) {
+        const failTime = new Date(failureEvent.timestamp || failureEvent.created_at);
+        const recTime = new Date(recoveryEvent.timestamp || recoveryEvent.created_at);
+        downtimeStr = formatDuration(recTime - failTime);
+      }
+
+      let html = `
+        <div style="margin-bottom: 20px; padding: 16px; background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 12px;">
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px;">
+            <div><strong style="font-size: 12px; color: var(--color-muted);">Incident</strong><br><span style="font-size: 14px; font-weight: 500;">${escapeHTML(incident.title || incident.reason || 'Incident #' + incident.id)}</span></div>
+            <div><strong style="font-size: 12px; color: var(--color-muted);">Status</strong><br>${getStatusBadge(incident.status || 'investigating')}</div>
+            <div><strong style="font-size: 12px; color: var(--color-muted);">Downtime</strong><br><span style="font-size: 14px; font-weight: 600; color: var(--color-warning);">${downtimeStr}</span></div>
+            <div><strong style="font-size: 12px; color: var(--color-muted);">Events</strong><br><span style="font-size: 14px; font-weight: 500;">${events.length}</span></div>
+          </div>
+        </div>
+      `;
+
+      if (events.length === 0) {
+        html += '<div class="empty-state" style="padding: 20px;"><p style="color: var(--color-muted);">No timeline events recorded yet.</p></div>';
+      } else {
+        html += '<div style="position: relative; padding-left: 32px;">';
+        html += '<div style="position: absolute; left: 11px; top: 0; bottom: 0; width: 2px; background: var(--border-color);"></div>';
+        events.forEach(ev => {
+          const eventType = ev.event_type || ev.type || 'unknown';
+          const icon = eventTypeIcons[eventType] || '📌';
+          const color = eventTypeColors[eventType] || 'var(--color-muted)';
+          const timestamp = new Date(ev.timestamp || ev.created_at).toLocaleString();
+          const eventData = ev.data || ev.event_data || {};
+          const responseTime = eventData.response_time || eventData.responseTime;
+
+          html += `
+            <div style="position: relative; margin-bottom: 20px; padding: 12px 16px; background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 10px;">
+              <div style="position: absolute; left: -27px; top: 14px; width: 12px; height: 12px; background: ${color}; border-radius: 50%; border: 2px solid var(--bg-primary);"></div>
+              <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 8px;">
+                <div>
+                  <span style="font-size: 14px;">${icon} <strong style="color: ${color};">${eventType.replace(/_/g, ' ')}</strong></span>
+                  ${responseTime ? `<span style="margin-left: 12px; font-size: 12px; color: var(--color-muted);">Response: ${responseTime}ms</span>` : ''}
+                </div>
+                <span style="font-size: 11px; color: var(--color-muted);">${timestamp}</span>
+              </div>
+              ${Object.keys(eventData).length > 0 ? `<div style="margin-top: 8px; font-size: 12px; color: var(--color-muted); font-family: monospace; background: rgba(0,0,0,0.2); padding: 8px; border-radius: 6px; overflow-x: auto;">${escapeHTML(JSON.stringify(eventData, null, 2))}</div>` : ''}
+            </div>
+          `;
+        });
+        html += '</div>';
+      }
+
+      container.innerHTML = html;
+    }
+
+    // ============ Init ============
+    document.addEventListener('DOMContentLoaded', async () => {
+      await loadMonitors();
+      populateTimelineMonitorSelect();
+      loadStatusIncidents();
+    });
+  </script>
+</body>
+</html>

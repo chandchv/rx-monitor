@@ -10,6 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="theme.js"></script>
+  <script src="js/heatmap.js" defer></script>
 </head>
 <body>
   <div class="glass-bg"></div>
@@ -116,20 +117,8 @@
 
       <!-- Uptime Heatmap -->
       <div class="card" style="padding: 20px;">
-        <h4 style="margin-bottom: 15px; font-size: 16px; font-weight: 600;">🗓️ Uptime Heatmap (30 days)</h4>
-        <div id="heatmap-container" style="display: flex; flex-wrap: wrap; gap: 4px;"></div>
-        <div style="display: flex; justify-content: space-between; margin-top: 12px; font-size: 10px; color: var(--color-muted);">
-          <span>30 days ago</span>
-          <span>Today</span>
-        </div>
-        <div style="display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 10px; color: var(--color-muted);">
-          <span>Less</span>
-          <div style="width: 12px; height: 12px; background: #ef4444; border-radius: 2px;"></div>
-          <div style="width: 12px; height: 12px; background: #f59e0b; border-radius: 2px;"></div>
-          <div style="width: 12px; height: 12px; background: #22c55e; border-radius: 2px;"></div>
-          <div style="width: 12px; height: 12px; background: #10b981; border-radius: 2px;"></div>
-          <span>More</span>
-        </div>
+        <h4 style="margin-bottom: 15px; font-size: 16px; font-weight: 600;">🗓️ Uptime Heatmap (90 days)</h4>
+        <div id="heatmap-container"></div>
       </div>
     </div>
 
@@ -250,6 +239,17 @@
       window.location.href = '/';
     }
 
+    // Auth-aware fetch helper
+    function getRequestHeaders(includeBody = false) {
+      const headers = {};
+      const token = localStorage.getItem('rx-monitor-token');
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+      const visitorId = localStorage.getItem('rx-monitor-visitor-id');
+      if (visitorId) headers['X-Visitor-Id'] = visitorId;
+      if (includeBody) headers['Content-Type'] = 'application/json';
+      return headers;
+    }
+
     function showToast(message, type = 'success') {
       toastEl.textContent = message;
       toastEl.className = `toast show toast-${type}`;
@@ -260,7 +260,7 @@
 
     async function loadDetails() {
       try {
-        const res = await fetch(`/api/monitors/${monitorId}`);
+        const res = await fetch(`/api/monitors/${monitorId}`, { headers: getRequestHeaders() });
         if (!res.ok) throw new Error('Failed to load monitor details.');
         const data = await res.json();
         loadedMonitorObj = data;
@@ -474,7 +474,7 @@
       try {
         const res = await fetch(`/api/monitors/${monitorId}`, {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getRequestHeaders(true),
           body: JSON.stringify(payload)
         });
         if (!res.ok) throw new Error('Failed to update monitor.');
@@ -488,7 +488,7 @@
 
     document.getElementById('btn-force-check').addEventListener('click', async () => {
       try {
-        const res = await fetch(`/api/monitors/${monitorId}/check`, { method: 'POST' });
+        const res = await fetch(`/api/monitors/${monitorId}/check`, { method: 'POST', headers: getRequestHeaders() });
         if (!res.ok) throw new Error('Force check failed.');
         showToast('Check completed successfully.');
         loadDetails();
@@ -518,7 +518,7 @@
 
     async function loadAnalytics() {
       try {
-        const res = await fetch(`/api/monitors/${monitorId}/analytics?hours=24`);
+        const res = await fetch(`/api/monitors/${monitorId}/analytics?hours=24`, { headers: getRequestHeaders() });
         if (!res.ok) return;
         const data = await res.json();
 
@@ -550,34 +550,45 @@
           sslEl.textContent = 'Not HTTPS or no certificate detected';
         }
 
-        // Heatmap
+        // Heatmap - use the new UptimeHeatmap component (90-day)
         const heatmapContainer = document.getElementById('heatmap-container');
-        heatmapContainer.innerHTML = '';
-        const heatmap = data.heatmap || [];
+        if (window.UptimeHeatmap && loadedMonitorObj) {
+          const timezone = loadedMonitorObj.timezone || 'UTC';
+          const allLogs = data.heatmapLogs || data.logs || loadedMonitorObj.logs || [];
+          window.UptimeHeatmap.render(heatmapContainer, {
+            logs: allLogs,
+            timezone: timezone,
+            days: 90,
+            cellSize: 14,
+            cellGap: 3
+          });
+        } else {
+          // Fallback: basic inline heatmap
+          heatmapContainer.innerHTML = '';
+          const heatmap = data.heatmap || [];
+          const today = new Date();
+          for (let i = 29; i >= 0; i--) {
+            const d = new Date(today);
+            d.setDate(d.getDate() - i);
+            const dayStr = d.toISOString().split('T')[0];
+            const dayData = heatmap.find(h => h.day === dayStr);
+            const uptime = dayData ? dayData.uptime : -1;
 
-        // Fill in missing days
-        const today = new Date();
-        for (let i = 29; i >= 0; i--) {
-          const d = new Date(today);
-          d.setDate(d.getDate() - i);
-          const dayStr = d.toISOString().split('T')[0];
-          const dayData = heatmap.find(h => h.day === dayStr);
-          const uptime = dayData ? dayData.uptime : -1; // -1 = no data
+            let color = 'rgba(255,255,255,0.05)';
+            let title = `${dayStr}: No data`;
+            if (uptime >= 0) {
+              title = `${dayStr}: ${uptime}% uptime`;
+              if (uptime >= 99.5) color = '#10b981';
+              else if (uptime >= 95) color = '#22c55e';
+              else if (uptime >= 80) color = '#f59e0b';
+              else color = '#ef4444';
+            }
 
-          let color = 'rgba(255,255,255,0.05)';
-          let title = `${dayStr}: No data`;
-          if (uptime >= 0) {
-            title = `${dayStr}: ${uptime}% uptime`;
-            if (uptime >= 99.5) color = '#10b981';
-            else if (uptime >= 95) color = '#22c55e';
-            else if (uptime >= 80) color = '#f59e0b';
-            else color = '#ef4444';
+            const cell = document.createElement('div');
+            cell.style.cssText = `width: 20px; height: 20px; background: ${color}; border-radius: 3px; cursor: pointer;`;
+            cell.title = title;
+            heatmapContainer.appendChild(cell);
           }
-
-          const cell = document.createElement('div');
-          cell.style.cssText = `width: 20px; height: 20px; background: ${color}; border-radius: 3px; cursor: pointer;`;
-          cell.title = title;
-          heatmapContainer.appendChild(cell);
         }
       } catch (err) {
         console.error('Analytics load error:', err);

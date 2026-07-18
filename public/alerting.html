@@ -9,49 +9,14 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <script src="theme.js"></script>
+  <script src="header.js"></script>
 </head>
 <body>
   <div class="glass-bg"></div>
 
   <div class="container">
-    <!-- Header -->
-    <header class="app-header">
-      <div class="logo-area">
-        <span class="logo-icon">🔔</span>
-        <h1>Alerting Management</h1>
-      </div>
-
-      <nav class="header-nav">
-        <a href="/" class="nav-link">
-          <span class="nav-icon">🖥️</span> Dashboard
-        </a>
-        <a href="/servers.html" class="nav-link">
-          <span class="nav-icon">📊</span> Servers
-        </a>
-        <a href="/logs.html" class="nav-link">
-          <span class="nav-icon">📋</span> System Logs
-        </a>
-        <a href="/status.html" class="nav-link">
-          <span class="nav-icon">🌐</span> Status Page
-        </a>
-        <a href="/alerting.html" class="nav-link active">
-          <span class="nav-icon">🔔</span> Alerting
-        </a>
-        <a href="/incidents.html" class="nav-link">
-          <span class="nav-icon">⚠️</span> Incidents
-        </a>
-        <a href="/dashboards.html" class="nav-link">
-          <span class="nav-icon">📈</span> Dashboards
-        </a>
-      </nav>
-
-      <div class="header-actions">
-        <button id="theme-toggle" class="btn btn-icon-round" title="Toggle theme">
-          <span class="icon">☀️</span>
-        </button>
-        <a href="/" class="btn btn-secondary">🏠 Back to Dashboard</a>
-      </div>
-    </header>
+    <!-- Shared header injected by header.js -->
+    <div id="app-header"></div>
 
     <!-- Tab Navigation -->
     <div class="card" style="padding: 0; margin-bottom: 24px;">

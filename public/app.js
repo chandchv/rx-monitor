@@ -328,24 +328,6 @@ function switchTab(targetId) {
 }
 
 function setupEventListeners() {
-  // Nav dropdown toggle for touch devices
-  document.querySelectorAll('.nav-dropdown-trigger').forEach(trigger => {
-    trigger.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const dropdown = trigger.closest('.nav-dropdown');
-      const menu = dropdown.querySelector('.nav-dropdown-menu');
-      // Close all other open dropdowns
-      document.querySelectorAll('.nav-dropdown-menu.is-open').forEach(m => {
-        if (m !== menu) m.classList.remove('is-open');
-      });
-      menu.classList.toggle('is-open');
-    });
-  });
-  // Close nav dropdowns on outside click
-  document.addEventListener('click', () => {
-    document.querySelectorAll('.nav-dropdown-menu.is-open').forEach(m => m.classList.remove('is-open'));
-  });
-
   // Modal close buttons
   document.querySelectorAll('.close-modal').forEach(btn => {
     btn.addEventListener('click', (e) => {

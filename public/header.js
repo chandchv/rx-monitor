@@ -6,9 +6,8 @@ const RxHeader = (() => {
   const currentPath = window.location.pathname;
 
   function isActive(href) {
-    if (href === '/' && currentPath === '/') return true;
-    if (href === '/' && currentPath === '/index.html') return true;
-    if (href !== '/' && currentPath.includes(href)) return true;
+    if (href === '/dashboard' && (currentPath === '/' || currentPath === '/dashboard' || currentPath === '/index.html')) return true;
+    if (href !== '/dashboard' && currentPath.includes(href)) return true;
     return false;
   }
 
@@ -20,14 +19,14 @@ const RxHeader = (() => {
     return `
     <header class="app-header">
       <div class="logo-area">
-        <a href="/" style="display:flex;align-items:center;gap:10px;text-decoration:none;">
+        <a href="/dashboard" style="display:flex;align-items:center;gap:10px;text-decoration:none;">
           <span class="logo-icon">📡</span>
           <h1>RxMonitor</h1>
         </a>
       </div>
 
       <nav class="header-nav">
-        <a href="/" class="nav-link ${activeClass('/')}">
+        <a href="/dashboard" class="nav-link ${activeClass('/dashboard')}">
           <span class="nav-icon">🖥️</span> Dashboard
         </a>
         <a href="/servers.html" class="nav-link ${activeClass('/servers.html')}">
@@ -137,7 +136,7 @@ const RxHeader = (() => {
       </div>
 
       <nav class="drawer-nav">
-        <a href="/" class="drawer-nav-link ${activeClass('/')}">
+        <a href="/dashboard" class="drawer-nav-link ${activeClass('/dashboard')}">
           <span>🖥️</span> Dashboard
         </a>
         <a href="/servers.html" class="drawer-nav-link ${activeClass('/servers.html')}">

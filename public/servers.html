@@ -8,7 +8,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="auth-guard.js"></script>
   <script src="theme.js"></script>
+  <script src="header.js"></script>
   <style>
     .metrics-grid {
       display: grid;
@@ -224,20 +226,8 @@
   <div class="glass-bg"></div>
   
   <div class="container">
-    <header class="app-header">
-      <div class="logo-area">
-        <span class="logo-icon">🖥️</span>
-        <h1>Server Metrics</h1>
-      </div>
-      <div class="header-actions">
-        <a href="/" class="btn btn-secondary">
-          <span class="icon">🏠</span> Dashboard
-        </a>
-        <button id="theme-toggle" class="btn btn-secondary" style="padding: 10px; border-radius: 50%; width: 40px; height: 40px; justify-content: center;" title="Toggle Theme">
-          <span class="icon">☀️</span>
-        </button>
-      </div>
-    </header>
+    <!-- Shared header injected by header.js -->
+    <div id="app-header"></div>
 
     <!-- API Keys Section -->
     <section class="api-keys-section">

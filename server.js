@@ -38,6 +38,7 @@ import { recordErrorStatus, getErrorRateHistory, purgeOldEvents } from './error-
 import { runTraceroute, canRunTraceroute } from './traceroute-runner.js';
 import { captureScreenshot, getScreenshotPath, purgeOldScreenshots } from './screenshot-capture.js';
 import { computeDiffPercentage, computeContentHash, shouldAlert as shouldDiffAlert, applyExclusions } from './diff-detector.js';
+import { resolveSmtpConfig, buildVerificationEmail, formatVerificationLog } from './smtp-config.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -152,6 +153,16 @@ app.use(async (req, res, next) => {
     }
   }
   next();
+});
+
+// Landing page at root
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'landing.html'));
+});
+
+// Dashboard route (serves existing index.html)
+app.get('/dashboard', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 app.use(express.static(path.join(__dirname, 'public')));
@@ -273,6 +284,11 @@ app.post('/api/monitors', async (req, res) => {
     return res.status(400).json({ error: 'Name and URL are required.' });
   }
   const visitorId = req.headers['x-visitor-id'];
+
+  // Verification gate: unverified users cannot create monitors
+  if (req.user && !req.user.is_verified) {
+    return res.status(403).json({ error: 'Email verification is required to create monitors.' });
+  }
 
   try {
     const db = await getDb();
@@ -526,36 +542,25 @@ app.post('/api/auth/signup', async (req, res) => {
 
     // Get SMTP configuration
     const rows = await db.all('SELECT key, value FROM settings');
-    const settings = {};
-    rows.forEach(r => { settings[r.key] = r.value; });
+    const adminSettings = {};
+    rows.forEach(r => { adminSettings[r.key] = r.value; });
 
     const verificationLink = `${process.env.BASE_URL || 'http://localhost:' + PORT}/api/auth/verify?token=${verificationToken}`;
-    console.log(`\n✉️ [Email Verification Link for ${email}]: ${verificationLink}\n`);
+    console.log(formatVerificationLog(email, verificationLink));
 
-    if (settings.email_enabled === 'true' && settings.email_smtp_host) {
+    const smtpConfig = resolveSmtpConfig(process.env, adminSettings);
+    if (smtpConfig) {
       try {
         const transporter = nodemailer.createTransport({
-          host: settings.email_smtp_host,
-          port: parseInt(settings.email_smtp_port) || 587,
-          secure: parseInt(settings.email_smtp_port) === 465,
-          auth: {
-            user: settings.email_smtp_user,
-            pass: settings.email_smtp_pass
-          }
+          host: smtpConfig.host,
+          port: smtpConfig.port,
+          secure: smtpConfig.port === 465,
+          auth: { user: smtpConfig.user, pass: smtpConfig.pass }
         });
 
-        await transporter.sendMail({
-          from: settings.email_sender || '"RxMonitor" <noreply@rxmonitor.local>',
-          to: email,
-          subject: '[RxMonitor] Verify your email address',
-          text: `Please verify your email by clicking the following link: ${verificationLink}`,
-          html: `<div style="font-family: sans-serif; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px; max-width: 500px;">
-                  <h2>Welcome to RxMonitor!</h2>
-                  <p>Thank you for signing up. Please click the button below to verify your email address and activate your account:</p>
-                  <a href="${verificationLink}" style="display: inline-block; background: #6366f1; color: white; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-weight: bold; margin: 15px 0;">Verify Email Address</a>
-                  <p style="font-size: 0.8em; color: #64748b;">Or copy and paste this link in your browser:<br>${verificationLink}</p>
-                 </div>`
-        });
+        const mailOptions = buildVerificationEmail(email, verificationLink, smtpConfig.from);
+        await transporter.sendMail(mailOptions);
+        console.log('[SMTP] Verification email sent to', email);
       } catch (err) {
         console.error('Failed to send verification email:', err);
       }
@@ -635,12 +640,8 @@ app.post('/api/auth/login', async (req, res) => {
       return res.status(400).json({ error: 'Invalid email or password.' });
     }
 
-    if (user.is_verified === 0) {
-      return res.status(400).json({ error: 'Please verify your email address before logging in. Check your server console logs for the link.' });
-    }
-
     const token = jwt.sign(
-      { id: user.id, email: user.email, role: user.role },
+      { id: user.id, email: user.email, role: user.role, is_verified: !!user.is_verified },
       JWT_SECRET,
       { expiresIn: '7d' }
     );
@@ -651,7 +652,8 @@ app.post('/api/auth/login', async (req, res) => {
         id: user.id,
         email: user.email,
         role: user.role,
-        tier: user.subscription_tier
+        tier: user.subscription_tier,
+        is_verified: !!user.is_verified
       }
     });
   } catch (err) {

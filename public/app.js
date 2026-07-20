@@ -196,6 +196,15 @@ function init() {
   setInterval(fetchMonitors, 20000);
   setupEventListeners();
   initWebSocket();
+
+  // Auto-open login modal if redirected from landing with ?login=true
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('login') === 'true' && !localStorage.getItem('rx-monitor-token')) {
+    const modalAuth = document.getElementById('modal-auth');
+    if (modalAuth) openModal(modalAuth);
+    // Clean up the URL
+    window.history.replaceState({}, '', '/dashboard');
+  }
 }
 
 function updateAuthUI() {

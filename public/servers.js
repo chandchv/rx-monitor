@@ -2,10 +2,9 @@
 const API_URL = '';
 const token = localStorage.getItem('rx-monitor-token');
 
-// Auth check disabled for testing
-// if (!token) {
-//   window.location.href = '/';
-// }
+if (!token) {
+  window.location.href = '/';
+}
 
 const toastEl = document.getElementById('toast');
 function showToast(message, type = 'success') {
@@ -32,7 +31,7 @@ document.getElementById('install-cmd').querySelector('pre') ||
 async function loadKeys() {
   try {
     const res = await fetch(`${API_URL}/api/keys`, { headers: getHeaders() });
-    if (res.status === 401) { /* redirect disabled for testing */ return; }
+    if (res.status === 401) { window.location.href = '/'; return; }
     const keys = await res.json();
     const container = document.getElementById('keys-list');
     
@@ -104,7 +103,7 @@ async function deleteKey(id) {
 async function loadServers() {
   try {
     const res = await fetch(`${API_URL}/api/agent/servers`, { headers: getHeaders() });
-    if (res.status === 401) { /* redirect disabled for testing */ return; }
+    if (res.status === 401) { window.location.href = '/'; return; }
     const servers = await res.json();
     const grid = document.getElementById('servers-grid');
     const chartsSection = document.getElementById('charts-section');

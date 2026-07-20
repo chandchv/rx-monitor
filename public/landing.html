@@ -3,13 +3,60 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>RxMonitor - Free Uptime Monitoring for Websites &amp; APIs</title>
-  <meta name="description" content="Monitor your websites and APIs with RxMonitor. Always free for up to 5 monitors. Get instant alerts via Telegram and Email when your site goes down.">
-  <meta property="og:title" content="RxMonitor - Free Uptime Monitoring">
-  <meta property="og:description" content="Know when your site goes down before your users do. Free uptime monitoring with instant alerts, SSL checks, and public status pages.">
+  <title>RxMonitor - Free Uptime Monitoring for Websites, APIs &amp; Servers</title>
+  <meta name="description" content="Monitor your websites, APIs, and servers with RxMonitor. Free uptime monitoring with instant Telegram &amp; Email alerts, SSL certificate tracking, server metrics, response time analytics, and public status pages.">
+  <meta name="keywords" content="uptime monitoring, website monitoring, API monitoring, server monitoring, SSL certificate monitoring, status page, response time analytics, incident management, Telegram alerts, free monitoring tool">
+  <meta property="og:title" content="RxMonitor - Free Uptime Monitoring for Websites, APIs &amp; Servers">
+  <meta property="og:description" content="Know when your site goes down before your users do. Free uptime monitoring with instant alerts, SSL checks, server metrics, and public status pages.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://rxmonitor.com">
+  <meta property="og:site_name" content="RxMonitor">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="RxMonitor - Free Uptime Monitoring">
+  <meta name="twitter:description" content="Monitor websites, APIs, and servers. Get instant alerts via Telegram and Email. Free for up to 5 monitors.">
+  <link rel="canonical" href="https://rxmonitor.com">
   <link rel="stylesheet" href="landing.css">
+
+  <!-- Structured Data for SEO -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "RxMonitor",
+    "applicationCategory": "DeveloperApplication",
+    "operatingSystem": "Web",
+    "description": "Free uptime monitoring for websites, APIs, and servers with instant alerts, SSL monitoring, server metrics, and public status pages.",
+    "offers": [
+      {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "INR",
+        "name": "Free Plan",
+        "description": "Up to 5 monitors with Telegram and Email alerts"
+      },
+      {
+        "@type": "Offer",
+        "price": "499",
+        "priceCurrency": "INR",
+        "name": "Premium Plan",
+        "description": "Unlimited monitors with advanced analytics and server agents"
+      }
+    ],
+    "featureList": [
+      "HTTP/HTTPS Uptime Monitoring",
+      "SSL Certificate Expiry Alerts",
+      "Server Agent Metrics (CPU, Memory, Disk)",
+      "Response Time Percentile Analytics",
+      "Telegram and Email Notifications",
+      "Public Status Pages",
+      "Incident Timeline Management",
+      "Custom Dashboards",
+      "Multi-Monitor Comparison",
+      "Application Log Ingestion",
+      "Dark and Light Theme"
+    ]
+  }
+  </script>
 </head>
 <body>
   <!-- Navigation -->
@@ -25,7 +72,8 @@
         <span></span>
       </button>
       <div class="landing-nav__links">
-        <a href="/dashboard" class="landing-nav__link" aria-label="Sign in to your dashboard">Sign In</a>
+        <a href="#features" class="landing-nav__link" aria-label="View all features">Features</a>
+        <a href="/dashboard?login=true" class="landing-nav__link" aria-label="Sign in to your dashboard">Sign In</a>
         <a href="/dashboard" class="landing-nav__cta" aria-label="Get started free - go to dashboard">Get Started Free</a>
       </div>
     </div>
@@ -41,7 +89,7 @@
           <p class="hero__free-message">Always free for up to 5 monitors</p>
           <div class="hero__cta-group">
             <a href="/dashboard" class="btn-primary" aria-label="Get started free - create your account">Get Started Free</a>
-            <a href="/dashboard" class="btn-secondary" aria-label="Sign in to your existing account">Sign In</a>
+            <a href="/dashboard?login=true" class="btn-secondary" aria-label="Sign in to your existing account">Sign In</a>
           </div>
           <p class="hero__reassurance">No credit card required</p>
         </div>
@@ -49,45 +97,107 @@
     </section>
 
     <!-- Features Section -->
-    <section class="features">
+    <section class="features" id="features">
       <div class="landing-container">
         <h2 class="features__heading">Everything you need to stay online</h2>
         <p class="features__subheading">Comprehensive monitoring tools to keep your services running smoothly, all from one dashboard.</p>
         <div class="features__grid">
-          <div class="feature-card">
+          <a href="/dashboard" class="feature-card feature-card--link">
+            <div class="feature-card__icon">🖥️</div>
+            <h3 class="feature-card__title">Real-Time Uptime Dashboard</h3>
+            <p class="feature-card__desc">Live status cards with auto-refresh every 20 seconds. Monitor UP/DOWN/PENDING states, uptime percentages, and response times at a glance.</p>
+            <span class="feature-card__cta">Open Dashboard →</span>
+          </a>
+          <a href="/dashboard" class="feature-card feature-card--link">
             <div class="feature-card__icon">🌐</div>
             <h3 class="feature-card__title">HTTP/HTTPS Monitoring</h3>
-            <p class="feature-card__desc">Monitor websites and APIs with configurable check intervals. Get alerted instantly when endpoints go down or respond slowly.</p>
-          </div>
-          <div class="feature-card">
+            <p class="feature-card__desc">Monitor websites and APIs with configurable check intervals (10s–60s), HTTP methods (GET, POST, HEAD), timeouts, and retry logic.</p>
+            <span class="feature-card__cta">Start Monitoring →</span>
+          </a>
+          <a href="/dashboard" class="feature-card feature-card--link">
             <div class="feature-card__icon">🔒</div>
             <h3 class="feature-card__title">SSL Certificate Monitoring</h3>
-            <p class="feature-card__desc">Get alerted before your SSL certificates expire. Never let an expired cert take your site offline.</p>
-          </div>
-          <div class="feature-card">
+            <p class="feature-card__desc">Automatic SSL expiry detection with alerts at 30, 15, and 1 day before expiration. Never let an expired cert take your site offline.</p>
+            <span class="feature-card__cta">Check SSL Status →</span>
+          </a>
+          <a href="/servers.html" class="feature-card feature-card--link">
             <div class="feature-card__icon">📊</div>
             <h3 class="feature-card__title">Server Agent Metrics</h3>
-            <p class="feature-card__desc">Track CPU, memory, and disk usage on your servers in real time with lightweight monitoring agents.</p>
-          </div>
-          <div class="feature-card">
-            <div class="feature-card__icon">⚡</div>
+            <p class="feature-card__desc">Track CPU, memory, disk usage, load average, and network I/O on your servers in real time with a lightweight bash agent. One-command install.</p>
+            <span class="feature-card__cta">View Server Metrics →</span>
+          </a>
+          <a href="/dashboards.html" class="feature-card feature-card--link">
+            <div class="feature-card__icon">📈</div>
             <h3 class="feature-card__title">Response Time Analytics</h3>
-            <p class="feature-card__desc">Percentile-based latency tracking with trend analysis. Understand your performance over time.</p>
-          </div>
-          <div class="feature-card">
+            <p class="feature-card__desc">P50, P95, P99 percentile tracking with Apdex scores, trend charts, and 30-day uptime heatmaps. Understand performance over time.</p>
+            <span class="feature-card__cta">View Analytics →</span>
+          </a>
+          <a href="/alerting.html" class="feature-card feature-card--link">
             <div class="feature-card__icon">🔔</div>
-            <h3 class="feature-card__title">Notifications</h3>
-            <p class="feature-card__desc">Instant alerts via Telegram and Email the moment something goes wrong. Stay informed wherever you are.</p>
-          </div>
-          <div class="feature-card">
+            <h3 class="feature-card__title">Instant Notifications</h3>
+            <p class="feature-card__desc">Get alerted via Telegram and Email the moment something goes wrong. Daily summary reports keep you informed on overall health.</p>
+            <span class="feature-card__cta">Configure Alerts →</span>
+          </a>
+          <a href="/status.html" class="feature-card feature-card--link">
             <div class="feature-card__icon">📋</div>
             <h3 class="feature-card__title">Public Status Pages</h3>
-            <p class="feature-card__desc">Share real-time uptime status with your users through customizable public status pages.</p>
-          </div>
-          <div class="feature-card">
+            <p class="feature-card__desc">Share real-time uptime status with your users. Custom domain support lets you serve your status page on your own branded URL.</p>
+            <span class="feature-card__cta">View Status Page →</span>
+          </a>
+          <a href="/incidents.html" class="feature-card feature-card--link">
             <div class="feature-card__icon">⚠️</div>
             <h3 class="feature-card__title">Incident Management</h3>
-            <p class="feature-card__desc">Track, escalate, and resolve downtime incidents with a structured timeline and response workflow.</p>
+            <p class="feature-card__desc">Automatic incident detection with structured timelines, downtime duration calculation, and diagnostic suggestions for faster resolution.</p>
+            <span class="feature-card__cta">View Incidents →</span>
+          </a>
+          <a href="/comparison.html" class="feature-card feature-card--link">
+            <div class="feature-card__icon">⚖️</div>
+            <h3 class="feature-card__title">Multi-Monitor Comparison</h3>
+            <p class="feature-card__desc">Compare response times across multiple monitors side-by-side with overlaid charts. Identify bottlenecks and slow endpoints instantly.</p>
+            <span class="feature-card__cta">Compare Monitors →</span>
+          </a>
+          <a href="/logs.html" class="feature-card feature-card--link">
+            <div class="feature-card__icon">📜</div>
+            <h3 class="feature-card__title">System &amp; App Logs</h3>
+            <p class="feature-card__desc">Centralized log viewing with filterable system check logs and application log ingestion. Export to CSV or email logs directly.</p>
+            <span class="feature-card__cta">View Logs →</span>
+          </a>
+          <a href="/dashboards.html" class="feature-card feature-card--link">
+            <div class="feature-card__icon">🎨</div>
+            <h3 class="feature-card__title">Custom Dashboards</h3>
+            <p class="feature-card__desc">Build personalized dashboards with drag-and-drop widgets. Visualize the metrics that matter most to your team.</p>
+            <span class="feature-card__cta">Create Dashboard →</span>
+          </a>
+          <a href="/dashboard" class="feature-card feature-card--link">
+            <div class="feature-card__icon">🌙</div>
+            <h3 class="feature-card__title">Dark &amp; Light Theme</h3>
+            <p class="feature-card__desc">Beautiful glassmorphism UI with instant dark/light toggle. Comfortable monitoring at any hour without eye strain.</p>
+            <span class="feature-card__cta">Try It Out →</span>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- How It Works Section -->
+    <section class="how-it-works">
+      <div class="landing-container">
+        <h2 class="how-it-works__heading">Up and running in 30 seconds</h2>
+        <p class="how-it-works__subheading">No complex setup. No credit card. Just paste your URL and go.</p>
+        <div class="how-it-works__steps">
+          <div class="how-it-works__step">
+            <div class="how-it-works__step-number">1</div>
+            <h3 class="how-it-works__step-title">Add your URL</h3>
+            <p class="how-it-works__step-desc">Enter the website or API endpoint you want to monitor. Choose your check interval and HTTP method.</p>
+          </div>
+          <div class="how-it-works__step">
+            <div class="how-it-works__step-number">2</div>
+            <h3 class="how-it-works__step-title">Get instant alerts</h3>
+            <p class="how-it-works__step-desc">Configure Telegram or Email notifications. We'll ping you immediately when something goes down.</p>
+          </div>
+          <div class="how-it-works__step">
+            <div class="how-it-works__step-number">3</div>
+            <h3 class="how-it-works__step-title">Track everything</h3>
+            <p class="how-it-works__step-desc">View response time trends, uptime percentages, SSL status, and incident history from one dashboard.</p>
           </div>
         </div>
       </div>
@@ -175,9 +285,28 @@
         <span class="landing-footer__brand-icon">📡</span>
         RxMonitor
       </div>
-      <div class="landing-footer__links">
-        <a href="/dashboard" class="landing-footer__link" aria-label="Go to dashboard">Dashboard</a>
-        <a href="/status" class="landing-footer__link" aria-label="View status page">Status Page</a>
+      <div class="landing-footer__columns">
+        <div class="landing-footer__col">
+          <h4 class="landing-footer__col-title">Product</h4>
+          <a href="/dashboard" class="landing-footer__link">Dashboard</a>
+          <a href="/servers.html" class="landing-footer__link">Server Metrics</a>
+          <a href="/alerting.html" class="landing-footer__link">Alerting</a>
+          <a href="/status.html" class="landing-footer__link">Status Page</a>
+        </div>
+        <div class="landing-footer__col">
+          <h4 class="landing-footer__col-title">Features</h4>
+          <a href="#features" class="landing-footer__link">Uptime Monitoring</a>
+          <a href="#features" class="landing-footer__link">SSL Monitoring</a>
+          <a href="#features" class="landing-footer__link">Incident Management</a>
+          <a href="#features" class="landing-footer__link">Response Analytics</a>
+        </div>
+        <div class="landing-footer__col">
+          <h4 class="landing-footer__col-title">More</h4>
+          <a href="/incidents.html" class="landing-footer__link">Incidents</a>
+          <a href="/logs.html" class="landing-footer__link">System Logs</a>
+          <a href="/comparison.html" class="landing-footer__link">Compare Monitors</a>
+          <a href="/dashboards.html" class="landing-footer__link">Custom Dashboards</a>
+        </div>
       </div>
       <p class="landing-footer__copy">&copy; 2025 RxMonitor. All rights reserved.</p>
     </div>

@@ -808,7 +808,7 @@ body {
   border: 1px solid var(--border-color);
   border-radius: 8px;
   padding: 12px;
-  color: white;
+  color: rgb(191, 96, 96);
   font-family: var(--font-family);
   font-size: 14px;
   transition: border-color var(--transition-speed), background-color var(--transition-speed);

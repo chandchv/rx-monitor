@@ -16,6 +16,10 @@ export async function getDb() {
     driver: sqlite3.Database
   });
 
+  // Enable WAL mode and busy timeout for concurrent safety
+  await db.run('PRAGMA journal_mode = WAL;');
+  await db.run('PRAGMA busy_timeout = 5000;');
+
   await initSchema();
   return db;
 }
@@ -483,6 +487,7 @@ async function initSchema() {
       monitor_id INTEGER NOT NULL UNIQUE,
       content_hash TEXT NOT NULL,
       content_length INTEGER NOT NULL,
+      baseline_content TEXT,
       captured_at TEXT,
       FOREIGN KEY(monitor_id) REFERENCES monitors(id) ON DELETE CASCADE
     );
@@ -597,6 +602,13 @@ async function initSchema() {
     } catch (e) {
       // Column already exists, ignore
     }
+  }
+
+  // Dynamically add baseline_content to diff_baselines if it does not exist (migration support)
+  try {
+    await db.exec('ALTER TABLE diff_baselines ADD COLUMN baseline_content TEXT');
+  } catch (e) {
+    // Column already exists, ignore
   }
 
   // Insert default settings if they are not present

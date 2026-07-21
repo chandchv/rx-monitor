@@ -90,7 +90,7 @@
       display: grid;
       grid-template-columns: repeat(12, 1fr);
       gap: 16px;
-      auto-rows: minmax(120px, auto);
+      grid-auto-rows: minmax(120px, auto);
     }
     .widget-card {
       background: var(--bg-surface);
@@ -472,7 +472,8 @@
           comparison: '⚖️ Comparison'
         };
         const label = typeLabels[w.widget_type] || w.widget_type;
-        const monitorName = w.monitor_id ? getMonitorName(w.monitor_id) : 'All';
+        const wConfig = typeof w.config === 'string' ? JSON.parse(w.config) : (w.config || {});
+        const monitorName = (wConfig.monitor_id || w.monitor_id) ? getMonitorName(wConfig.monitor_id || w.monitor_id) : 'All';
 
         return `
           <div class="widget-card" style="grid-column: ${colStart} / span ${colSpan}; grid-row: ${rowStart} / span ${rowSpan};" data-widget-id="${w.id}">
@@ -503,7 +504,8 @@
 
       try {
         let data = null;
-        const monId = widget.monitor_id;
+        const config = typeof widget.config === 'string' ? JSON.parse(widget.config) : (widget.config || {});
+        const monId = config.monitor_id || widget.monitor_id;
 
         switch (widget.widget_type) {
           case 'monitor_status': {
@@ -600,14 +602,25 @@
       if (colSpan < 1 || colSpan > 12) { showToast('Column span must be 1-12', 'error'); return; }
       if (rowSpan < 1 || rowSpan > 4) { showToast('Row span must be 1-4', 'error'); return; }
 
+      // Calculate next available row position
+      let nextRow = 1;
+      if (currentWidgets.length > 0) {
+        currentWidgets.forEach(w => {
+          const rowEnd = (parseInt(w.row_start) || 1) + (parseInt(w.row_span) || 1);
+          if (rowEnd > nextRow) nextRow = rowEnd;
+        });
+      }
+
       try {
         const res = await fetch(`/api/dashboards/${selectedDashboardId}/widgets`, {
           method: 'POST',
           headers: getRequestHeaders(true),
           body: JSON.stringify({
             widget_type: widgetType,
-            monitor_id: monitorId ? parseInt(monitorId) : null,
+            config: { monitor_id: monitorId ? parseInt(monitorId) : null },
+            col_start: 1,
             col_span: colSpan,
+            row_start: nextRow,
             row_span: rowSpan
           })
         });
@@ -654,7 +667,7 @@
         const res = await fetch(`/api/dashboards/${selectedDashboardId}/layout`, {
           method: 'PUT',
           headers: getRequestHeaders(true),
-          body: JSON.stringify({ widgets: layout })
+          body: JSON.stringify({ layout: layout })
         });
         if (!res.ok) throw new Error('Failed to save layout');
         showToast('Layout saved');

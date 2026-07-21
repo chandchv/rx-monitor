@@ -44,6 +44,7 @@
   let draggedWidgetId = null;
   let unsavedLayout = null;
   let monitors = [];
+  let suppressSelectorChange = false;
 
   // Default dashboard layout
   const DEFAULT_DASHBOARD = {
@@ -177,6 +178,8 @@
     const container = getContainer();
     if (!container) return;
 
+    suppressSelectorChange = true;
+
     const selectorEl = container.querySelector('.dashboard-selector') ||
       document.createElement('div');
     selectorEl.className = 'dashboard-selector';
@@ -214,6 +217,7 @@
     // Attach events
     const select = selectorEl.querySelector('.dashboard-select');
     select.addEventListener('change', function () {
+      if (suppressSelectorChange) return;
       const id = this.value ? parseInt(this.value, 10) : null;
       switchDashboard(id);
     });
@@ -222,6 +226,8 @@
     selectorEl.querySelector('.dashboard-btn-rename').addEventListener('click', renameDashboard);
     selectorEl.querySelector('.dashboard-btn-delete').addEventListener('click', deleteDashboard);
     selectorEl.querySelector('.dashboard-btn-add-widget').addEventListener('click', openAddWidgetDialog);
+
+    suppressSelectorChange = false;
   }
 
   function renderGrid() {
@@ -237,6 +243,7 @@
 
     gridEl.style.display = 'grid';
     gridEl.style.gridTemplateColumns = 'repeat(' + GRID_COLUMNS + ', 1fr)';
+    gridEl.style.gridAutoRows = 'minmax(120px, auto)';
     gridEl.style.gap = '12px';
     gridEl.style.padding = '16px 0';
 
@@ -682,7 +689,8 @@
     if (!activeDashboardId) {
       // If on default dashboard, create a real one first
       try {
-        const result = await apiPost('/api/dashboards', { name: 'My Dashboard' });
+        const timestamp = Date.now().toString(36);
+        const result = await apiPost('/api/dashboards', { name: 'My Dashboard ' + timestamp });
         dashboards.push(result);
         activeDashboardId = result.id;
         renderDashboardSelector();
@@ -696,7 +704,9 @@
       const result = await apiPost('/api/dashboards/' + activeDashboardId + '/widgets', widgetData);
       widgets.push(result);
       renderGrid();
-      renderDashboardSelector();
+      // Update the add-widget button disabled state without full selector rebuild
+      var addBtn = getContainer().querySelector('.dashboard-btn-add-widget');
+      if (addBtn) addBtn.disabled = widgets.length >= MAX_WIDGETS;
     } catch (e) {
       showError('Failed to add widget: ' + e.message);
     }
@@ -715,7 +725,9 @@
       await apiDelete('/api/dashboards/' + activeDashboardId + '/widgets/' + widgetId);
       widgets = widgets.filter(w => String(w.id) !== String(widgetId));
       renderGrid();
-      renderDashboardSelector();
+      // Update the add-widget button disabled state
+      var addBtn = getContainer().querySelector('.dashboard-btn-add-widget');
+      if (addBtn) addBtn.disabled = widgets.length >= MAX_WIDGETS;
     } catch (e) {
       showError('Failed to remove widget: ' + e.message);
     }
@@ -726,14 +738,14 @@
       return { col_start: 1, col_span: 4, row_start: 1 };
     }
 
-    // Find the max row used and place widget at the next row
-    let maxRow = 0;
+    // Find the max row endpoint and place the new widget below all existing ones
+    let maxRowEnd = 0;
     widgets.forEach(function (w) {
-      const endRow = w.row_start + w.row_span;
-      if (endRow > maxRow) maxRow = endRow;
+      var rowEnd = (parseInt(w.row_start) || 1) + (parseInt(w.row_span) || 1);
+      if (rowEnd > maxRowEnd) maxRowEnd = rowEnd;
     });
 
-    return { col_start: 1, col_span: 4, row_start: maxRow };
+    return { col_start: 1, col_span: 4, row_start: maxRowEnd };
   }
 
   // ─── Layout Persistence ─────────────────────────────────────────────

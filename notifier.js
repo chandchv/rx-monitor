@@ -52,7 +52,11 @@ export async function sendNotification(monitorName, url, oldStatus, newStatus, e
         console.error('Failed to send Telegram notification:', await response.text());
       }
     } catch (err) {
-      console.error('Telegram notification error:', err);
+      if (err.code === 'ENOTFOUND' || err.cause?.code === 'ENOTFOUND') {
+        console.warn(`[Telegram] Unable to resolve api.telegram.org (${err.cause?.message || err.message}). Telegram notification skipped.`);
+      } else {
+        console.error('Telegram notification error:', err.message || err);
+      }
     }
   }
 

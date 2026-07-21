@@ -3200,17 +3200,28 @@ app.get('/api/dashboards/:id/widgets', requireAuth, async (req, res) => {
 
 // POST add a widget to a dashboard
 app.post('/api/dashboards/:id/widgets', requireAuth, async (req, res) => {
-  const { widget_type, config, col_start, col_span, row_start, row_span } = req.body;
+  const { widget_type, config } = req.body;
+  let { col_start, col_span, row_start, row_span } = req.body;
 
   const validTypes = ['monitor_status', 'response_chart', 'heatmap', 'apdex', 'sla', 'error_rate', 'comparison'];
   if (!widget_type || !validTypes.includes(widget_type)) {
     return res.status(400).json({ error: 'Invalid widget type.' });
   }
-  if (col_start < 1 || col_start > 12 || col_span < 1 || col_span > 12 || row_span < 1 || row_span > 4) {
-    return res.status(400).json({ error: 'Invalid widget position or size.' });
-  }
+
+  // Apply defaults for missing/invalid position values
+  col_start = parseInt(col_start) || 1;
+  col_span = parseInt(col_span) || 4;
+  row_start = parseInt(row_start) || 1;
+  row_span = parseInt(row_span) || 1;
+
+  // Clamp values to valid ranges
+  col_start = Math.max(1, Math.min(12, col_start));
+  col_span = Math.max(1, Math.min(12, col_span));
+  row_start = Math.max(1, row_start);
+  row_span = Math.max(1, Math.min(4, row_span));
+
   if (col_start + col_span - 1 > 12) {
-    return res.status(400).json({ error: 'Widget exceeds grid boundary.' });
+    col_span = 12 - col_start + 1;
   }
 
   try {
@@ -3235,7 +3246,7 @@ app.post('/api/dashboards/:id/widgets', requireAuth, async (req, res) => {
     const configStr = JSON.stringify(config || {});
     const result = await db.run(
       'INSERT INTO dashboard_widgets (dashboard_id, widget_type, config, col_start, col_span, row_start, row_span) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      [req.params.id, widget_type, configStr, col_start || 1, col_span || 4, row_start || 1, row_span || 1]
+      [req.params.id, widget_type, configStr, col_start, col_span, row_start, row_span]
     );
 
     const now = new Date().toISOString();
@@ -3246,10 +3257,10 @@ app.post('/api/dashboards/:id/widgets', requireAuth, async (req, res) => {
       dashboard_id: parseInt(req.params.id),
       widget_type,
       config: config || {},
-      col_start: col_start || 1,
-      col_span: col_span || 4,
-      row_start: row_start || 1,
-      row_span: row_span || 1
+      col_start,
+      col_span,
+      row_start,
+      row_span
     });
   } catch (err) {
     res.status(500).json({ error: err.message });

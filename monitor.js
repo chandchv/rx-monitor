@@ -159,9 +159,22 @@ export async function runSingleCheck(monitorId) {
   let responseHeaders = null;
   let httpStatusCode = null;
 
+  let targetUrl = (monitor.url || '').trim();
+  if (targetUrl && !/^https?:\/\//i.test(targetUrl)) {
+    targetUrl = 'http://' + targetUrl;
+  }
+
+  let parsedUrl = null;
+  try {
+    parsedUrl = new URL(targetUrl);
+  } catch (urlErr) {
+    status = 'DOWN';
+    responseTime = Date.now() - startTime;
+    message = `Invalid URL format: ${monitor.url}`;
+  }
+
   // DNS resolution timing (before HTTP fetch)
-  const parsedUrl = new URL(monitor.url);
-  if (!isIPAddress(monitor.url)) {
+  if (status === 'UP' && parsedUrl && !isIPAddress(targetUrl)) {
     try {
       const dnsResult = await resolveWithTiming(parsedUrl.hostname);
       dnsTimeMs = dnsResult.timeMs;
@@ -181,7 +194,7 @@ export async function runSingleCheck(monitorId) {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), monitor.timeout * 1000);
 
-      const response = await fetch(monitor.url, {
+      const response = await fetch(targetUrl, {
         method: monitor.method || 'GET',
         signal: controller.signal,
         redirect: 'follow',
@@ -454,10 +467,12 @@ export async function runSingleCheck(monitorId) {
 
         // Only compare if content hash differs from baseline
         if (currentHash !== diffBaseline.content_hash) {
-          // We need the baseline content to compute diff percentage
-          // Since we only store hash and length, use length-based estimation
+          // Retrieve raw baseline content, apply exclusions on-the-fly
+          const rawBaseline = diffBaseline.baseline_content || '';
+          const processedBaseline = applyExclusions(rawBaseline, exclusions);
+
           const diffPercentage = computeDiffPercentage(
-            'x'.repeat(diffBaseline.content_length), // approximate baseline by length
+            processedBaseline,
             processedContent
           );
 
@@ -473,8 +488,8 @@ export async function runSingleCheck(monitorId) {
         // First time: capture baseline without alerting (Requirement 22.6)
         const currentHash = computeContentHash(responseBody);
         await db.run(
-          'INSERT INTO diff_baselines (monitor_id, content_hash, content_length, captured_at) VALUES (?, ?, ?, ?)',
-          [monitor.id, currentHash, responseBody.length, timestamp]
+          'INSERT INTO diff_baselines (monitor_id, content_hash, content_length, baseline_content, captured_at) VALUES (?, ?, ?, ?, ?)',
+          [monitor.id, currentHash, responseBody.length, responseBody, timestamp]
         );
       }
     } catch (diffErr) {

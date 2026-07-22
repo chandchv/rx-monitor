@@ -177,6 +177,10 @@ export async function getDb() {
       VALUES (1, 'Default Seed Monitor', 'https://example.com', 60, 10)
       ON CONFLICT (id) DO NOTHING
     `);
+
+    // Reset SERIAL sequences to prevent duplicate key violations on auto-increment inserts
+    await dbInstance.pool.query("SELECT setval(pg_get_serial_sequence('users', 'id'), COALESCE(MAX(id), 1)) FROM users");
+    await dbInstance.pool.query("SELECT setval(pg_get_serial_sequence('monitors', 'id'), COALESCE(MAX(id), 1)) FROM monitors");
   } catch (err) {
     dbInstance = null;
     throw err;

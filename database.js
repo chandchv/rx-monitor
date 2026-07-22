@@ -1,39 +1,197 @@
-import sqlite3 from 'sqlite3';
-import { open } from 'sqlite';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import 'dotenv/config';
+import pg from 'pg';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const dbPath = path.join(__dirname, 'monitor.db');
+// Parse PostgreSQL BIGINT (INT8) as standard JavaScript numbers for SQLite compatibility
+pg.types.setTypeParser(pg.types.builtins.INT8, (value) => parseInt(value, 10));
 
-let db = null;
+const { Pool } = pg;
+
+let pool = null;
+let dbInstance = null;
 
 export async function getDb() {
-  if (db) return db;
+  if (dbInstance) return dbInstance;
 
-  db = await open({
-    filename: dbPath,
-    driver: sqlite3.Database
+  const connectionString = process.env.DATABASE_URL;
+  if (!connectionString) {
+    throw new Error('DATABASE_URL environment variable is not defined');
+  }
+
+  // Force rejectUnauthorized=false for production databases like Aiven to enable SSL validation bypass easily
+  const isProduction = connectionString.includes('aivencloud.com') || process.env.NODE_ENV === 'production';
+
+  pool = new Pool({
+    connectionString,
+    ssl: isProduction ? { rejectUnauthorized: false } : false
   });
 
-  // Enable WAL mode and busy timeout for concurrent safety
-  await db.run('PRAGMA journal_mode = WAL;');
-  await db.run('PRAGMA busy_timeout = 5000;');
+  // Verify connection
+  await pool.query('SELECT NOW()');
 
-  await initSchema();
-  return db;
+  dbInstance = {
+    pool,
+
+    convertSql(sql) {
+      if (!sql) return '';
+      let converted = sql;
+
+      // 1. Map AUTOINCREMENT keyword out
+      converted = converted.replace(/\bAUTOINCREMENT\b/gi, '');
+      converted = converted.replace(/\bINTEGER PRIMARY KEY\b/gi, 'SERIAL PRIMARY KEY');
+
+      // 2. Map SQLite specific INSERT OR IGNORE / REPLACE
+      converted = converted.replace(/INSERT OR IGNORE INTO settings/gi, 'INSERT INTO settings');
+      if (converted.includes('INSERT INTO settings')) {
+        if (!converted.includes('ON CONFLICT')) {
+          converted = converted.trim().replace(/;?$/, ' ON CONFLICT (key) DO NOTHING');
+        }
+      }
+
+      // Handle unique dashboard names insertion conflict
+      converted = converted.replace(/INSERT OR IGNORE INTO dashboards/gi, 'INSERT INTO dashboards');
+      if (converted.includes('INSERT INTO dashboards')) {
+        if (!converted.includes('ON CONFLICT')) {
+          converted = converted.trim().replace(/;?$/, ' ON CONFLICT (user_id, name) DO NOTHING');
+        }
+      }
+
+      // Generic INSERT OR IGNORE for tables with primary key 'id'
+      if (/INSERT OR IGNORE INTO/i.test(converted)) {
+        converted = converted.replace(/INSERT OR IGNORE INTO/gi, 'INSERT INTO');
+        if (!converted.includes('ON CONFLICT')) {
+          converted = converted.trim().replace(/;?$/, ' ON CONFLICT (id) DO NOTHING');
+        }
+      }
+
+      // Convert SQLite datetime('now') to Postgres NOW()
+      converted = converted.replace(/datetime\('now'\)/gi, 'NOW()');
+
+      // 3. Map placeholer ? to $1, $2, $3, ...
+      let index = 1;
+      converted = converted.replace(/\?/g, () => `$${index++}`);
+
+      return converted;
+    },
+
+    async get(sql, params = []) {
+      const queryStr = this.convertSql(sql);
+      const res = await this.pool.query(queryStr, params);
+      return res.rows[0] || null;
+    },
+
+    async all(sql, params = []) {
+      const queryStr = this.convertSql(sql);
+      const res = await this.pool.query(queryStr, params);
+      return res.rows;
+    },
+
+    async run(sql, params = []) {
+      let queryStr = this.convertSql(sql);
+      
+      const isInsert = /^\s*INSERT\s+INTO/i.test(queryStr);
+      if (isInsert && !/RETURNING/i.test(queryStr)) {
+        queryStr = queryStr.trim().replace(/;?$/, ' RETURNING *');
+      }
+
+      const res = await this.pool.query(queryStr, params);
+      
+      let lastID = null;
+      if (res.rows && res.rows[0]) {
+        lastID = res.rows[0].id || null;
+      }
+
+      return {
+        lastID,
+        changes: res.rowCount
+      };
+    },
+
+    async prepare(sql) {
+      const self = this;
+      let queryStr = this.convertSql(sql);
+      
+      const isInsert = /^\s*INSERT\s+INTO/i.test(queryStr);
+      if (isInsert && !/RETURNING/i.test(queryStr)) {
+        queryStr = queryStr.trim().replace(/;?$/, ' RETURNING *');
+      }
+
+      return {
+        async run(...params) {
+          const actualParams = params.length === 1 && Array.isArray(params[0]) ? params[0] : params;
+          const res = await self.pool.query(queryStr, actualParams);
+          let lastID = null;
+          if (res.rows && res.rows[0]) {
+            lastID = res.rows[0].id || null;
+          }
+          return {
+            lastID,
+            changes: res.rowCount
+          };
+        },
+        async finalize() {
+          // No-op
+        }
+      };
+    },
+
+    async exec(sql) {
+      const queries = sql
+        .split(';')
+        .map((q) => q.trim())
+        .filter((q) => q.length > 0);
+
+      for (const query of queries) {
+        const queryStr = this.convertSql(query);
+        await this.pool.query(queryStr);
+      }
+    }
+  };
+
+  try {
+    await initSchema();
+
+    // Seed default records to support test suites and foreign keys
+    await dbInstance.run(`
+      INSERT INTO users (id, email, role, is_verified, created_at)
+      VALUES (1, 'admin@rxmonitor.local', 'admin', 1, NOW())
+      ON CONFLICT (id) DO NOTHING
+    `);
+
+    await dbInstance.run(`
+      INSERT INTO users (id, email, role, is_verified, created_at)
+      VALUES (999, 'test-user@rxmonitor.local', 'user', 1, NOW())
+      ON CONFLICT (id) DO NOTHING
+    `);
+
+    await dbInstance.run(`
+      INSERT INTO users (id, email, role, is_verified, created_at)
+      VALUES (99999, 'load-user@rxmonitor.local', 'user', 1, NOW())
+      ON CONFLICT (id) DO NOTHING
+    `);
+
+    await dbInstance.run(`
+      INSERT INTO monitors (id, name, url, interval, timeout)
+      VALUES (1, 'Default Seed Monitor', 'https://example.com', 60, 10)
+      ON CONFLICT (id) DO NOTHING
+    `);
+  } catch (err) {
+    dbInstance = null;
+    throw err;
+  }
+
+  return dbInstance;
 }
 
 async function initSchema() {
-  // Create tables if they do not exist
-  await db.exec(`
+  // Create tables using PostgreSQL compatible definitions
+  await dbInstance.exec(`
     CREATE TABLE IF NOT EXISTS settings (
       key TEXT PRIMARY KEY,
       value TEXT
     );
 
     CREATE TABLE IF NOT EXISTS users (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id SERIAL PRIMARY KEY,
       email TEXT UNIQUE NOT NULL,
       password TEXT,
       role TEXT DEFAULT 'user',
@@ -45,18 +203,17 @@ async function initSchema() {
     );
 
     CREATE TABLE IF NOT EXISTS payments (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      user_id INTEGER,
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
       order_id TEXT,
       payment_id TEXT,
       amount INTEGER,
       status TEXT,
-      created_at TEXT,
-      FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+      created_at TEXT
     );
 
     CREATE TABLE IF NOT EXISTS monitors (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id SERIAL PRIMARY KEY,
       name TEXT NOT NULL,
       url TEXT NOT NULL,
       method TEXT DEFAULT 'GET',
@@ -70,76 +227,76 @@ async function initSchema() {
       is_public INTEGER DEFAULT 0,
       is_maintenance INTEGER DEFAULT 0,
       max_retries INTEGER DEFAULT 3,
-      current_fails INTEGER DEFAULT 0
+      current_fails INTEGER DEFAULT 0,
+      user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+      visitor_id TEXT,
+      geo_enabled INTEGER DEFAULT 0,
+      diff_enabled INTEGER DEFAULT 0,
+      screenshot_enabled INTEGER DEFAULT 0,
+      diff_threshold REAL DEFAULT 5.0,
+      apdex_threshold INTEGER DEFAULT 500,
+      error_rate_threshold INTEGER DEFAULT 5,
+      timezone TEXT DEFAULT 'UTC'
     );
 
     CREATE TABLE IF NOT EXISTS logs (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      monitor_id INTEGER,
+      id SERIAL PRIMARY KEY,
+      monitor_id INTEGER REFERENCES monitors(id) ON DELETE CASCADE,
       status TEXT,
       response_time INTEGER,
       message TEXT,
       checked_at TEXT,
-      FOREIGN KEY(monitor_id) REFERENCES monitors(id) ON DELETE CASCADE
+      dns_time_ms INTEGER,
+      maintenance_flag INTEGER DEFAULT 0
     );
 
     CREATE TABLE IF NOT EXISTS incidents (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      monitor_id INTEGER,
+      id SERIAL PRIMARY KEY,
+      monitor_id INTEGER REFERENCES monitors(id) ON DELETE CASCADE,
       event_type TEXT,
       timestamp TEXT,
       message TEXT,
-      downtime_duration INTEGER DEFAULT 0,
-      FOREIGN KEY(monitor_id) REFERENCES monitors(id) ON DELETE CASCADE
+      downtime_duration INTEGER DEFAULT 0
     );
 
     CREATE TABLE IF NOT EXISTS api_keys (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      user_id INTEGER NOT NULL,
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
       key_hash TEXT UNIQUE NOT NULL,
       key_prefix TEXT NOT NULL,
       label TEXT DEFAULT 'Default',
       created_at TEXT,
       last_used_at TEXT,
-      is_active INTEGER DEFAULT 1,
-      FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+      is_active INTEGER DEFAULT 1
     );
 
     CREATE TABLE IF NOT EXISTS server_metrics (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      api_key_id INTEGER NOT NULL,
-      user_id INTEGER NOT NULL,
+      id SERIAL PRIMARY KEY,
+      api_key_id INTEGER REFERENCES api_keys(id) ON DELETE CASCADE,
+      user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
       hostname TEXT,
       cpu_percent REAL,
       memory_percent REAL,
       disk_percent REAL,
       load_avg REAL,
-      network_rx_bytes INTEGER DEFAULT 0,
-      network_tx_bytes INTEGER DEFAULT 0,
+      network_rx_bytes BIGINT DEFAULT 0,
+      network_tx_bytes BIGINT DEFAULT 0,
       process_count INTEGER DEFAULT 0,
       uptime_seconds INTEGER DEFAULT 0,
-      collected_at TEXT,
-      FOREIGN KEY(api_key_id) REFERENCES api_keys(id) ON DELETE CASCADE,
-      FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+      collected_at TEXT
     );
 
-    CREATE INDEX IF NOT EXISTS idx_server_metrics_user ON server_metrics(user_id, collected_at);
-    CREATE INDEX IF NOT EXISTS idx_server_metrics_key ON server_metrics(api_key_id, collected_at);
-    CREATE INDEX IF NOT EXISTS idx_logs_monitor_checked ON logs(monitor_id, checked_at);
-
-    -- Multi-step synthetic transactions
     CREATE TABLE IF NOT EXISTS synthetic_transactions (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      monitor_id INTEGER NOT NULL,
+      id SERIAL PRIMARY KEY,
+      monitor_id INTEGER REFERENCES monitors(id) ON DELETE CASCADE,
       name TEXT NOT NULL,
       created_at TEXT,
-      updated_at TEXT,
-      FOREIGN KEY(monitor_id) REFERENCES monitors(id) ON DELETE CASCADE
+      updated_at TEXT
     );
 
     CREATE TABLE IF NOT EXISTS synthetic_steps (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      transaction_id INTEGER NOT NULL,
+      id SERIAL PRIMARY KEY,
+      transaction_id INTEGER REFERENCES synthetic_transactions(id) ON DELETE CASCADE,
       step_order INTEGER NOT NULL,
       url TEXT NOT NULL,
       method TEXT DEFAULT 'GET',
@@ -147,103 +304,87 @@ async function initSchema() {
       body TEXT,
       timeout INTEGER DEFAULT 10,
       extract_rules TEXT,
-      validation_rules TEXT,
-      FOREIGN KEY(transaction_id) REFERENCES synthetic_transactions(id) ON DELETE CASCADE
+      validation_rules TEXT
     );
 
     CREATE TABLE IF NOT EXISTS synthetic_results (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      transaction_id INTEGER NOT NULL,
+      id SERIAL PRIMARY KEY,
+      transaction_id INTEGER REFERENCES synthetic_transactions(id) ON DELETE CASCADE,
       overall_status TEXT NOT NULL,
       failed_step_index INTEGER,
       failure_reason TEXT,
       total_time_ms INTEGER,
-      executed_at TEXT,
-      FOREIGN KEY(transaction_id) REFERENCES synthetic_transactions(id) ON DELETE CASCADE
+      executed_at TEXT
     );
 
     CREATE TABLE IF NOT EXISTS synthetic_step_results (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      result_id INTEGER NOT NULL,
+      id SERIAL PRIMARY KEY,
+      result_id INTEGER REFERENCES synthetic_results(id) ON DELETE CASCADE,
       step_index INTEGER NOT NULL,
       status_code INTEGER,
       response_time_ms INTEGER,
       pass INTEGER NOT NULL,
-      error TEXT,
-      FOREIGN KEY(result_id) REFERENCES synthetic_results(id) ON DELETE CASCADE
+      error TEXT
     );
 
-    -- Content and header validation rules
     CREATE TABLE IF NOT EXISTS content_validation_rules (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      monitor_id INTEGER NOT NULL,
+      id SERIAL PRIMARY KEY,
+      monitor_id INTEGER REFERENCES monitors(id) ON DELETE CASCADE,
       type TEXT NOT NULL,
       value TEXT NOT NULL,
-      description TEXT,
-      FOREIGN KEY(monitor_id) REFERENCES monitors(id) ON DELETE CASCADE
+      description TEXT
     );
 
     CREATE TABLE IF NOT EXISTS header_validation_rules (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      monitor_id INTEGER NOT NULL,
+      id SERIAL PRIMARY KEY,
+      monitor_id INTEGER REFERENCES monitors(id) ON DELETE CASCADE,
       header_name TEXT NOT NULL,
       type TEXT NOT NULL,
-      expected_value TEXT,
-      FOREIGN KEY(monitor_id) REFERENCES monitors(id) ON DELETE CASCADE
+      expected_value TEXT
     );
 
-    -- Certificate alert thresholds
     CREATE TABLE IF NOT EXISTS cert_alert_thresholds (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      monitor_id INTEGER NOT NULL,
+      id SERIAL PRIMARY KEY,
+      monitor_id INTEGER REFERENCES monitors(id) ON DELETE CASCADE,
       days_remaining INTEGER NOT NULL,
-      severity TEXT NOT NULL,
-      FOREIGN KEY(monitor_id) REFERENCES monitors(id) ON DELETE CASCADE
+      severity TEXT NOT NULL
     );
 
     CREATE TABLE IF NOT EXISTS cert_alert_log (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      monitor_id INTEGER NOT NULL,
+      id SERIAL PRIMARY KEY,
+      monitor_id INTEGER REFERENCES monitors(id) ON DELETE CASCADE,
       severity TEXT NOT NULL,
-      alerted_at TEXT NOT NULL,
-      FOREIGN KEY(monitor_id) REFERENCES monitors(id) ON DELETE CASCADE
+      alerted_at TEXT NOT NULL
     );
 
-    -- DNS resolution logs
     CREATE TABLE IF NOT EXISTS dns_logs (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      log_id INTEGER NOT NULL,
-      monitor_id INTEGER NOT NULL,
+      id SERIAL PRIMARY KEY,
+      log_id INTEGER REFERENCES logs(id) ON DELETE CASCADE,
+      monitor_id INTEGER REFERENCES monitors(id) ON DELETE CASCADE,
       dns_time_ms INTEGER NOT NULL,
       resolver_ip TEXT,
-      error_type TEXT,
-      FOREIGN KEY(log_id) REFERENCES logs(id) ON DELETE CASCADE,
-      FOREIGN KEY(monitor_id) REFERENCES monitors(id) ON DELETE CASCADE
+      error_type TEXT
     );
 
-    -- Redirect chain tracking
     CREATE TABLE IF NOT EXISTS redirect_chains (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      log_id INTEGER NOT NULL,
-      monitor_id INTEGER NOT NULL,
-      FOREIGN KEY(log_id) REFERENCES logs(id) ON DELETE CASCADE
+      id SERIAL PRIMARY KEY,
+      log_id INTEGER REFERENCES logs(id) ON DELETE CASCADE,
+      monitor_id INTEGER REFERENCES monitors(id) ON DELETE CASCADE
     );
 
     CREATE TABLE IF NOT EXISTS redirect_hops (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      chain_id INTEGER NOT NULL,
+      id SERIAL PRIMARY KEY,
+      chain_id INTEGER REFERENCES redirect_chains(id) ON DELETE CASCADE,
       hop_order INTEGER NOT NULL,
       url TEXT NOT NULL,
       status_code INTEGER NOT NULL,
-      response_time_ms INTEGER,
-      FOREIGN KEY(chain_id) REFERENCES redirect_chains(id) ON DELETE CASCADE
+      response_time_ms INTEGER
     );
 
-    -- Load test results
     CREATE TABLE IF NOT EXISTS load_tests (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      monitor_id INTEGER NOT NULL,
-      user_id INTEGER NOT NULL,
+      id SERIAL PRIMARY KEY,
+      monitor_id INTEGER REFERENCES monitors(id) ON DELETE CASCADE,
+      user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
       concurrency INTEGER NOT NULL,
       status TEXT DEFAULT 'running',
       total_requests INTEGER,
@@ -255,144 +396,121 @@ async function initSchema() {
       requests_per_second REAL,
       result_status TEXT,
       started_at TEXT,
-      completed_at TEXT,
-      FOREIGN KEY(monitor_id) REFERENCES monitors(id) ON DELETE CASCADE,
-      FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+      completed_at TEXT
     );
 
-    -- Connection limit test results
     CREATE TABLE IF NOT EXISTS connection_tests (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      monitor_id INTEGER NOT NULL,
-      user_id INTEGER NOT NULL,
+      id SERIAL PRIMARY KEY,
+      monitor_id INTEGER REFERENCES monitors(id) ON DELETE CASCADE,
+      user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
       max_concurrency INTEGER DEFAULT 500,
       detected_limit INTEGER,
       status TEXT DEFAULT 'running',
       started_at TEXT,
-      completed_at TEXT,
-      FOREIGN KEY(monitor_id) REFERENCES monitors(id) ON DELETE CASCADE,
-      FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+      completed_at TEXT
     );
 
     CREATE TABLE IF NOT EXISTS connection_test_levels (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      test_id INTEGER NOT NULL,
+      id SERIAL PRIMARY KEY,
+      test_id INTEGER REFERENCES connection_tests(id) ON DELETE CASCADE,
       concurrency INTEGER NOT NULL,
       avg_response_ms REAL,
       error_rate_pct REAL,
       errors INTEGER,
-      total INTEGER,
-      FOREIGN KEY(test_id) REFERENCES connection_tests(id) ON DELETE CASCADE
+      total INTEGER
     );
 
-    -- Geographic check configuration and results
     CREATE TABLE IF NOT EXISTS geo_regions (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      monitor_id INTEGER NOT NULL,
+      id SERIAL PRIMARY KEY,
+      monitor_id INTEGER REFERENCES monitors(id) ON DELETE CASCADE,
       name TEXT NOT NULL,
-      endpoint_url TEXT NOT NULL,
-      FOREIGN KEY(monitor_id) REFERENCES monitors(id) ON DELETE CASCADE
+      endpoint_url TEXT NOT NULL
     );
 
     CREATE TABLE IF NOT EXISTS geo_results (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      log_id INTEGER NOT NULL,
-      monitor_id INTEGER NOT NULL,
+      id SERIAL PRIMARY KEY,
+      log_id INTEGER REFERENCES logs(id) ON DELETE CASCADE,
+      monitor_id INTEGER REFERENCES monitors(id) ON DELETE CASCADE,
       region_name TEXT NOT NULL,
       status TEXT NOT NULL,
-      response_time_ms INTEGER,
-      FOREIGN KEY(log_id) REFERENCES logs(id) ON DELETE CASCADE
+      response_time_ms INTEGER
     );
 
-    -- Escalation policies
     CREATE TABLE IF NOT EXISTS escalation_policies (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      monitor_id INTEGER NOT NULL,
+      id SERIAL PRIMARY KEY,
+      monitor_id INTEGER REFERENCES monitors(id) ON DELETE CASCADE,
       name TEXT NOT NULL,
-      created_at TEXT,
-      FOREIGN KEY(monitor_id) REFERENCES monitors(id) ON DELETE CASCADE
+      created_at TEXT
     );
 
     CREATE TABLE IF NOT EXISTS escalation_tiers (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      policy_id INTEGER NOT NULL,
+      id SERIAL PRIMARY KEY,
+      policy_id INTEGER REFERENCES escalation_policies(id) ON DELETE CASCADE,
       level INTEGER NOT NULL,
       channel TEXT NOT NULL,
       contact TEXT NOT NULL,
-      delay_minutes INTEGER NOT NULL,
-      FOREIGN KEY(policy_id) REFERENCES escalation_policies(id) ON DELETE CASCADE
+      delay_minutes INTEGER NOT NULL
     );
 
     CREATE TABLE IF NOT EXISTS escalation_states (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id SERIAL PRIMARY KEY,
       alert_id INTEGER NOT NULL,
-      policy_id INTEGER NOT NULL,
+      policy_id INTEGER REFERENCES escalation_policies(id) ON DELETE CASCADE,
       current_tier INTEGER DEFAULT 1,
       status TEXT DEFAULT 'active',
       triggered_at TEXT,
       acknowledged_at TEXT,
-      acknowledged_by INTEGER,
-      FOREIGN KEY(policy_id) REFERENCES escalation_policies(id) ON DELETE CASCADE
+      acknowledged_by INTEGER
     );
 
-    -- Maintenance windows
     CREATE TABLE IF NOT EXISTS maintenance_windows (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      monitor_id INTEGER NOT NULL,
+      id SERIAL PRIMARY KEY,
+      monitor_id INTEGER REFERENCES monitors(id) ON DELETE CASCADE,
       start_time TEXT NOT NULL,
       end_time TEXT NOT NULL,
       timezone TEXT DEFAULT 'UTC',
       recurrence TEXT,
       active INTEGER DEFAULT 1,
-      created_at TEXT,
-      FOREIGN KEY(monitor_id) REFERENCES monitors(id) ON DELETE CASCADE
+      created_at TEXT
     );
 
-    -- Incident timeline events
     CREATE TABLE IF NOT EXISTS incident_events (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      incident_id INTEGER NOT NULL,
+      id SERIAL PRIMARY KEY,
+      incident_id INTEGER REFERENCES incidents(id) ON DELETE CASCADE,
       event_type TEXT NOT NULL,
       timestamp TEXT NOT NULL,
       data TEXT,
-      response_time_ms INTEGER,
-      FOREIGN KEY(incident_id) REFERENCES incidents(id) ON DELETE CASCADE
+      response_time_ms INTEGER
     );
 
-    -- Status page incidents
     CREATE TABLE IF NOT EXISTS status_incidents (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id SERIAL PRIMARY KEY,
       title TEXT NOT NULL,
       description TEXT,
       status TEXT DEFAULT 'investigating',
       created_at TEXT,
       resolved_at TEXT,
-      created_by INTEGER,
-      FOREIGN KEY(created_by) REFERENCES users(id)
+      created_by INTEGER REFERENCES users(id)
     );
 
     CREATE TABLE IF NOT EXISTS status_incident_updates (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      incident_id INTEGER NOT NULL,
+      id SERIAL PRIMARY KEY,
+      incident_id INTEGER REFERENCES status_incidents(id) ON DELETE CASCADE,
       message TEXT NOT NULL,
       status TEXT NOT NULL,
-      created_at TEXT,
-      FOREIGN KEY(incident_id) REFERENCES status_incidents(id) ON DELETE CASCADE
+      created_at TEXT
     );
 
-    -- Alert deduplication state
     CREATE TABLE IF NOT EXISTS alert_suppression (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      monitor_id INTEGER NOT NULL UNIQUE,
+      id SERIAL PRIMARY KEY,
+      monitor_id INTEGER UNIQUE REFERENCES monitors(id) ON DELETE CASCADE,
       last_alert_at TEXT NOT NULL,
       suppression_window_min INTEGER DEFAULT 30,
-      suppressed_count INTEGER DEFAULT 0,
-      FOREIGN KEY(monitor_id) REFERENCES monitors(id) ON DELETE CASCADE
+      suppressed_count INTEGER DEFAULT 0
     );
 
-    -- On-call rotation
     CREATE TABLE IF NOT EXISTS oncall_teams (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id SERIAL PRIMARY KEY,
       name TEXT NOT NULL,
       rotation_interval_hours INTEGER DEFAULT 168,
       rotation_start_time TEXT NOT NULL,
@@ -400,151 +518,134 @@ async function initSchema() {
     );
 
     CREATE TABLE IF NOT EXISTS oncall_members (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      team_id INTEGER NOT NULL,
+      id SERIAL PRIMARY KEY,
+      team_id INTEGER REFERENCES oncall_teams(id) ON DELETE CASCADE,
       name TEXT NOT NULL,
       email TEXT,
       telegram_chat_id TEXT,
-      position INTEGER NOT NULL,
-      FOREIGN KEY(team_id) REFERENCES oncall_teams(id) ON DELETE CASCADE
+      position INTEGER NOT NULL
     );
 
     CREATE TABLE IF NOT EXISTS oncall_overrides (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      team_id INTEGER NOT NULL,
-      member_id INTEGER NOT NULL,
+      id SERIAL PRIMARY KEY,
+      team_id INTEGER REFERENCES oncall_teams(id) ON DELETE CASCADE,
+      member_id INTEGER REFERENCES oncall_members(id) ON DELETE CASCADE,
       start_time TEXT NOT NULL,
-      end_time TEXT,
-      FOREIGN KEY(team_id) REFERENCES oncall_teams(id) ON DELETE CASCADE,
-      FOREIGN KEY(member_id) REFERENCES oncall_members(id) ON DELETE CASCADE
+      end_time TEXT
     );
 
-    -- Centralized log ingestion
     CREATE TABLE IF NOT EXISTS app_logs (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      api_key_id INTEGER NOT NULL,
+      id SERIAL PRIMARY KEY,
+      api_key_id INTEGER REFERENCES api_keys(id) ON DELETE CASCADE,
       hostname TEXT NOT NULL,
       timestamp TEXT NOT NULL,
       severity TEXT NOT NULL,
       message TEXT NOT NULL,
-      ingested_at TEXT,
-      FOREIGN KEY(api_key_id) REFERENCES api_keys(id) ON DELETE CASCADE
+      ingested_at TEXT
     );
 
-    -- Error rate tracking
     CREATE TABLE IF NOT EXISTS error_rate_events (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      monitor_id INTEGER NOT NULL,
+      id SERIAL PRIMARY KEY,
+      monitor_id INTEGER REFERENCES monitors(id) ON DELETE CASCADE,
       status_code INTEGER NOT NULL,
-      recorded_at TEXT NOT NULL,
-      FOREIGN KEY(monitor_id) REFERENCES monitors(id) ON DELETE CASCADE
+      recorded_at TEXT NOT NULL
     );
 
     CREATE TABLE IF NOT EXISTS error_rate_alerts (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      monitor_id INTEGER NOT NULL,
+      id SERIAL PRIMARY KEY,
+      monitor_id INTEGER REFERENCES monitors(id) ON DELETE CASCADE,
       spike_active INTEGER DEFAULT 1,
       triggered_at TEXT,
-      resolved_at TEXT,
-      FOREIGN KEY(monitor_id) REFERENCES monitors(id) ON DELETE CASCADE
+      resolved_at TEXT
     );
 
-    -- Traceroute results
     CREATE TABLE IF NOT EXISTS traceroute_results (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      log_id INTEGER NOT NULL,
-      monitor_id INTEGER NOT NULL,
+      id SERIAL PRIMARY KEY,
+      log_id INTEGER REFERENCES logs(id) ON DELETE CASCADE,
+      monitor_id INTEGER REFERENCES monitors(id) ON DELETE CASCADE,
       hostname TEXT NOT NULL,
       complete INTEGER DEFAULT 0,
-      executed_at TEXT,
-      FOREIGN KEY(log_id) REFERENCES logs(id) ON DELETE CASCADE
+      executed_at TEXT
     );
 
     CREATE TABLE IF NOT EXISTS traceroute_hops (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      traceroute_id INTEGER NOT NULL,
+      id SERIAL PRIMARY KEY,
+      traceroute_id INTEGER REFERENCES traceroute_results(id) ON DELETE CASCADE,
       seq INTEGER NOT NULL,
       ip TEXT,
       hostname TEXT,
-      rtt_ms REAL,
-      FOREIGN KEY(traceroute_id) REFERENCES traceroute_results(id) ON DELETE CASCADE
+      rtt_ms REAL
     );
 
-    -- Screenshot metadata
     CREATE TABLE IF NOT EXISTS screenshots (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      log_id INTEGER NOT NULL,
-      monitor_id INTEGER NOT NULL,
+      id SERIAL PRIMARY KEY,
+      log_id INTEGER REFERENCES logs(id) ON DELETE CASCADE,
+      monitor_id INTEGER REFERENCES monitors(id) ON DELETE CASCADE,
       file_path TEXT NOT NULL,
       captured_at TEXT,
-      timeout_occurred INTEGER DEFAULT 0,
-      FOREIGN KEY(log_id) REFERENCES logs(id) ON DELETE CASCADE
+      timeout_occurred INTEGER DEFAULT 0
     );
 
-    -- Content diff detection
     CREATE TABLE IF NOT EXISTS diff_baselines (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      monitor_id INTEGER NOT NULL UNIQUE,
+      id SERIAL PRIMARY KEY,
+      monitor_id INTEGER UNIQUE REFERENCES monitors(id) ON DELETE CASCADE,
       content_hash TEXT NOT NULL,
       content_length INTEGER NOT NULL,
       baseline_content TEXT,
-      captured_at TEXT,
-      FOREIGN KEY(monitor_id) REFERENCES monitors(id) ON DELETE CASCADE
+      captured_at TEXT
     );
 
     CREATE TABLE IF NOT EXISTS diff_results (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      log_id INTEGER NOT NULL,
-      monitor_id INTEGER NOT NULL,
+      id SERIAL PRIMARY KEY,
+      log_id INTEGER REFERENCES logs(id) ON DELETE CASCADE,
+      monitor_id INTEGER REFERENCES monitors(id) ON DELETE CASCADE,
       previous_hash TEXT,
       current_hash TEXT,
       diff_percentage REAL,
       changed_lines TEXT,
-      alerted INTEGER DEFAULT 0,
-      FOREIGN KEY(log_id) REFERENCES logs(id) ON DELETE CASCADE
+      alerted INTEGER DEFAULT 0
     );
 
     CREATE TABLE IF NOT EXISTS diff_exclusions (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      monitor_id INTEGER NOT NULL,
+      id SERIAL PRIMARY KEY,
+      monitor_id INTEGER REFERENCES monitors(id) ON DELETE CASCADE,
       type TEXT NOT NULL,
-      pattern TEXT NOT NULL,
-      FOREIGN KEY(monitor_id) REFERENCES monitors(id) ON DELETE CASCADE
+      pattern TEXT NOT NULL
     );
 
-    -- Custom dashboards
     CREATE TABLE IF NOT EXISTS dashboards (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      user_id INTEGER NOT NULL,
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
       name TEXT NOT NULL,
       layout TEXT NOT NULL,
       created_at TEXT,
       updated_at TEXT,
-      FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE,
       UNIQUE(user_id, name)
     );
 
     CREATE TABLE IF NOT EXISTS dashboard_widgets (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      dashboard_id INTEGER NOT NULL,
+      id SERIAL PRIMARY KEY,
+      dashboard_id INTEGER REFERENCES dashboards(id) ON DELETE CASCADE,
       widget_type TEXT NOT NULL,
       config TEXT NOT NULL,
       col_start INTEGER NOT NULL,
       col_span INTEGER NOT NULL,
       row_start INTEGER NOT NULL,
-      row_span INTEGER NOT NULL,
-      FOREIGN KEY(dashboard_id) REFERENCES dashboards(id) ON DELETE CASCADE
+      row_span INTEGER NOT NULL
     );
 
-    -- SLA targets
     CREATE TABLE IF NOT EXISTS sla_targets (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      monitor_id INTEGER NOT NULL UNIQUE,
-      target_percentage REAL NOT NULL,
-      FOREIGN KEY(monitor_id) REFERENCES monitors(id) ON DELETE CASCADE
+      id SERIAL PRIMARY KEY,
+      monitor_id INTEGER UNIQUE REFERENCES monitors(id) ON DELETE CASCADE,
+      target_percentage REAL NOT NULL
     );
+  `);
 
-    -- New indexes for advanced monitoring suite
+  // Index creation (using standard PG syntax)
+  await dbInstance.exec(`
+    CREATE INDEX IF NOT EXISTS idx_server_metrics_user ON server_metrics(user_id, collected_at);
+    CREATE INDEX IF NOT EXISTS idx_server_metrics_key ON server_metrics(api_key_id, collected_at);
+    CREATE INDEX IF NOT EXISTS idx_logs_monitor_checked ON logs(monitor_id, checked_at);
     CREATE INDEX IF NOT EXISTS idx_synthetic_results_tx ON synthetic_results(transaction_id, executed_at);
     CREATE INDEX IF NOT EXISTS idx_dns_logs_monitor ON dns_logs(monitor_id, log_id);
     CREATE INDEX IF NOT EXISTS idx_app_logs_hostname ON app_logs(hostname, timestamp);
@@ -564,54 +665,7 @@ async function initSchema() {
     CREATE INDEX IF NOT EXISTS idx_dashboards_user ON dashboards(user_id);
   `);
 
-  // Dynamically add columns to monitors if they do not exist (migration support)
-  const monitorColumns = [
-    { name: 'ssl_expiry', type: 'TEXT' },
-    { name: 'is_public', type: 'INTEGER DEFAULT 0' },
-    { name: 'is_maintenance', type: 'INTEGER DEFAULT 0' },
-    { name: 'max_retries', type: 'INTEGER DEFAULT 3' },
-    { name: 'current_fails', type: 'INTEGER DEFAULT 0' },
-    { name: 'user_id', type: 'INTEGER REFERENCES users(id) ON DELETE CASCADE' },
-    { name: 'visitor_id', type: 'TEXT' },
-    { name: 'geo_enabled', type: 'INTEGER DEFAULT 0' },
-    { name: 'diff_enabled', type: 'INTEGER DEFAULT 0' },
-    { name: 'screenshot_enabled', type: 'INTEGER DEFAULT 0' },
-    { name: 'diff_threshold', type: 'REAL DEFAULT 5.0' },
-    { name: 'apdex_threshold', type: 'INTEGER DEFAULT 500' },
-    { name: 'error_rate_threshold', type: 'INTEGER DEFAULT 5' },
-    { name: 'timezone', type: "TEXT DEFAULT 'UTC'" }
-  ];
-
-  for (const col of monitorColumns) {
-    try {
-      await db.exec(`ALTER TABLE monitors ADD COLUMN ${col.name} ${col.type}`);
-    } catch (e) {
-      // Column already exists, ignore
-    }
-  }
-
-  // Dynamically add columns to logs if they do not exist (migration support)
-  const logColumns = [
-    { name: 'dns_time_ms', type: 'INTEGER' },
-    { name: 'maintenance_flag', type: 'INTEGER DEFAULT 0' }
-  ];
-
-  for (const col of logColumns) {
-    try {
-      await db.exec(`ALTER TABLE logs ADD COLUMN ${col.name} ${col.type}`);
-    } catch (e) {
-      // Column already exists, ignore
-    }
-  }
-
-  // Dynamically add baseline_content to diff_baselines if it does not exist (migration support)
-  try {
-    await db.exec('ALTER TABLE diff_baselines ADD COLUMN baseline_content TEXT');
-  } catch (e) {
-    // Column already exists, ignore
-  }
-
-  // Insert default settings if they are not present
+  // Insert default settings
   const defaultSettings = [
     { key: 'telegram_enabled', value: 'false' },
     { key: 'telegram_bot_token', value: '' },
@@ -631,8 +685,8 @@ async function initSchema() {
   ];
 
   for (const setting of defaultSettings) {
-    await db.run(
-      'INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)',
+    await dbInstance.run(
+      'INSERT INTO settings (key, value) VALUES ($1, $2) ON CONFLICT (key) DO NOTHING',
       [setting.key, setting.value]
     );
   }

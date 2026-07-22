@@ -995,9 +995,8 @@ function initWebSocket() {
   const maxAttempts = 10;
   const maxDelay = 30000; // 30s max backoff
 
-  function connect() {
-    try {
-      ws = new WebSocket(`ws://${window.location.host}`);
+      const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      ws = new WebSocket(`${wsProtocol}//${window.location.host}`);
     } catch (err) {
       scheduleReconnect();
       return;

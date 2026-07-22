@@ -20,8 +20,11 @@ export async function getDb() {
   // Force rejectUnauthorized=false for production databases like Aiven to enable SSL validation bypass easily
   const isProduction = connectionString.includes('aivencloud.com') || process.env.NODE_ENV === 'production';
 
+  // Strip query parameters to prevent pg-connection-string from overriding SSL settings
+  const cleanConnectionString = isProduction ? connectionString.split('?')[0] : connectionString;
+
   pool = new Pool({
-    connectionString,
+    connectionString: cleanConnectionString,
     ssl: isProduction ? { rejectUnauthorized: false } : false
   });
 

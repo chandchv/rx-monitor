@@ -141,8 +141,11 @@ export async function sendPushNotification(userId, title, body) {
       body: JSON.stringify(messages),
     });
 
+    const responseText = await response.text();
     if (!response.ok) {
-      console.error('Failed to send Expo push notifications:', await response.text());
+      console.error('Failed to send Expo push notifications:', responseText);
+    } else {
+      console.log('Expo push notifications response:', responseText);
     }
   } catch (err) {
     console.error('Expo push notification error:', err.message || err);

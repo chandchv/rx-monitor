@@ -1265,6 +1265,16 @@ app.post('/api/push-token', requireAuth, async (req, res) => {
   }
 });
 
+app.post('/api/test-push', requireAuth, async (req, res) => {
+  try {
+    const { sendPushNotification } = await import('./notifier.js');
+    await sendPushNotification(req.user.id, 'Test Push Notification 🚀', 'Hello from RxMonitor! Your push notifications are working correctly.');
+    res.json({ success: true, message: 'Test push notification sent!' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // --- Server Agent Metrics API ---
 
 // Authenticate agent by API key (no JWT needed)

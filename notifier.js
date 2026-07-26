@@ -1,7 +1,7 @@
 import nodemailer from 'nodemailer';
 import { getDb } from './database.js';
 
-export async function sendNotification(monitorName, url, oldStatus, newStatus, errorMsg = '', downtimeSeconds = 0) {
+export async function sendNotification(monitorName, url, oldStatus, newStatus, errorMsg = '', downtimeSeconds = 0, monitorId = null, userId = null) {
   const db = await getDb();
   
   // Load settings
@@ -101,6 +101,51 @@ export async function sendNotification(monitorName, url, oldStatus, newStatus, e
     } catch (err) {
       console.error('Email notification error:', err);
     }
+  }
+
+  // 3. Expo Push Notification
+  if (userId) {
+    const pushTitle = newStatus === 'DOWN' 
+      ? `🚨 Monitor DOWN: ${monitorName}` 
+      : `✅ Monitor RECOVERED: ${monitorName}`;
+    const pushBody = newStatus === 'DOWN'
+      ? `${url} is DOWN! Error: ${errorMsg.split('\n')[0]}`
+      : `${url} is back UP. Downtime: ${downtimeSeconds > 0 ? Math.floor(downtimeSeconds / 60) + 'm ' + (downtimeSeconds % 60) + 's' : 'N/A'}`;
+
+    await sendPushNotification(userId, pushTitle, pushBody);
+  }
+}
+
+export async function sendPushNotification(userId, title, body) {
+  if (!userId) return;
+  try {
+    const db = await getDb();
+    const tokens = await db.all('SELECT token FROM push_tokens WHERE user_id = ?', [userId]);
+    if (tokens.length === 0) return;
+
+    const messages = tokens.map(t => ({
+      to: t.token,
+      sound: 'default',
+      title: title,
+      body: body,
+      data: { userId }
+    }));
+
+    const response = await fetch('https://exp.host/--/api/v2/push/send', {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Accept-encoding': 'gzip, deflate',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(messages),
+    });
+
+    if (!response.ok) {
+      console.error('Failed to send Expo push notifications:', await response.text());
+    }
+  } catch (err) {
+    console.error('Expo push notification error:', err.message || err);
   }
 }
 

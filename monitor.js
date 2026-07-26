@@ -588,15 +588,15 @@ export async function runSingleCheck(monitorId) {
             }
           }
 
-          // --- On-call routing (Requirement 17) ---
-          // Send standard notification (fallback if no on-call team configured)
           await sendNotification(
             monitor.name,
             monitor.url,
             oldStatus,
             status,
             status === 'DOWN' ? `${message}\n\n${diagnostics.join('\n')}` : '',
-            downtimeSeconds
+            downtimeSeconds,
+            monitor.id,
+            monitor.user_id
           );
 
           // --- Escalation engine wiring (Requirement 12) ---

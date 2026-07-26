@@ -1247,6 +1247,24 @@ app.delete('/api/keys/:id', requireAuth, async (req, res) => {
   }
 });
 
+// --- Push Notification Registration ---
+app.post('/api/push-token', requireAuth, async (req, res) => {
+  try {
+    const { token, platform } = req.body;
+    if (!token || !token.startsWith('ExponentPushToken')) {
+      return res.status(400).json({ error: 'Valid Expo push token is required' });
+    }
+    const db = await getDb();
+    await db.run(
+      'INSERT INTO push_tokens (user_id, token, platform, created_at) VALUES (?, ?, ?, ?) ON CONFLICT (token) DO NOTHING',
+      [req.user.id, token, platform || 'unknown', new Date().toISOString()]
+    );
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // --- Server Agent Metrics API ---
 
 // Authenticate agent by API key (no JWT needed)

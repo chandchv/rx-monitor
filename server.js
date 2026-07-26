@@ -700,7 +700,7 @@ app.post('/api/auth/google', async (req, res) => {
     }
 
     const token = jwt.sign(
-      { id: user.id, email: user.email, role: user.role },
+      { id: user.id, email: user.email, role: user.role, is_verified: !!user.is_verified },
       JWT_SECRET,
       { expiresIn: '7d' }
     );

@@ -914,7 +914,7 @@ app.put('/api/settings', requireAdmin, async (req, res) => {
         continue;
       }
       await db.run(
-        'INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)',
+        'INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value',
         [key, String(value)]
       );
     }

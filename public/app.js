@@ -270,7 +270,7 @@ function initGoogleSignIn() {
     return;
   }
   google.accounts.id.initialize({
-    client_id: "mock-client-id-12345.apps.googleusercontent.com",
+    client_id: "25569904319-b4mq35dt0c0gdm2ctdfn43vthkpdu0ha.apps.googleusercontent.com",
     callback: handleGoogleCredentialResponse
   });
   google.accounts.id.renderButton(

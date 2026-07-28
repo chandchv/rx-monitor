@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UptimeBunny - Privacy Policy</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-color: #0c0f1d;
+      --card-bg: #161b22;
+      --border-color: #30363d;
+      --text-color: #f0f6fc;
+      --text-muted: #8b949e;
+      --primary-color: #58a6ff;
+      --accent-color: #238636;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      font-family: 'Outfit', sans-serif;
+      line-height: 1.6;
+      padding: 40px 20px;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background-color: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 40px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 40px;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 24px;
+    }
+
+    .logo-icon {
+      font-size: 48px;
+      margin-bottom: 12px;
+      display: inline-block;
+    }
+
+    h1 {
+      font-size: 32px;
+      font-weight: 700;
+      color: var(--text-color);
+      margin-bottom: 8px;
+    }
+
+    .subtitle {
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+
+    h2 {
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--primary-color);
+      margin-top: 32px;
+      margin-bottom: 12px;
+      border-left: 4px solid var(--primary-color);
+      padding-left: 12px;
+    }
+
+    p {
+      color: var(--text-color);
+      margin-bottom: 16px;
+      font-size: 15px;
+    }
+
+    ul {
+      margin-bottom: 16px;
+      padding-left: 24px;
+    }
+
+    li {
+      color: var(--text-color);
+      margin-bottom: 8px;
+      font-size: 15px;
+    }
+
+    .footer {
+      text-align: center;
+      margin-top: 40px;
+      border-top: 1px solid var(--border-color);
+      padding-top: 24px;
+      color: var(--text-muted);
+      font-size: 13px;
+    }
+
+    .highlight {
+      color: var(--primary-color);
+      font-weight: 500;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <span class="logo-icon">📡</span>
+      <h1>UptimeBunny Privacy Policy</h1>
+      <div class="subtitle">Last Updated: July 28, 2026</div>
+    </div>
+
+    <p>Welcome to <span class="highlight">UptimeBunny</span> (operated under package name <span class="highlight">com.rxdoctor.rxmonitor</span>). We are committed to protecting your privacy and ensuring you have a secure experience when using our mobile app and website.</p>
+    
+    <p>This Privacy Policy explains how we collect, use, and safeguard your information when you use our service to monitor servers, websites, and APIs.</p>
+
+    <h2>1. Information We Collect</h2>
+    <p>We only collect information necessary to provide and improve the status monitoring and alerting services:</p>
+    <ul>
+      <li><span class="highlight">Account Information:</span> When you sign up or log in via Google Sign-In, we collect your email address, profile picture (if provided by Google), and unique account identifiers.</li>
+      <li><span class="highlight">Monitoring Targets:</span> We store the URLs, IP addresses, ports, and names of the websites or APIs you configure for status monitoring.</li>
+      <li><span class="highlight">Server Metrics:</span> If you install our lightweight server agent on your Linux servers, the agent transmits CPU load, Memory usage, Disk storage metrics, and network activity to generate your health dashboards.</li>
+      <li><span class="highlight">Notification Tokens:</span> We collect your Expo Push Token and Telegram Chat ID (if integrated) solely to relay instant down/up alerts.</li>
+    </ul>
+
+    <h2>2. How We Use Your Information</h2>
+    <p>The information we collect is used strictly for the following purposes:</p>
+    <ul>
+      <li>To keep your websites and servers monitored.</li>
+      <li>To send you push notifications, emails, or Telegram alerts when your servers go offline.</li>
+      <li>To render your personal performance dashboards and latency charts.</li>
+      <li>To authenticate your session and protect your account from unauthorized access.</li>
+    </ul>
+
+    <h2>3. Data Sharing & Third-Parties</h2>
+    <p>We value your trust and do not sell, trade, or share your data with external companies. We only interact with trusted services to fulfill notifications:</p>
+    <ul>
+      <li><span class="highlight">Expo Push Notification Service:</span> To safely deliver push notifications to your mobile phone.</li>
+      <li><span class="highlight">Firebase Cloud Messaging (FCM):</span> Used under the hood by Expo to route native alerts.</li>
+    </ul>
+
+    <h2>4. Data Retention & Deletion</h2>
+    <p>You retain full control over your data. You can delete any configured monitor, server connection, or alert setting at any time from the app. Upon deletion, all associated historical uptime logs and latency reports are permanently erased from our databases.</p>
+    <p>To request complete account deletion, you can contact us at the email address provided below, and we will wipe your profile within 48 hours.</p>
+
+    <h2>5. Security</h2>
+    <p>We implement industry-standard security measures, including HTTPS encryption for all data in transit and secure database storage, to protect your credentials and server logs from unauthorized access.</p>
+
+    <h2>6. Contact Us</h2>
+    <p>If you have any questions or feedback regarding this Privacy Policy, please contact us at:</p>
+    <p><strong class="highlight">Email:</strong> chandchv@gmail.com</p>
+
+    <div class="footer">
+      &copy; 2026 UptimeBunny. All rights reserved.
+    </div>
+  </div>
+</body>
+</html>

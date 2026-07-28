@@ -197,12 +197,27 @@ function init() {
   setupEventListeners();
   initWebSocket();
 
-  // Auto-open login modal if redirected from landing with ?login=true
+  // Auto-open login, settings or add-monitor modal based on URL query params
   const params = new URLSearchParams(window.location.search);
   if (params.get('login') === 'true' && !localStorage.getItem('rx-monitor-token')) {
     const modalAuth = document.getElementById('modal-auth');
     if (modalAuth) openModal(modalAuth);
-    // Clean up the URL
+    window.history.replaceState({}, '', '/dashboard');
+  } else if (params.get('settings') === 'true' && localStorage.getItem('rx-monitor-token')) {
+    openSettingsModal();
+    window.history.replaceState({}, '', '/dashboard');
+  } else if (params.get('add') === 'true' && localStorage.getItem('rx-monitor-token')) {
+    monitorIdInput.value = '';
+    monitorNameInput.value = '';
+    monitorUrlInput.value = '';
+    monitorMethodInput.value = 'GET';
+    monitorIntervalInput.value = '60';
+    monitorTimeoutInput.value = '10';
+    monitorMaxRetriesInput.value = '3';
+    monitorIsPublicInput.checked = false;
+    monitorIsMaintenanceInput.checked = false;
+    monitorModalTitle.textContent = 'Add New Monitor';
+    openModal(modalMonitor);
     window.history.replaceState({}, '', '/dashboard');
   }
 }

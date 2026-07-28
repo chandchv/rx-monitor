@@ -264,12 +264,133 @@ const RxHeader = (() => {
     });
   }
 
+  function updateHeaderAuthUI() {
+    const token = localStorage.getItem('rx-monitor-token');
+    const userStr = localStorage.getItem('rx-monitor-user');
+
+    const btnLoginTrigger = document.getElementById('btn-login-trigger');
+    const btnLogout = document.getElementById('btn-logout');
+    const btnUpgrade = document.getElementById('btn-upgrade');
+    const userMenu = document.getElementById('user-menu');
+    const userAvatarBtn = document.getElementById('user-avatar-btn');
+    const userDropdown = document.getElementById('user-dropdown');
+    const userGreeting = document.getElementById('user-greeting');
+    const dropdownEmail = document.getElementById('dropdown-email');
+    const dropdownTier = document.getElementById('dropdown-tier');
+    const dropdownAdmin = document.getElementById('dropdown-admin');
+    const navAdmin = document.getElementById('nav-admin');
+
+    const drawerUserStrip = document.getElementById('drawer-user-strip');
+    const drawerUsername = document.getElementById('drawer-username');
+    const drawerUsertier = document.getElementById('drawer-usertier');
+    const drawerAdminLink = document.getElementById('drawer-admin-link');
+    const drawerBtnUpgrade = document.getElementById('drawer-btn-upgrade');
+    const drawerBtnLogin = document.getElementById('drawer-btn-login');
+    const drawerBtnLogout = document.getElementById('drawer-btn-logout');
+    const btnAddMonitor = document.getElementById('btn-add-monitor');
+
+    const isDashboard = window.location.pathname.includes('dashboard') || window.location.pathname === '/' || window.location.pathname === '/index.html';
+
+    // Add Desktop Dropdown Toggle listener if not on dashboard
+    if (userAvatarBtn && userDropdown && !isDashboard) {
+      userAvatarBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        userDropdown.classList.toggle('open');
+      });
+      document.addEventListener('click', () => {
+        userDropdown.classList.remove('open');
+      });
+    }
+
+    // Add Desktop Sign Out listener if not on dashboard
+    if (btnLogout && !isDashboard) {
+      btnLogout.addEventListener('click', () => {
+        localStorage.removeItem('rx-monitor-token');
+        localStorage.removeItem('rx-monitor-user');
+        window.location.href = '/';
+      });
+    }
+
+    // Add Desktop Sign In listener to redirect to login on dashboard if not on dashboard
+    if (btnLoginTrigger && !isDashboard) {
+      btnLoginTrigger.addEventListener('click', () => {
+        window.location.href = '/dashboard?login=true';
+      });
+    }
+    
+    // Add Drawer Sign In listener
+    if (drawerBtnLogin && !isDashboard) {
+      drawerBtnLogin.addEventListener('click', () => {
+        window.location.href = '/dashboard?login=true';
+      });
+    }
+
+    // Add Add Monitor button listener to redirect to dashboard with add modal
+    if (btnAddMonitor && !isDashboard) {
+      btnAddMonitor.addEventListener('click', () => {
+        window.location.href = '/dashboard?add=true';
+      });
+    }
+
+    // Add Settings button listener to redirect to dashboard with settings modal
+    const btnSettings = document.getElementById('btn-settings');
+    if (btnSettings && !isDashboard) {
+      btnSettings.addEventListener('click', () => {
+        window.location.href = '/dashboard?settings=true';
+      });
+    }
+
+    if (token && userStr) {
+      try {
+        const user = JSON.parse(userStr);
+        const isPremium = user.subscription_tier === 'premium' || user.tier === 'premium';
+        const isAdmin = user.role === 'admin';
+        const displayName = user.email.split('@')[0];
+
+        // Desktop
+        if (userMenu) userMenu.style.display = 'block';
+        if (btnLoginTrigger) btnLoginTrigger.style.display = 'none';
+        if (userGreeting) userGreeting.textContent = displayName;
+        if (dropdownEmail) dropdownEmail.textContent = user.email;
+        if (dropdownTier) {
+          dropdownTier.textContent = isPremium ? '⭐ Premium' : 'Free Plan';
+          dropdownTier.className = 'dropdown-tier-badge' + (isPremium ? '' : ' free');
+        }
+        if (dropdownAdmin) dropdownAdmin.style.display = isAdmin ? 'flex' : 'none';
+        if (navAdmin) navAdmin.style.display = isAdmin ? 'inline-flex' : 'none';
+        if (btnUpgrade) btnUpgrade.style.display = isPremium ? 'none' : 'inline-flex';
+
+        // Drawer
+        if (drawerUserStrip) drawerUserStrip.style.display = 'flex';
+        if (drawerUsername) drawerUsername.textContent = user.email;
+        if (drawerUsertier) drawerUsertier.textContent = isPremium ? '⭐ Premium' : 'Free Plan';
+        if (drawerAdminLink) drawerAdminLink.style.display = isAdmin ? 'flex' : 'none';
+        if (drawerBtnUpgrade) drawerBtnUpgrade.style.display = isPremium ? 'none' : 'flex';
+        if (drawerBtnLogin) drawerBtnLogin.style.display = 'none';
+        if (drawerBtnLogout) drawerBtnLogout.style.display = 'flex';
+      } catch (e) {
+        localStorage.removeItem('rx-monitor-token');
+        localStorage.removeItem('rx-monitor-user');
+        window.location.reload();
+      }
+    } else {
+      // Guest
+      if (userMenu) userMenu.style.display = 'none';
+      if (btnLoginTrigger) btnLoginTrigger.style.display = 'inline-flex';
+      if (drawerUserStrip) drawerUserStrip.style.display = 'none';
+      if (drawerBtnLogin) drawerBtnLogin.style.display = 'flex';
+      if (drawerBtnLogout) drawerBtnLogout.style.display = 'none';
+      if (navAdmin) navAdmin.style.display = 'none';
+    }
+  }
+
   function init() {
     // Skip injection if a header already exists (e.g., index.html has its own)
     if (document.querySelector('.app-header')) {
       // Just init dropdowns and drawer for existing header
       initDropdowns();
       initDrawer();
+      updateHeaderAuthUI();
       return;
     }
 
@@ -285,9 +406,10 @@ const RxHeader = (() => {
     }
     initDropdowns();
     initDrawer();
+    updateHeaderAuthUI();
   }
 
-  return { init, getHeaderHTML };
+  return { init, getHeaderHTML, updateHeaderAuthUI };
 })();
 
 // Auto-init when DOM is ready

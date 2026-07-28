@@ -690,13 +690,16 @@ app.post('/api/auth/google', async (req, res) => {
         id: result.lastID,
         email: payload.email,
         role,
-        subscription_tier: 'free'
+        subscription_tier: 'free',
+        is_verified: 1
       };
-    } else if (!user.google_id) {
-      // Link Google ID if registered via email previously
-      await db.run('UPDATE users SET google_id = ?, is_verified = 1 WHERE id = ?', [payload.sub, user.id]);
-      user.google_id = payload.sub;
-      user.is_verified = 1;
+    } else {
+      // Force user to be verified and linked if logged in via Google
+      if (!user.google_id || !user.is_verified) {
+        await db.run('UPDATE users SET google_id = ?, is_verified = 1 WHERE id = ?', [payload.sub, user.id]);
+        user.google_id = payload.sub;
+        user.is_verified = 1;
+      }
     }
 
     const token = jwt.sign(

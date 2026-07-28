@@ -251,6 +251,9 @@
             <option value="sla">SLA Report</option>
             <option value="error_rate">Error Rate</option>
             <option value="comparison">Comparison</option>
+            <option value="server_cpu">Server CPU Usage (%)</option>
+            <option value="server_mem">Server Memory Usage (%)</option>
+            <option value="server_disk">Server Disk Usage (%)</option>
           </select>
         </div>
         <div class="form-group">
@@ -318,6 +321,7 @@
     // ============ State ============
     let dashboards = [];
     let monitors = [];
+    let servers = [];
     let selectedDashboardId = null;
     let currentWidgets = [];
 
@@ -326,6 +330,13 @@
       try {
         const res = await fetch('/api/monitors', { headers: getRequestHeaders() });
         if (res.ok) monitors = await res.json();
+      } catch (e) { console.error(e); }
+    }
+
+    async function loadServersList() {
+      try {
+        const res = await fetch('/api/agent/servers', { headers: getRequestHeaders() });
+        if (res.ok) servers = await res.json();
       } catch (e) { console.error(e); }
     }
 
@@ -469,11 +480,22 @@
           apdex: '🎯 Apdex Score',
           sla: '📋 SLA Report',
           error_rate: '🚨 Error Rate',
-          comparison: '⚖️ Comparison'
+          comparison: '⚖️ Comparison',
+          server_cpu: '⚡ Server CPU',
+          server_mem: '🧠 Server Memory',
+          server_disk: '💾 Server Disk'
         };
         const label = typeLabels[w.widget_type] || w.widget_type;
         const wConfig = typeof w.config === 'string' ? JSON.parse(w.config) : (w.config || {});
-        const monitorName = (wConfig.monitor_id || w.monitor_id) ? getMonitorName(wConfig.monitor_id || w.monitor_id) : 'All';
+        const monId = wConfig.monitor_id || w.monitor_id;
+        
+        let sourceName = 'All';
+        if (w.widget_type.startsWith('server_')) {
+          const srv = servers.find(s => String(s.key_id) === String(monId));
+          sourceName = srv ? srv.label : `Server ${monId || ''}`;
+        } else if (monId) {
+          sourceName = getMonitorName(monId);
+        }
 
         return `
           <div class="widget-card" style="grid-column: ${colStart} / span ${colSpan}; grid-row: ${rowStart} / span ${rowSpan};" data-widget-id="${w.id}">
@@ -484,7 +506,7 @@
             <div class="widget-body" id="widget-body-${w.id}">
               <div class="loading-state" style="font-size: 12px;">Loading...</div>
             </div>
-            <div style="font-size: 10px; color: var(--color-muted); margin-top: 8px;">${escapeHTML(monitorName)}</div>
+            <div style="font-size: 10px; color: var(--color-muted); margin-top: 8px;">${escapeHTML(sourceName)}</div>
           </div>
         `;
       }).join('')}</div>`;
@@ -570,6 +592,42 @@
             el.innerHTML = '<div style="text-align:center;"><span style="font-size:24px;">⚖️</span><div style="font-size:11px;color:var(--color-muted);margin-top:4px;">Comparison (view in detail)</div></div>';
             break;
           }
+          case 'server_cpu': {
+            if (!monId) { el.innerHTML = '<span style="font-size:12px;">No server selected</span>'; return; }
+            const res = await fetch(`/api/agent/metrics?key_id=${monId}&hours=1`, { headers: getRequestHeaders() });
+            if (res.ok) {
+              const metrics = await res.json();
+              const latest = metrics[metrics.length - 1];
+              const cpu = latest ? latest.cpu_percent : 0;
+              const color = cpu > 80 ? 'var(--color-error)' : cpu > 50 ? 'var(--color-warning)' : 'var(--color-success)';
+              el.innerHTML = `<div style="text-align:center;"><div class="widget-value" style="color:${color};">${cpu.toFixed(1)}%</div><div style="font-size:11px;color:var(--color-muted);margin-top:4px;">CPU Usage</div></div>`;
+            } else { el.innerHTML = '<span style="color:var(--color-error);">Failed to load</span>'; }
+            break;
+          }
+          case 'server_mem': {
+            if (!monId) { el.innerHTML = '<span style="font-size:12px;">No server selected</span>'; return; }
+            const res = await fetch(`/api/agent/metrics?key_id=${monId}&hours=1`, { headers: getRequestHeaders() });
+            if (res.ok) {
+              const metrics = await res.json();
+              const latest = metrics[metrics.length - 1];
+              const mem = latest ? latest.memory_percent : 0;
+              const color = mem > 85 ? 'var(--color-error)' : mem > 60 ? 'var(--color-warning)' : 'var(--color-success)';
+              el.innerHTML = `<div style="text-align:center;"><div class="widget-value" style="color:${color};">${mem.toFixed(1)}%</div><div style="font-size:11px;color:var(--color-muted);margin-top:4px;">Memory Usage</div></div>`;
+            } else { el.innerHTML = '<span style="color:var(--color-error);">Failed to load</span>'; }
+            break;
+          }
+          case 'server_disk': {
+            if (!monId) { el.innerHTML = '<span style="font-size:12px;">No server selected</span>'; return; }
+            const res = await fetch(`/api/agent/metrics?key_id=${monId}&hours=1`, { headers: getRequestHeaders() });
+            if (res.ok) {
+              const metrics = await res.json();
+              const latest = metrics[metrics.length - 1];
+              const disk = latest ? latest.disk_percent : 0;
+              const color = disk > 90 ? 'var(--color-error)' : disk > 75 ? 'var(--color-warning)' : 'var(--color-success)';
+              el.innerHTML = `<div style="text-align:center;"><div class="widget-value" style="color:${color};">${disk.toFixed(0)}%</div><div style="font-size:11px;color:var(--color-muted);margin-top:4px;">Disk Usage</div></div>`;
+            } else { el.innerHTML = '<span style="color:var(--color-error);">Failed to load</span>'; }
+            break;
+          }
           default:
             el.innerHTML = '<span style="color:var(--color-muted);">Unknown widget type</span>';
         }
@@ -579,16 +637,39 @@
     }
 
     // ============ Add Widget ============
-    document.getElementById('btn-add-widget').addEventListener('click', () => {
+    document.getElementById('widget-type').addEventListener('change', (e) => {
+      const type = e.target.value;
+      const label = document.querySelector('label[for="widget-monitor"]');
+      const select = document.getElementById('widget-monitor');
+      if (type.startsWith('server_')) {
+        label.textContent = 'Select Server';
+        select.innerHTML = '<option value="">-- Select Server --</option>' +
+          servers.map(s => `<option value="${s.key_id}">${escapeHTML(s.label)}</option>`).join('');
+      } else {
+        label.textContent = 'Monitor (for monitor-specific widgets)';
+        select.innerHTML = '<option value="">-- All / None --</option>' +
+          monitors.map(m => `<option value="${m.id}">${escapeHTML(m.name)}</option>`).join('');
+      }
+    });
+
+    document.getElementById('btn-add-widget').addEventListener('click', async () => {
       if (currentWidgets.length >= 20) {
         showToast('Maximum 20 widgets per dashboard', 'error');
         return;
       }
       document.getElementById('widget-form').reset();
-      // Populate monitor select
+      
+      // Load servers list
+      await loadServersList();
+
+      // Reset label and options
+      const label = document.querySelector('label[for="widget-monitor"]');
+      label.textContent = 'Monitor (for monitor-specific widgets)';
+
       const sel = document.getElementById('widget-monitor');
       sel.innerHTML = '<option value="">-- All / None --</option>' +
         monitors.map(m => `<option value="${m.id}">${escapeHTML(m.name)}</option>`).join('');
+
       openModal('modal-add-widget');
     });
 
@@ -677,6 +758,7 @@
     // ============ Init ============
     document.addEventListener('DOMContentLoaded', async () => {
       await loadMonitors();
+      await loadServersList();
       await loadDashboards();
     });
   </script>

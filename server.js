@@ -1442,6 +1442,12 @@ app.get('/api/monitors/:id/analytics', async (req, res) => {
     const dnsTimes = dnsEntries.filter(e => !e.error_type).map(e => e.dns_time_ms);
     const dnsStats = computeDnsStats(dnsTimes);
 
+    const totalChecks = dataPoints.length;
+    const upChecks = times.length;
+    const downChecks = dataPoints.filter(d => d.status === 'DOWN').length;
+    const slaUptime = totalChecks > 0 ? Math.round((upChecks / totalChecks) * 100000) / 1000 : 100;
+    const errorRate = totalChecks > 0 ? Math.round((downChecks / totalChecks) * 10000) / 100 : 0;
+
     res.json({
       dataPoints,
       percentiles: { p50, p95, p99, avg, min, max },
@@ -1449,9 +1455,11 @@ app.get('/api/monitors/:id/analytics', async (req, res) => {
       sslDaysLeft,
       apdex,
       dnsStats,
-      totalChecks: dataPoints.length,
-      upChecks: times.length,
-      downChecks: dataPoints.filter(d => d.status === 'DOWN').length
+      totalChecks,
+      upChecks,
+      downChecks,
+      sla_uptime: slaUptime,
+      error_rate: errorRate
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -3234,7 +3242,7 @@ app.post('/api/dashboards/:id/widgets', requireAuth, async (req, res) => {
   const { widget_type, config } = req.body;
   let { col_start, col_span, row_start, row_span } = req.body;
 
-  const validTypes = ['monitor_status', 'response_chart', 'heatmap', 'apdex', 'sla', 'error_rate', 'comparison'];
+  const validTypes = ['monitor_status', 'response_chart', 'heatmap', 'apdex', 'sla', 'error_rate', 'comparison', 'server_cpu', 'server_mem', 'server_disk'];
   if (!widget_type || !validTypes.includes(widget_type)) {
     return res.status(400).json({ error: 'Invalid widget type.' });
   }

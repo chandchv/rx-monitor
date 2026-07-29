@@ -153,6 +153,17 @@ export async function getDb() {
   try {
     await initSchema();
 
+    // Auto-migrate server_metrics table with new service status and logs columns if they don't exist
+    try {
+      await dbInstance.pool.query('ALTER TABLE server_metrics ADD COLUMN IF NOT EXISTS nginx_status TEXT');
+      await dbInstance.pool.query('ALTER TABLE server_metrics ADD COLUMN IF NOT EXISTS gunicorn_status TEXT');
+      await dbInstance.pool.query('ALTER TABLE server_metrics ADD COLUMN IF NOT EXISTS pm2_status TEXT');
+      await dbInstance.pool.query('ALTER TABLE server_metrics ADD COLUMN IF NOT EXISTS gunicorn_logs TEXT');
+      await dbInstance.pool.query('ALTER TABLE server_metrics ADD COLUMN IF NOT EXISTS pm2_logs TEXT');
+    } catch (migrateErr) {
+      console.log('Migration of server_metrics table columns skipped (already exists or db not postgres):', migrateErr.message);
+    }
+
     // Seed default records to support test suites and foreign keys
     await dbInstance.run(`
       INSERT INTO users (id, email, role, is_verified, created_at)
@@ -301,6 +312,11 @@ async function initSchema() {
       network_tx_bytes BIGINT DEFAULT 0,
       process_count INTEGER DEFAULT 0,
       uptime_seconds INTEGER DEFAULT 0,
+      nginx_status TEXT,
+      gunicorn_status TEXT,
+      pm2_status TEXT,
+      gunicorn_logs TEXT,
+      pm2_logs TEXT,
       collected_at TEXT
     );
 

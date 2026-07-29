@@ -1308,14 +1308,22 @@ app.post('/api/agent/metrics', async (req, res) => {
     const apiKey = await authenticateAgentKey(req, res);
     if (!apiKey) return;
 
-    const { hostname, cpu, memory, disk, load, network_rx, network_tx, processes, uptime } = req.body;
+    const { 
+      hostname, cpu, memory, disk, load, network_rx, network_tx, processes, uptime,
+      nginx_status, gunicorn_status, pm2_status, gunicorn_logs, pm2_logs
+    } = req.body;
 
     const db = await getDb();
     await db.run(
       `INSERT INTO server_metrics 
-        (api_key_id, user_id, hostname, cpu_percent, memory_percent, disk_percent, load_avg, network_rx_bytes, network_tx_bytes, process_count, uptime_seconds, collected_at) 
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [apiKey.id, apiKey.user_id, hostname || 'unknown', cpu || 0, memory || 0, disk || 0, load || 0, network_rx || 0, network_tx || 0, processes || 0, uptime || 0, new Date().toISOString()]
+        (api_key_id, user_id, hostname, cpu_percent, memory_percent, disk_percent, load_avg, network_rx_bytes, network_tx_bytes, process_count, uptime_seconds, nginx_status, gunicorn_status, pm2_status, gunicorn_logs, pm2_logs, collected_at) 
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        apiKey.id, apiKey.user_id, hostname || 'unknown', cpu || 0, memory || 0, disk || 0, load || 0, 
+        network_rx || 0, network_tx || 0, processes || 0, uptime || 0,
+        nginx_status || null, gunicorn_status || null, pm2_status || null, gunicorn_logs || null, pm2_logs || null,
+        new Date().toISOString()
+      ]
     );
 
     res.json({ success: true });
@@ -1507,6 +1515,19 @@ API_KEY="__API_KEY__"
 ENDPOINT="__ENDPOINT__"
 HOSTNAME=$(hostname)
 
+json_escape() {
+  if command -v python3 &>/dev/null; then
+    python3 -c 'import sys, json; print(json.dumps(sys.stdin.read().strip()))' <<< "$1"
+  elif command -v python &>/dev/null; then
+    python -c 'import sys, json; print(json.dumps(sys.stdin.read().strip()))' <<< "$1"
+  else
+    local escaped="${1//\\/\\\\}"
+    escaped="${escaped//\"/\\\"}"
+    escaped="${escaped//$'\n'/\\n}"
+    echo "\"$escaped\""
+  fi
+}
+
 while true; do
   # CPU usage (percentage)
   CPU=$(top -bn1 2>/dev/null | grep "Cpu(s)" | awk '{print $2}' || echo "0")
@@ -1531,20 +1552,49 @@ while true; do
   # System uptime in seconds
   UPTIME=$(awk '{print int($1)}' /proc/uptime 2>/dev/null || echo "0")
 
+  # Nginx status
+  NGINX_STATUS=$(systemctl is-active nginx 2>/dev/null || echo "inactive")
+
+  # Gunicorn status
+  GUNICORN_STATUS=$(systemctl is-active gunicorn 2>/dev/null || echo "inactive")
+
+  # PM2 status
+  if command -v pm2 &>/dev/null; then
+    PM2_STATUS="active"
+  else
+    PM2_STATUS="inactive"
+  fi
+
+  # Logs collection
+  G_LOGS=$(journalctl -u gunicorn -n 20 --no-pager 2>/dev/null || tail -n 20 /var/log/gunicorn/*.log 2>/dev/null || tail -n 20 /var/log/gunicorn.log 2>/dev/null || echo "No logs found")
+  P_LOGS=$(tail -n 20 ~/.pm2/logs/*.log 2>/dev/null || tail -n 20 /home/*/.pm2/logs/*.log 2>/dev/null || tail -n 20 /root/.pm2/logs/*.log 2>/dev/null || echo "No logs found")
+
+  # Escape values for JSON
+  NGINX_STATUS_ESC=$(json_escape "$NGINX_STATUS")
+  GUNICORN_STATUS_ESC=$(json_escape "$GUNICORN_STATUS")
+  PM2_STATUS_ESC=$(json_escape "$PM2_STATUS")
+  GUNICORN_LOGS_ESC=$(json_escape "$G_LOGS")
+  PM2_LOGS_ESC=$(json_escape "$P_LOGS")
+
   # Push metrics
-  curl -s -X POST "$ENDPOINT" \\
-    -H "Authorization: Bearer $API_KEY" \\
-    -H "Content-Type: application/json" \\
+  curl -s -X POST "$ENDPOINT" \
+    -H "Authorization: Bearer $API_KEY" \
+    -H "Content-Type: application/json" \
     -d "{
-      \\"hostname\\": \\"$HOSTNAME\\",
-      \\"cpu\\": $CPU,
-      \\"memory\\": $MEM,
-      \\"disk\\": $DISK,
-      \\"load\\": $LOAD,
-      \\"network_rx\\": $NET_RX,
-      \\"network_tx\\": $NET_TX,
-      \\"processes\\": $PROCS,
-      \\"uptime\\": $UPTIME
+      \"hostname\": \"$HOSTNAME\",
+      \"cpu\": $CPU,
+      \"memory\": $MEM,
+      \"disk\": $DISK,
+      \"load\": $LOAD,
+      \"network_rx\": $NET_RX,
+      \"network_tx\": $NET_TX,
+      \"processes\": $PROCS,
+      \"uptime\": $UPTIME,
+      \"nginx_status\": $NGINX_STATUS_ESC,
+      \"gunicorn_status\": $GUNICORN_STATUS_ESC,
+      \"pm2_status\": $PM2_STATUS_ESC,
+      \"gunicorn_logs\": $GUNICORN_LOGS_ESC,
+      \"pm2_logs\": $PM2_LOGS_ESC
     }" > /dev/null 2>&1
 
   sleep 60

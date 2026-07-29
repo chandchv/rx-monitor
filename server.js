@@ -733,6 +733,92 @@ app.post('/api/auth/google', async (req, res) => {
         tier: user.subscription_tier
       }
     });
+});
+
+// --- Profile and User Management APIs ---
+
+app.get('/api/auth/profile', requireAuth, async (req, res) => {
+  try {
+    const db = await getDb();
+    const user = await db.get('SELECT id, email, role, subscription_tier, is_verified, created_at FROM users WHERE id = ?', [req.user.id]);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    res.json(user);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/auth/change-password', requireAuth, async (req, res) => {
+  const { currentPassword, newPassword } = req.body;
+  if (!currentPassword || !newPassword) {
+    return res.status(400).json({ error: 'Current password and new password are required.' });
+  }
+
+  try {
+    const db = await getDb();
+    const user = await db.get('SELECT password FROM users WHERE id = ?', [req.user.id]);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    if (!user.password) {
+      return res.status(400).json({ error: 'Accounts using Google Sign-In cannot change their password directly.' });
+    }
+
+    const matches = await bcrypt.compare(currentPassword, user.password);
+    if (!matches) {
+      return res.status(400).json({ error: 'Incorrect current password.' });
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    await db.run('UPDATE users SET password = ? WHERE id = ?', [hashedPassword, req.user.id]);
+    res.json({ success: true, message: 'Password updated successfully.' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/auth/resend-verification', requireAuth, async (req, res) => {
+  try {
+    const db = await getDb();
+    const user = await db.get('SELECT email, is_verified, verification_token FROM users WHERE id = ?', [req.user.id]);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    if (user.is_verified) {
+      return res.status(400).json({ error: 'Your email is already verified.' });
+    }
+
+    let token = user.verification_token;
+    if (!token) {
+      token = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+      await db.run('UPDATE users SET verification_token = ? WHERE id = ?', [token, req.user.id]);
+    }
+
+    // Get SMTP configuration
+    const rows = await db.all('SELECT key, value FROM settings');
+    const adminSettings = {};
+    rows.forEach(r => { adminSettings[r.key] = r.value; });
+
+    const verificationLink = `${process.env.BASE_URL || req.protocol + '://' + req.get('host')}/api/auth/verify?token=${token}`;
+    console.log(formatVerificationLog(user.email, verificationLink));
+
+    const smtpConfig = resolveSmtpConfig(process.env, adminSettings);
+    if (smtpConfig) {
+      const transporter = nodemailer.createTransport({
+        host: smtpConfig.host,
+        port: smtpConfig.port,
+        secure: smtpConfig.port === 465,
+        auth: { user: smtpConfig.user, pass: smtpConfig.pass }
+      });
+
+      const mailOptions = buildVerificationEmail(user.email, verificationLink, smtpConfig.from);
+      await transporter.sendMail(mailOptions);
+      res.json({ success: true, message: 'Verification email resent successfully.', verificationLink });
+    } else {
+      res.json({ 
+        success: true, 
+        message: 'SMTP is not configured, but the verification link has been printed to the server logs.',
+        verificationLink 
+      });
+    }
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

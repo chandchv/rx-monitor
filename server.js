@@ -126,6 +126,7 @@ async function checkMonitorOwnership(req, res, monitorId) {
 }
 
 
+app.set('trust proxy', true); // Trust nginx reverse proxy for correct protocol detection
 app.use(cors());
 app.use(express.json());
 app.use(authenticateToken);
@@ -165,18 +166,22 @@ app.get('/dashboard', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-app.use(express.static(path.join(__dirname, 'public')));
-
-// Dynamic install-agent.sh — injects the correct server URL
+// Dynamic install-agent.sh — MUST be before express.static so it intercepts the request
 app.get('/install-agent.sh', (req, res) => {
-  const serverUrl = `${req.protocol}://${req.get('host')}`;
+  // Detect actual protocol behind nginx proxy
+  const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'https';
+  const serverUrl = `${protocol}://${req.get('host')}`;
   const scriptPath = path.join(__dirname, 'public', 'install-agent.sh');
   fs.readFile(scriptPath, 'utf-8', (err, script) => {
     if (err) return res.status(500).send('# Error: install script not found');
+    // Replace placeholder and strip Windows CRLF line endings
+    const processed = script.replace(/__SERVER_URL__/g, serverUrl).replace(/\r\n/g, '\n');
     res.type('text/plain');
-    res.send(script.replace(/__SERVER_URL__/g, serverUrl));
+    res.send(processed);
   });
 });
+
+app.use(express.static(path.join(__dirname, 'public')));
 
 // Public status page redirects
 app.get('/status', (req, res) => {

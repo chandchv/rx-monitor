@@ -167,6 +167,17 @@ app.get('/dashboard', (req, res) => {
 
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Dynamic install-agent.sh — injects the correct server URL
+app.get('/install-agent.sh', (req, res) => {
+  const serverUrl = `${req.protocol}://${req.get('host')}`;
+  const scriptPath = path.join(__dirname, 'public', 'install-agent.sh');
+  fs.readFile(scriptPath, 'utf-8', (err, script) => {
+    if (err) return res.status(500).send('# Error: install script not found');
+    res.type('text/plain');
+    res.send(script.replace(/__SERVER_URL__/g, serverUrl));
+  });
+});
+
 // Public status page redirects
 app.get('/status', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'status.html'));

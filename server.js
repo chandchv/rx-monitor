@@ -1521,10 +1521,10 @@ json_escape() {
   elif command -v python &>/dev/null; then
     python -c 'import sys, json; print(json.dumps(sys.stdin.read().strip()))' <<< "$1"
   else
-    local escaped="${1//\\/\\\\}"
-    escaped="${escaped//\"/\\\"}"
-    escaped="${escaped//$'\n'/\\n}"
-    echo "\"$escaped\""
+    local escaped="\${1//\\\\/\\\\\\\\}"
+    escaped="\${escaped//\\\"/\\\\\\\"}"
+    escaped="\${escaped//\\$'\n'/\\\\n}"
+    echo "\\"\$escaped\\""
   fi
 }
 

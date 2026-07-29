@@ -207,6 +207,9 @@ function init() {
   } else if (params.get('settings') === 'true' && localStorage.getItem('rx-monitor-token')) {
     openSettingsModal();
     window.history.replaceState({}, '', '/dashboard');
+  } else if (params.get('profile') === 'true' && localStorage.getItem('rx-monitor-token')) {
+    openProfileModal();
+    window.history.replaceState({}, '', '/dashboard');
   } else if (params.get('add') === 'true' && localStorage.getItem('rx-monitor-token')) {
     monitorIdInput.value = '';
     monitorNameInput.value = '';
@@ -1145,6 +1148,13 @@ function setupProfileModal() {
   const trigger = document.getElementById('btn-profile-trigger');
   if (trigger) {
     trigger.addEventListener('click', () => {
+      openProfileModal();
+    });
+  }
+
+  const drawerTrigger = document.getElementById('drawer-btn-profile');
+  if (drawerTrigger) {
+    drawerTrigger.addEventListener('click', () => {
       openProfileModal();
     });
   }

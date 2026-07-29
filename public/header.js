@@ -352,6 +352,14 @@ const RxHeader = (() => {
       });
     }
 
+    // Add Profile button listener to redirect to dashboard with profile modal
+    const btnProfile = document.getElementById('btn-profile-trigger');
+    if (btnProfile && !isDashboard) {
+      btnProfile.addEventListener('click', () => {
+        window.location.href = '/dashboard?profile=true';
+      });
+    }
+
     if (token && userStr) {
       try {
         const user = JSON.parse(userStr);

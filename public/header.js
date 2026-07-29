@@ -91,6 +91,9 @@ const RxHeader = (() => {
               <span id="dropdown-tier" class="dropdown-tier-badge"></span>
             </div>
             <hr class="dropdown-divider">
+            <button id="btn-profile-trigger" class="dropdown-item">
+              <span>👤</span> My Profile
+            </button>
             <button id="btn-settings" class="dropdown-item">
               <span>⚙️</span> Settings
             </button>
@@ -177,6 +180,9 @@ const RxHeader = (() => {
         <button id="drawer-btn-upgrade" class="drawer-upgrade-btn" style="display:none;">
           <span>⭐</span> Upgrade to Premium
         </button>
+        <button id="drawer-btn-profile" class="drawer-nav-link" style="width:100%;border:none;cursor:pointer;">
+          <span>👤</span> My Profile
+        </button>
         <button id="drawer-btn-settings" class="drawer-nav-link" style="width:100%;border:none;cursor:pointer;">
           <span>⚙️</span> Settings
         </button>
@@ -241,9 +247,15 @@ const RxHeader = (() => {
     const drawerBtnLogin = document.getElementById('drawer-btn-login');
     const drawerBtnLogout = document.getElementById('drawer-btn-logout');
 
+    const drawerBtnProfile = document.getElementById('drawer-btn-profile');
     if (drawerBtnAdd) drawerBtnAdd.addEventListener('click', () => {
       closeDrawer();
       const btn = document.getElementById('btn-add-monitor');
+      if (btn) btn.click();
+    });
+    if (drawerBtnProfile) drawerBtnProfile.addEventListener('click', () => {
+      closeDrawer();
+      const btn = document.getElementById('btn-profile-trigger');
       if (btn) btn.click();
     });
     if (drawerBtnSettings) drawerBtnSettings.addEventListener('click', () => {

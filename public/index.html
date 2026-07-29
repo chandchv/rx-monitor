@@ -518,6 +518,62 @@
     </div>
   </div>
 
+  <!-- User Profile Modal -->
+  <div id="modal-profile" class="modal">
+    <div class="modal-content glass-card" style="max-width: 450px;">
+      <div class="modal-header">
+        <h3>User Profile & Security</h3>
+        <button class="close-modal">&times;</button>
+      </div>
+      <div style="padding: 15px 20px 20px 20px;">
+        <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px;">
+          <div style="width: 48px; height: 48px; border-radius: 50%; background: var(--color-primary); color: white; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 600;" id="profile-avatar">
+            US
+          </div>
+          <div>
+            <h4 style="margin: 0; font-size: 16px; color: var(--color-text); word-break: break-all;" id="profile-email">user@example.com</h4>
+            <span style="font-size: 12px; color: var(--color-muted);" id="profile-tier">Tier: Free</span>
+          </div>
+        </div>
+
+        <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between;" id="profile-verification-card">
+          <div>
+            <div style="font-size: 13px; font-weight: 600; color: var(--color-text);">Email Status</div>
+            <div style="font-size: 12px; color: var(--color-muted);" id="profile-verification-status">Unverified</div>
+          </div>
+          <button id="btn-resend-verification" class="btn btn-secondary" style="font-size: 11px; padding: 6px 12px;">Resend Link</button>
+        </div>
+
+        <!-- Verify Code Form -->
+        <div id="profile-verification-input-group" style="margin-bottom: 20px; display: none;">
+          <label style="font-size: 12px; font-weight: 600; text-transform: uppercase; color: var(--color-muted);">Enter Verification Link/Token</label>
+          <div style="display: flex; gap: 10px; margin-top: 6px;">
+            <input type="text" id="profile-verification-token" placeholder="Paste link or token here" style="flex: 1; height: 36px; font-size: 13px;">
+            <button id="btn-submit-verification" class="btn btn-primary" style="font-size: 12px; padding: 0 12px; height: 36px;">Verify</button>
+          </div>
+        </div>
+
+        <!-- Change Password Form -->
+        <form id="change-password-form" style="border-top: 1px solid var(--border-color); padding-top: 20px;">
+          <h4 style="margin: 0 0 15px 0; font-size: 14px; font-weight: 600;">Change Password</h4>
+          <div class="form-group" style="margin-bottom: 12px;">
+            <label for="profile-current-password">Current Password</label>
+            <input type="password" id="profile-current-password" required placeholder="••••••••">
+          </div>
+          <div class="form-group" style="margin-bottom: 12px;">
+            <label for="profile-new-password">New Password</label>
+            <input type="password" id="profile-new-password" required placeholder="••••••••">
+          </div>
+          <div class="form-group" style="margin-bottom: 15px;">
+            <label for="profile-confirm-password">Confirm New Password</label>
+            <input type="password" id="profile-confirm-password" required placeholder="••••••••">
+          </div>
+          <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center; height: 38px;">Update Password</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
   <!-- Auth Modal -->
   <div id="modal-auth" class="modal">
     <div class="modal-content glass-card" style="max-width: 400px;">

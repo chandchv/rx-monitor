@@ -196,6 +196,7 @@ function init() {
   setInterval(fetchMonitors, 20000);
   setupEventListeners();
   initWebSocket();
+  setupProfileModal();
 
   // Auto-open login, settings or add-monitor modal based on URL query params
   const params = new URLSearchParams(window.location.search);
@@ -774,7 +775,16 @@ async function handleMonitorSubmit(e) {
       });
     }
 
-    if (!response.ok) throw new Error('Save monitor failed.');
+    if (!response.ok) {
+      const data = await response.json();
+      if (response.status === 403 && (data.error || '').toLowerCase().includes('verification')) {
+        showToast('Email verification is required! Opening My Profile...', 'error');
+        closeModal(modalMonitor);
+        openProfileModal();
+        return;
+      }
+      throw new Error(data.error || 'Save monitor failed.');
+    }
     
     closeModal(modalMonitor);
     showToast(id ? 'Monitor updated successfully.' : 'New monitor added.');
@@ -1086,4 +1096,147 @@ function initWebSocket() {
   }
 
   connect();
+}
+
+// === Profile and Email Verification Modals ===
+const modalProfile = document.getElementById('modal-profile');
+
+window.openProfileModal = async function() {
+  if (!localStorage.getItem('rx-monitor-token')) {
+    showToast('Please sign in to view your profile.', 'error');
+    return;
+  }
+  
+  openModal(modalProfile);
+  await refreshProfileData();
+};
+
+async function refreshProfileData() {
+  try {
+    const res = await apiFetch('/api/auth/profile');
+    if (!res.ok) throw new Error('Failed to fetch profile info.');
+    
+    const user = await res.json();
+    
+    document.getElementById('profile-email').textContent = user.email;
+    document.getElementById('profile-avatar').textContent = user.email.substring(0, 2).toUpperCase();
+    
+    const isPremium = user.subscription_tier === 'premium' || user.tier === 'premium';
+    document.getElementById('profile-tier').textContent = `Plan: ${isPremium ? '⭐ Premium' : 'Free'}`;
+    
+    const statusText = user.is_verified ? '✅ Verified' : '⚠️ Unverified';
+    document.getElementById('profile-verification-status').textContent = statusText;
+    document.getElementById('profile-verification-status').style.color = user.is_verified ? 'var(--color-success)' : 'var(--color-warning)';
+    
+    // Show/hide resend & input options
+    document.getElementById('btn-resend-verification').style.display = user.is_verified ? 'none' : 'block';
+    document.getElementById('profile-verification-input-group').style.display = user.is_verified ? 'none' : 'block';
+    
+    // Update cached local storage user object
+    const storedUser = JSON.parse(localStorage.getItem('rx-monitor-user') || '{}');
+    storedUser.is_verified = user.is_verified;
+    localStorage.setItem('rx-monitor-user', JSON.stringify(storedUser));
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+}
+
+function setupProfileModal() {
+  const trigger = document.getElementById('btn-profile-trigger');
+  if (trigger) {
+    trigger.addEventListener('click', () => {
+      openProfileModal();
+    });
+  }
+
+  // Resend Verification Email
+  const btnResend = document.getElementById('btn-resend-verification');
+  if (btnResend) {
+    btnResend.addEventListener('click', async () => {
+      btnResend.disabled = true;
+      btnResend.textContent = 'Sending...';
+      try {
+        const res = await apiFetch('/api/auth/resend-verification', { method: 'POST' });
+        const data = await res.json();
+        if (res.ok) {
+          showToast(data.message || 'Verification email sent!');
+        } else {
+          showToast(data.error || 'Failed to resend verification email.', 'error');
+        }
+      } catch (err) {
+        showToast('Network error.', 'error');
+      } finally {
+        btnResend.disabled = false;
+        btnResend.textContent = 'Resend Link';
+      }
+    });
+  }
+
+  // Submit Verification Token
+  const btnSubmitVerify = document.getElementById('btn-submit-verification');
+  if (btnSubmitVerify) {
+    btnSubmitVerify.addEventListener('click', async () => {
+      let tokenStr = document.getElementById('profile-verification-token').value.trim();
+      if (!tokenStr) {
+        showToast('Please enter or paste the token/link.', 'error');
+        return;
+      }
+
+      if (tokenStr.includes('token=')) {
+        const match = tokenStr.match(/[?&]token=([^&]+)/);
+        if (match && match[1]) {
+          tokenStr = match[1];
+        }
+      }
+
+      btnSubmitVerify.disabled = true;
+      try {
+        const res = await fetch(`/api/auth/verify?token=${tokenStr}`);
+        if (res.ok) {
+          showToast('Email verified successfully! 🎉');
+          document.getElementById('profile-verification-token').value = '';
+          await refreshProfileData();
+        } else {
+          const txt = await res.text();
+          showToast(txt || 'Verification failed.', 'error');
+        }
+      } catch (err) {
+        showToast('Network error.', 'error');
+      } finally {
+        btnSubmitVerify.disabled = false;
+      }
+    });
+  }
+
+  // Change Password Form
+  const changePasswordForm = document.getElementById('change-password-form');
+  if (changePasswordForm) {
+    changePasswordForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const currentPassword = document.getElementById('profile-current-password').value;
+      const newPassword = document.getElementById('profile-new-password').value;
+      const confirmPassword = document.getElementById('profile-confirm-password').value;
+
+      if (newPassword !== confirmPassword) {
+        showToast('New passwords do not match.', 'error');
+        return;
+      }
+
+      try {
+        const res = await apiFetch('/api/auth/change-password', {
+          method: 'POST',
+          body: JSON.stringify({ currentPassword, newPassword })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          showToast('Password updated successfully!');
+          changePasswordForm.reset();
+        } else {
+          showToast(data.error || 'Failed to update password.', 'error');
+        }
+      } catch (err) {
+        showToast('Network error.', 'error');
+      }
+    });
+  }
 }

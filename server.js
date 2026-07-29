@@ -731,8 +731,10 @@ app.post('/api/auth/google', async (req, res) => {
         email: user.email,
         role: user.role,
         tier: user.subscription_tier
-      }
     });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // --- Profile and User Management APIs ---

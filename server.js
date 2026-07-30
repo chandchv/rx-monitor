@@ -83,6 +83,30 @@ function requireAuth(req, res, next) {
   next();
 }
 
+async function requirePremium(req, res, next) {
+  if (!req.user) {
+    return res.status(401).json({ error: 'Sign-in is required for this action.' });
+  }
+  if (req.user.role === 'admin') {
+    return next();
+  }
+  try {
+    const db = await getDb();
+    const user = await db.get('SELECT subscription_tier FROM users WHERE id = ?', [req.user.id]);
+    const tier = user ? user.subscription_tier : 'free';
+    if (tier !== 'premium') {
+      return res.status(403).json({ 
+        error: 'Upgrade required. This is a Premium Plan feature.',
+        upgradeRequired: true,
+        upgradeLink: '/settings.html#upgrade'
+      });
+    }
+    next();
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+}
+
 function requireAdmin(req, res, next) {
   if (!req.user || req.user.role !== 'admin') {
     return res.status(403).json({ error: 'Access denied. Admin privileges required.' });
@@ -315,10 +339,19 @@ app.post('/api/monitors', async (req, res) => {
       const tier = user ? user.subscription_tier : 'free';
       const monitorCount = await db.get('SELECT COUNT(*) as count FROM monitors WHERE user_id = ?', [req.user.id]);
 
-      if (tier === 'free' && monitorCount.count >= 5) {
-        return res.status(400).json({ 
-          error: 'You have reached the limit of 5 monitors for the free tier. Please upgrade using Razorpay for unlimited monitors!',
-          limitExceeded: true
+      if (tier === 'free' && monitorCount.count >= 3) {
+        return res.status(403).json({ 
+          error: 'Maximum limit of 3 monitors reached for the Free tier. Upgrade to Premium Plan to add unlimited monitors!',
+          limitExceeded: true,
+          upgradeLink: '/settings.html#upgrade'
+        });
+      }
+
+      const requestInterval = parseInt(interval) || 60;
+      if (tier === 'free' && requestInterval < 300) {
+        return res.status(403).json({ 
+          error: 'High-frequency monitoring (intervals under 5 minutes) is a Premium feature. Upgrade to use 1-minute monitoring.',
+          upgradeLink: '/settings.html#upgrade'
         });
       }
 
@@ -918,6 +951,44 @@ app.post('/api/payment/verify-payment', requireAuth, async (req, res) => {
     res.json({ success: true });
 
   } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --- RevenueCat Subscription Webhook ---
+app.post('/api/payments/revenuecat-webhook', async (req, res) => {
+  try {
+    const { event } = req.body;
+    if (!event) {
+      return res.status(400).json({ error: 'Event object is missing' });
+    }
+
+    const email = event.app_user_id;
+    if (!email) {
+      return res.status(400).json({ error: 'app_user_id is missing' });
+    }
+
+    const db = await getDb();
+
+    if (
+      event.type === 'INITIAL_PURCHASE' || 
+      event.type === 'RENEWAL' || 
+      event.type === 'NON_RENEWING_PURCHASE'
+    ) {
+      await db.run("UPDATE users SET subscription_tier = 'premium' WHERE email = ?", [email]);
+      console.log(`[RevenueCat] User ${email} upgraded to PREMIUM.`);
+    } else if (
+      event.type === 'CANCELLATION' || 
+      event.type === 'EXPIRATION' || 
+      event.type === 'BILLING_ISSUE'
+    ) {
+      await db.run("UPDATE users SET subscription_tier = 'free' WHERE email = ?", [email]);
+      console.log(`[RevenueCat] User ${email} downgraded to FREE.`);
+    }
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error('[RevenueCat Webhook Error]:', err.message);
     res.status(500).json({ error: err.message });
   }
 });
@@ -2265,7 +2336,7 @@ app.get('/api/monitors/:id/apdex', requireAuth, async (req, res) => {
 });
 
 // Trigger a load test
-app.post('/api/monitors/:id/load-test', requireAuth, async (req, res) => {
+app.post('/api/monitors/:id/load-test', requireAuth, requirePremium, async (req, res) => {
   try {
     const monitor = await checkMonitorOwnership(req, res, req.params.id);
     if (!monitor) return;
@@ -2316,7 +2387,7 @@ app.get('/api/monitors/:id/load-test', requireAuth, async (req, res) => {
 });
 
 // Trigger a connection limit test
-app.post('/api/monitors/:id/connection-test', requireAuth, async (req, res) => {
+app.post('/api/monitors/:id/connection-test', requireAuth, requirePremium, async (req, res) => {
   try {
     const monitor = await checkMonitorOwnership(req, res, req.params.id);
     if (!monitor) return;
@@ -2490,7 +2561,7 @@ app.delete('/api/monitors/:id/geo-regions/:regionId', requireAuth, async (req, r
 });
 
 // Run geographic check and get results
-app.get('/api/monitors/:id/geo-results', requireAuth, async (req, res) => {
+app.get('/api/monitors/:id/geo-results', requireAuth, requirePremium, async (req, res) => {
   try {
     const monitor = await checkMonitorOwnership(req, res, req.params.id);
     if (!monitor) return;
@@ -3298,7 +3369,7 @@ app.get('/api/ws/clients', requireAuth, async (req, res) => {
 // --- Custom Dashboard CRUD (Requirement 27) ---
 
 // GET all dashboards for the current user
-app.get('/api/dashboards', requireAuth, async (req, res) => {
+app.get('/api/dashboards', requireAuth, requirePremium, async (req, res) => {
   try {
     const db = await getDb();
     const dashboards = await db.all(
@@ -3312,7 +3383,7 @@ app.get('/api/dashboards', requireAuth, async (req, res) => {
 });
 
 // POST create a new dashboard
-app.post('/api/dashboards', requireAuth, async (req, res) => {
+app.post('/api/dashboards', requireAuth, requirePremium, async (req, res) => {
   const { name } = req.body;
   if (!name || typeof name !== 'string' || name.trim().length < 1 || name.trim().length > 64) {
     return res.status(400).json({ error: 'Dashboard name must be between 1 and 64 characters.' });
@@ -3359,7 +3430,7 @@ app.post('/api/dashboards', requireAuth, async (req, res) => {
 });
 
 // PUT update a dashboard (rename)
-app.put('/api/dashboards/:id', requireAuth, async (req, res) => {
+app.put('/api/dashboards/:id', requireAuth, requirePremium, async (req, res) => {
   const { name } = req.body;
   if (!name || typeof name !== 'string' || name.trim().length < 1 || name.trim().length > 64) {
     return res.status(400).json({ error: 'Dashboard name must be between 1 and 64 characters.' });
@@ -3432,7 +3503,7 @@ app.put('/api/dashboards/:id/layout', requireAuth, async (req, res) => {
 });
 
 // DELETE a dashboard
-app.delete('/api/dashboards/:id', requireAuth, async (req, res) => {
+app.delete('/api/dashboards/:id', requireAuth, requirePremium, async (req, res) => {
   try {
     const db = await getDb();
     const dashboard = await db.get(

@@ -786,6 +786,13 @@ async function handleMonitorSubmit(e) {
         openProfileModal();
         return;
       }
+      if (response.status === 403 && (data.limitExceeded || (data.error || '').toLowerCase().includes('limit') || (data.error || '').toLowerCase().includes('premium'))) {
+        closeModal(modalMonitor);
+        if (confirm(`${data.error}\n\nWould you like to upgrade to the Premium Plan now?`)) {
+          startRazorpayUpgrade();
+        }
+        return;
+      }
       throw new Error(data.error || 'Save monitor failed.');
     }
     

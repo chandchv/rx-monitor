@@ -65,65 +65,79 @@ PROCESSES=$(ps aux 2>/dev/null | wc -l || echo "0")
 # Uptime in seconds
 UPTIME=$(cat /proc/uptime 2>/dev/null | awk '{printf "%d", $1}' || echo "0")
 
-# --- Service Statuses ---
+# --- Service Statuses & Logs ---
 
-# Nginx status
-if systemctl is-active --quiet nginx 2>/dev/null; then
-  NGINX_STATUS="active"
-else
-  NGINX_STATUS="inactive"
-fi
-
-# Gunicorn status
-if systemctl is-active --quiet gunicorn 2>/dev/null; then
-  GUNICORN_STATUS="active"
-elif pgrep -x gunicorn > /dev/null 2>&1; then
-  GUNICORN_STATUS="active"
-else
-  GUNICORN_STATUS="inactive"
-fi
-
-# PM2 status
-if command -v pm2 &>/dev/null && pm2 list 2>/dev/null | grep -q "online"; then
-  PM2_STATUS="active"
-elif pgrep -f "PM2" > /dev/null 2>&1; then
-  PM2_STATUS="active"
-else
-  PM2_STATUS="inactive"
-fi
-
-# --- Service Logs (last 20 lines) ---
-
-# Gunicorn logs
-GUNICORN_LOGS=""
-if [ -f /var/log/gunicorn/error.log ]; then
-  GUNICORN_LOGS=$(tail -20 /var/log/gunicorn/error.log 2>/dev/null || echo "")
-elif [ -f /var/log/gunicorn/access.log ]; then
-  GUNICORN_LOGS=$(tail -20 /var/log/gunicorn/access.log 2>/dev/null || echo "")
-elif journalctl -u gunicorn --no-pager -n 1 &>/dev/null; then
-  GUNICORN_LOGS=$(journalctl -u gunicorn --no-pager -n 20 2>/dev/null || echo "")
-fi
-
-# PM2 logs
-PM2_LOGS=""
-if command -v pm2 &>/dev/null; then
-  # Get the first PM2 app's log file
-  PM2_LOG_FILE=$(pm2 jlist 2>/dev/null | python3 -c "import sys,json; apps=json.load(sys.stdin); print(apps[0].get('pm2_env',{}).get('pm_err_log_path',''))" 2>/dev/null || echo "")
-  if [ -n "$PM2_LOG_FILE" ] && [ -f "$PM2_LOG_FILE" ]; then
-    PM2_LOGS=$(tail -20 "$PM2_LOG_FILE" 2>/dev/null || echo "")
-  fi
-  # Fallback: use pm2 logs directly
-  if [ -z "$PM2_LOGS" ]; then
-    PM2_LOGS=$(pm2 logs --nostream --lines 20 2>/dev/null | head -40 || echo "")
+SERVICES_CONF="/opt/rxmonitor/services.conf"
+SERVICES="nginx,gunicorn,pm2"
+if [ -f "$SERVICES_CONF" ]; then
+  SERVICES=$(grep -E '^\s*SERVICES=' "$SERVICES_CONF" | cut -d'=' -f2 | tr -d '"' | tr -d "'")
+  if [ -z "$SERVICES" ]; then
+    SERVICES="nginx,gunicorn,pm2"
   fi
 fi
 
-# --- Push to server ---
-
-# Escape special chars for JSON
 json_escape() {
   printf '%s' "$1" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))' 2>/dev/null || printf '"%s"' "$(printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g; s/\n/\\n/g')"
 }
+
+CUSTOM_SERVICES_JSON="{"
+FIRST=1
+
+NGINX_STATUS="inactive"
+GUNICORN_STATUS="inactive"
+PM2_STATUS="inactive"
+GUNICORN_LOGS=""
+PM2_LOGS=""
+
+IFS=',' read -r -a array <<< "$SERVICES"
+for service in "${array[@]}"; do
+  service=$(echo "$service" | xargs)
+  if [ -n "$service" ]; then
+    if systemctl is-active --quiet "$service" 2>/dev/null; then
+      S_STATUS="active"
+    elif pgrep -x "$service" >/dev/null 2>&1 || pgrep -f "$service" >/dev/null 2>&1; then
+      S_STATUS="active"
+    else
+      S_STATUS="inactive"
+    fi
+
+    if [ "$service" = "nginx" ]; then NGINX_STATUS="$S_STATUS"; fi
+    if [ "$service" = "gunicorn" ]; then GUNICORN_STATUS="$S_STATUS"; fi
+    if [ "$service" = "pm2" ]; then PM2_STATUS="$S_STATUS"; fi
+
+    S_LOGS=""
+    if [ "$service" = "gunicorn" ] && [ -f /var/log/gunicorn/error.log ]; then
+      S_LOGS=$(tail -50 /var/log/gunicorn/error.log 2>/dev/null || echo "")
+      GUNICORN_LOGS="$S_LOGS"
+    elif [ "$service" = "pm2" ] && command -v pm2 &>/dev/null; then
+      PM2_LOG_FILE=$(pm2 jlist 2>/dev/null | python3 -c "import sys,json; apps=json.load(sys.stdin); print(apps[0].get('pm2_env',{}).get('pm_err_log_path',''))" 2>/dev/null || echo "")
+      if [ -n "$PM2_LOG_FILE" ] && [ -f "$PM2_LOG_FILE" ]; then
+        S_LOGS=$(tail -50 "$PM2_LOG_FILE" 2>/dev/null || echo "")
+      else
+        S_LOGS=$(pm2 logs --nostream --lines 50 2>/dev/null | head -100 || echo "")
+      fi
+      PM2_LOGS="$S_LOGS"
+    else
+      if journalctl -u "$service" --no-pager -n 1 &>/dev/null; then
+        S_LOGS=$(journalctl -u "$service" --no-pager -n 50 2>/dev/null || echo "")
+      elif [ -f "/var/log/$service.log" ]; then
+        S_LOGS=$(tail -50 "/var/log/$service.log" 2>/dev/null || echo "")
+      elif [ -f "/var/log/$service/error.log" ]; then
+        S_LOGS=$(tail -50 "/var/log/$service/error.log" 2>/dev/null || echo "")
+      fi
+    fi
+
+    S_LOGS_JSON=$(json_escape "$S_LOGS")
+
+    if [ $FIRST -eq 1 ]; then
+      FIRST=0
+    else
+      CUSTOM_SERVICES_JSON="$CUSTOM_SERVICES_JSON,"
+    fi
+    CUSTOM_SERVICES_JSON="$CUSTOM_SERVICES_JSON\"$service\": {\"status\": \"$S_STATUS\", \"logs\": $S_LOGS_JSON}"
+  fi
+done
+CUSTOM_SERVICES_JSON="$CUSTOM_SERVICES_JSON}"
 
 GUNICORN_LOGS_JSON=$(json_escape "$GUNICORN_LOGS")
 PM2_LOGS_JSON=$(json_escape "$PM2_LOGS")
@@ -143,7 +157,8 @@ PAYLOAD=$(cat <<EOF
   "gunicorn_status": "$GUNICORN_STATUS",
   "pm2_status": "$PM2_STATUS",
   "gunicorn_logs": $GUNICORN_LOGS_JSON,
-  "pm2_logs": $PM2_LOGS_JSON
+  "pm2_logs": $PM2_LOGS_JSON,
+  "custom_services": $CUSTOM_SERVICES_JSON
 }
 EOF
 )
@@ -158,6 +173,16 @@ AGENT_SCRIPT
 sudo sed -i "s|__API_KEY__|$API_KEY|g" "$AGENT_DIR/agent.sh"
 sudo sed -i "s|__SERVER_URL__|$SERVER_URL|g" "$AGENT_DIR/agent.sh"
 sudo chmod +x "$AGENT_DIR/agent.sh"
+
+# Create default services.conf if not existing
+if [ ! -f "$AGENT_DIR/services.conf" ]; then
+  sudo tee "$AGENT_DIR/services.conf" > /dev/null << 'EOF'
+# Define comma-separated list of services to monitor statuses and log histories (no spaces)
+SERVICES="nginx,gunicorn,pm2"
+EOF
+  sudo chmod 644 "$AGENT_DIR/services.conf"
+  echo "📝 Created default services configuration at $AGENT_DIR/services.conf"
+fi
 
 echo "✅ Agent script created at $AGENT_DIR/agent.sh"
 

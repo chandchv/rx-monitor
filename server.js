@@ -1136,6 +1136,8 @@ app.get('/api/logs', requireAuth, async (req, res) => {
     const limit = parseInt(req.query.limit) || 100;
     const offset = parseInt(req.query.offset) || 0;
     const status = req.query.status;
+    const minResponseTime = parseInt(req.query.min_response_time);
+    const monitorId = req.query.monitor_id ? parseInt(req.query.monitor_id) : null;
 
     let query = `
       SELECT l.*, m.name as monitor_name 
@@ -1153,6 +1155,16 @@ app.get('/api/logs', requireAuth, async (req, res) => {
     if (status && status !== 'ALL') {
       conditions.push('l.status = ?');
       params.push(status.toUpperCase());
+    }
+
+    if (!isNaN(minResponseTime)) {
+      conditions.push('l.response_time >= ?');
+      params.push(minResponseTime);
+    }
+
+    if (monitorId) {
+      conditions.push('l.monitor_id = ?');
+      params.push(monitorId);
     }
 
     if (conditions.length > 0) {
@@ -1175,42 +1187,53 @@ app.get('/api/system-logs', async (req, res) => {
     const limit = parseInt(req.query.limit) || 100;
     const offset = parseInt(req.query.offset) || 0;
     const visitorId = req.headers['x-visitor-id'];
-    
-    let logs;
+    const status = req.query.status;
+    const minResponseTime = parseInt(req.query.min_response_time);
+    const monitorId = req.query.monitor_id ? parseInt(req.query.monitor_id) : null;
+
+    let query = `
+      SELECT l.*, m.name as monitor_name 
+      FROM logs l 
+      JOIN monitors m ON l.monitor_id = m.id 
+    `;
+    const params = [];
+    const conditions = [];
+
     if (req.user) {
-      if (req.user.role === 'admin') {
-        logs = await db.all(
-          `SELECT l.*, m.name as monitor_name 
-           FROM logs l 
-           JOIN monitors m ON l.monitor_id = m.id 
-           ORDER BY l.checked_at DESC 
-           LIMIT ? OFFSET ?`,
-          [limit, offset]
-        );
-      } else {
-        logs = await db.all(
-          `SELECT l.*, m.name as monitor_name 
-           FROM logs l 
-           JOIN monitors m ON l.monitor_id = m.id 
-           WHERE m.user_id = ?
-           ORDER BY l.checked_at DESC 
-           LIMIT ? OFFSET ?`,
-          [req.user.id, limit, offset]
-        );
+      if (req.user.role !== 'admin') {
+        conditions.push('m.user_id = ?');
+        params.push(req.user.id);
       }
     } else if (visitorId) {
-      logs = await db.all(
-        `SELECT l.*, m.name as monitor_name 
-         FROM logs l 
-         JOIN monitors m ON l.monitor_id = m.id 
-         WHERE m.user_id IS NULL AND m.visitor_id = ?
-         ORDER BY l.checked_at DESC 
-         LIMIT ? OFFSET ?`,
-        [visitorId, limit, offset]
-      );
+      conditions.push('m.user_id IS NULL AND m.visitor_id = ?');
+      params.push(visitorId);
     } else {
-      logs = [];
+      return res.json([]);
     }
+
+    if (status && status !== 'ALL') {
+      conditions.push('l.status = ?');
+      params.push(status.toUpperCase());
+    }
+
+    if (!isNaN(minResponseTime)) {
+      conditions.push('l.response_time >= ?');
+      params.push(minResponseTime);
+    }
+
+    if (monitorId) {
+      conditions.push('l.monitor_id = ?');
+      params.push(monitorId);
+    }
+
+    if (conditions.length > 0) {
+      query += ' WHERE ' + conditions.join(' AND ');
+    }
+
+    query += ' ORDER BY l.checked_at DESC LIMIT ? OFFSET ?';
+    params.push(limit, offset);
+
+    const logs = await db.all(query, params);
     res.json(logs);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -1454,18 +1477,19 @@ app.post('/api/agent/metrics', async (req, res) => {
 
     const { 
       hostname, cpu, memory, disk, load, network_rx, network_tx, processes, uptime,
-      nginx_status, gunicorn_status, pm2_status, gunicorn_logs, pm2_logs
+      nginx_status, gunicorn_status, pm2_status, gunicorn_logs, pm2_logs, custom_services
     } = req.body;
 
     const db = await getDb();
     await db.run(
       `INSERT INTO server_metrics 
-        (api_key_id, user_id, hostname, cpu_percent, memory_percent, disk_percent, load_avg, network_rx_bytes, network_tx_bytes, process_count, uptime_seconds, nginx_status, gunicorn_status, pm2_status, gunicorn_logs, pm2_logs, collected_at) 
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        (api_key_id, user_id, hostname, cpu_percent, memory_percent, disk_percent, load_avg, network_rx_bytes, network_tx_bytes, process_count, uptime_seconds, nginx_status, gunicorn_status, pm2_status, gunicorn_logs, pm2_logs, custom_services, collected_at) 
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         apiKey.id, apiKey.user_id, hostname || 'unknown', cpu || 0, memory || 0, disk || 0, load || 0, 
         network_rx || 0, network_tx || 0, processes || 0, uptime || 0,
         nginx_status || null, gunicorn_status || null, pm2_status || null, gunicorn_logs || null, pm2_logs || null,
+        custom_services ? (typeof custom_services === 'string' ? custom_services : JSON.stringify(custom_services)) : null,
         new Date().toISOString()
       ]
     );

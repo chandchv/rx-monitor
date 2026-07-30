@@ -64,6 +64,35 @@
           <h2>All Checked Logs (Latest 100)</h2>
           <button id="btn-refresh-logs" class="btn btn-icon">🔄</button>
         </div>
+
+        <!-- Filter Bar -->
+        <div style="display: flex; gap: 12px; padding: 16px; border-bottom: 1px solid var(--border-color); flex-wrap: wrap; background: rgba(0,0,0,0.15);">
+          <div style="display: flex; flex-direction: column; gap: 4px; min-width: 180px;">
+            <label style="font-size: 0.7em; color: var(--color-muted); text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">Monitor</label>
+            <select id="filter-monitor" style="background: var(--card-bg); border: 1px solid var(--border-color); color: var(--color-text); padding: 8px 12px; font-size: 0.9em; height: 38px; border-radius: 6px; outline: none; font-family: inherit;">
+              <option value="">All Monitors</option>
+            </select>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 4px; min-width: 140px;">
+            <label style="font-size: 0.7em; color: var(--color-muted); text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">Status</label>
+            <select id="filter-status" style="background: var(--card-bg); border: 1px solid var(--border-color); color: var(--color-text); padding: 8px 12px; font-size: 0.9em; height: 38px; border-radius: 6px; outline: none; font-family: inherit;">
+              <option value="ALL">All Statuses</option>
+              <option value="UP">UP</option>
+              <option value="RETRY">RETRY</option>
+              <option value="DOWN">DOWN</option>
+            </select>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 4px; min-width: 180px;">
+            <label style="font-size: 0.7em; color: var(--color-muted); text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">Latency / Timing</label>
+            <select id="filter-timing" style="background: var(--card-bg); border: 1px solid var(--border-color); color: var(--color-text); padding: 8px 12px; font-size: 0.9em; height: 38px; border-radius: 6px; outline: none; font-family: inherit;">
+              <option value="0">All Latencies</option>
+              <option value="200">Slow (> 200 ms)</option>
+              <option value="500">Very Slow (> 500 ms)</option>
+              <option value="1000">Critical (> 1.0 s)</option>
+              <option value="2000">Severe (> 2.0 s)</option>
+            </select>
+          </div>
+        </div>
         
         <div class="table-container" style="max-height: 500px;">
           <table class="logs-table">
@@ -135,10 +164,34 @@
       }
     }
 
+    async function loadMonitors() {
+      try {
+        const res = await fetch('/api/monitors', { headers: getRequestHeaders() });
+        if (!res.ok) throw new Error('Failed to load monitors.');
+        const data = await res.json();
+        const select = document.getElementById('filter-monitor');
+        // If it's returning {monitors: ...} or just an array
+        const list = Array.isArray(data) ? data : (data.monitors || []);
+        select.innerHTML = '<option value="">All Monitors</option>' + 
+          list.map(m => `<option value="${m.id}">${escapeHTML(m.name)}</option>`).join('');
+      } catch (err) {
+        console.error('Failed to load monitors list', err);
+      }
+    }
+
     async function loadLogs() {
       const tbody = document.getElementById('system-logs-tbody');
+      const monitorId = document.getElementById('filter-monitor').value;
+      const status = document.getElementById('filter-status').value;
+      const timing = document.getElementById('filter-timing').value;
+
+      let url = `/api/system-logs?limit=100`;
+      if (monitorId) url += `&monitor_id=${monitorId}`;
+      if (status && status !== 'ALL') url += `&status=${status}`;
+      if (timing && timing !== '0') url += `&min_response_time=${timing}`;
+
       try {
-        const res = await fetch('/api/system-logs?limit=100', { headers: getRequestHeaders() });
+        const res = await fetch(url, { headers: getRequestHeaders() });
         if (!res.ok) throw new Error('Failed to load logs list.');
         const logs = await res.json();
 
@@ -157,7 +210,7 @@
           return `
             <tr>
               <td>${timeStr}</td>
-              <td style="font-weight: 500;">${escapeHTML(l.monitor_name)}</td>
+              <td style="font-weight: 500;">${escapeHTML(l.monitor_name || '')}</td>
               <td>${statusSpan}</td>
               <td>${l.response_time} ms</td>
               <td><code>${escapeHTML(l.message || '')}</code></td>
@@ -207,8 +260,13 @@
       }
     });
 
-    document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('filter-monitor').addEventListener('change', loadLogs);
+    document.getElementById('filter-status').addEventListener('change', loadLogs);
+    document.getElementById('filter-timing').addEventListener('change', loadLogs);
+
+    document.addEventListener('DOMContentLoaded', async () => {
       loadStats();
+      await loadMonitors();
       loadLogs();
     });
   </script>

@@ -126,10 +126,50 @@ async function loadServers() {
       const ageMinutes = (Date.now() - lastSeen.getTime()) / 60000;
       const stale = ageMinutes > 5;
       const uptimeStr = formatUptime(s.uptime_seconds);
-
       const nginxActive = s.nginx_status === 'active';
       const gunicornActive = s.gunicorn_status === 'active';
       const pm2Active = s.pm2_status === 'active';
+
+      let customServices = null;
+      if (s.custom_services) {
+        try {
+          customServices = typeof s.custom_services === 'string' ? JSON.parse(s.custom_services) : s.custom_services;
+        } catch (e) {
+          console.error('Failed to parse custom_services json', e);
+        }
+      }
+
+      let servicesStatusHtml = '';
+      let logsPanelHtml = '';
+
+      if (customServices && Object.keys(customServices).length > 0) {
+        servicesStatusHtml = Object.keys(customServices).map(name => {
+          const svc = customServices[name];
+          const active = svc.status === 'active';
+          return `<div>${escapeHtml(name)}: <span style="font-weight:600; padding: 2px 6px; border-radius: 4px; background: ${active ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)'}; color: ${active ? '#10b981' : '#ef4444'}; text-transform: capitalize;">${escapeHtml(svc.status || 'inactive')}</span></div>`;
+        }).join('');
+
+        logsPanelHtml = Object.keys(customServices).map(name => {
+          const svc = customServices[name];
+          const color = name === 'gunicorn' ? '#fbbf24' : name === 'pm2' ? '#38bdf8' : '#6366f1';
+          return `
+            <div style="font-weight:600; font-size: 0.82em; margin-bottom: 6px; color: ${color}; text-transform: uppercase; letter-spacing: 0.5px;">📄 ${escapeHtml(name)} Logs:</div>
+            <pre style="font-family: monospace; font-size: 0.8em; overflow-x: auto; max-height: 150px; white-space: pre-wrap; margin-bottom: 12px; color: #cbd5e1; background: #000; padding: 8px; border-radius: 4px;">${escapeHtml(svc.logs || 'No log data available')}</pre>
+          `;
+        }).join('');
+      } else {
+        servicesStatusHtml = `
+          <div>Nginx: <span style="font-weight:600; padding: 2px 6px; border-radius: 4px; background: ${nginxActive ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)'}; color: ${nginxActive ? '#10b981' : '#ef4444'};">${s.nginx_status || 'inactive'}</span></div>
+          <div>Gunicorn: <span style="font-weight:600; padding: 2px 6px; border-radius: 4px; background: ${gunicornActive ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)'}; color: ${gunicornActive ? '#10b981' : '#ef4444'};">${s.gunicorn_status || 'inactive'}</span></div>
+          <div>PM2: <span style="font-weight:600; padding: 2px 6px; border-radius: 4px; background: ${pm2Active ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)'}; color: ${pm2Active ? '#10b981' : '#ef4444'};">${s.pm2_status || 'inactive'}</span></div>
+        `;
+        logsPanelHtml = `
+          <div style="font-weight:600; font-size: 0.8em; margin-bottom: 6px; color: #fbbf24;">🐍 Gunicorn Logs (Last 20 lines):</div>
+          <pre style="font-family: monospace; font-size: 0.8em; overflow-x: auto; max-height: 120px; white-space: pre-wrap; margin-bottom: 12px; color: #cbd5e1; background: #000; padding: 8px; border-radius: 4px;">${escapeHtml(s.gunicorn_logs || 'No log data available')}</pre>
+          <div style="font-weight:600; font-size: 0.8em; margin-bottom: 6px; color: #38bdf8;">📦 PM2 Logs (Last 20 lines):</div>
+          <pre style="font-family: monospace; font-size: 0.8em; overflow-x: auto; max-height: 120px; white-space: pre-wrap; color: #cbd5e1; background: #000; padding: 8px; border-radius: 4px; margin: 0;">${escapeHtml(s.pm2_logs || 'No log data available')}</pre>
+        `;
+      }
 
       return `
         <div class="server-card" data-key-id="${s.key_id}">
@@ -154,18 +194,13 @@ async function loadServers() {
             </div>
           </div>
           <div class="services-status" style="margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border-color); display: flex; flex-wrap: wrap; gap: 14px; font-size: 0.8em;">
-            <div>Nginx: <span style="font-weight:600; padding: 2px 6px; border-radius: 4px; background: ${nginxActive ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)'}; color: ${nginxActive ? '#10b981' : '#ef4444'};">${s.nginx_status || 'inactive'}</span></div>
-            <div>Gunicorn: <span style="font-weight:600; padding: 2px 6px; border-radius: 4px; background: ${gunicornActive ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)'}; color: ${gunicornActive ? '#10b981' : '#ef4444'};">${s.gunicorn_status || 'inactive'}</span></div>
-            <div>PM2: <span style="font-weight:600; padding: 2px 6px; border-radius: 4px; background: ${pm2Active ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)'}; color: ${pm2Active ? '#10b981' : '#ef4444'};">${s.pm2_status || 'inactive'}</span></div>
+            ${servicesStatusHtml}
           </div>
           <div class="logs-toggle" style="margin-top: 12px; font-size: 0.85em; color: #58a6ff; cursor: pointer; text-decoration: underline;" onclick="toggleLogs(event, ${s.id})">
             📄 Show Service Logs
           </div>
           <div id="logs-panel-${s.id}" style="display: none; margin-top: 12px; padding: 12px; background: rgba(0,0,0,0.4); border-radius: 8px; border: 1px solid var(--border-color);">
-            <div style="font-weight:600; font-size: 0.8em; margin-bottom: 6px; color: #fbbf24;">🐍 Gunicorn Logs (Last 20 lines):</div>
-            <pre style="font-family: monospace; font-size: 0.8em; overflow-x: auto; max-height: 120px; white-space: pre-wrap; margin-bottom: 12px; color: #cbd5e1; background: #000; padding: 8px; border-radius: 4px;">${escapeHtml(s.gunicorn_logs || 'No log data available')}</pre>
-            <div style="font-weight:600; font-size: 0.8em; margin-bottom: 6px; color: #38bdf8;">📦 PM2 Logs (Last 20 lines):</div>
-            <pre style="font-family: monospace; font-size: 0.8em; overflow-x: auto; max-height: 120px; white-space: pre-wrap; color: #cbd5e1; background: #000; padding: 8px; border-radius: 4px; margin: 0;">${escapeHtml(s.pm2_logs || 'No log data available')}</pre>
+            ${logsPanelHtml}
           </div>
         </div>`;
     }).join('');

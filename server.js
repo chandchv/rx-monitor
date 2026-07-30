@@ -2678,6 +2678,33 @@ app.delete('/api/maintenance-windows/:id', requireAuth, async (req, res) => {
 
 // --- Incident Timeline & Events (Requirement 14) ---
 
+app.get('/api/incidents', requireAuth, async (req, res) => {
+  try {
+    const db = await getDb();
+    let incidents;
+    if (req.user.role === 'admin') {
+      incidents = await db.all(
+        `SELECT i.*, m.name as monitor_name 
+         FROM incidents i 
+         JOIN monitors m ON i.monitor_id = m.id 
+         ORDER BY i.timestamp DESC LIMIT 100`
+      );
+    } else {
+      incidents = await db.all(
+        `SELECT i.*, m.name as monitor_name 
+         FROM incidents i 
+         JOIN monitors m ON i.monitor_id = m.id 
+         WHERE m.user_id = ?
+         ORDER BY i.timestamp DESC LIMIT 100`,
+        [req.user.id]
+      );
+    }
+    res.json(incidents);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.get('/api/incidents/:id/timeline', requireAuth, async (req, res) => {
   try {
     const events = await getIncidentTimeline(parseInt(req.params.id));

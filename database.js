@@ -161,8 +161,9 @@ export async function getDb() {
       await dbInstance.pool.query('ALTER TABLE server_metrics ADD COLUMN IF NOT EXISTS gunicorn_logs TEXT');
       await dbInstance.pool.query('ALTER TABLE server_metrics ADD COLUMN IF NOT EXISTS pm2_logs TEXT');
       await dbInstance.pool.query('ALTER TABLE server_metrics ADD COLUMN IF NOT EXISTS custom_services TEXT');
+      await dbInstance.pool.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS trial_ends_at TEXT');
     } catch (migrateErr) {
-      console.log('Migration of server_metrics table columns skipped (already exists or db not postgres):', migrateErr.message);
+      console.log('Migration of tables columns skipped (already exists or db not postgres):', migrateErr.message);
     }
 
     // Seed default records to support test suites and foreign keys
@@ -221,6 +222,7 @@ async function initSchema() {
       verification_token TEXT,
       google_id TEXT,
       subscription_tier TEXT DEFAULT 'free',
+      trial_ends_at TEXT,
       created_at TEXT
     );
 

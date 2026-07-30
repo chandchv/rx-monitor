@@ -776,7 +776,7 @@ app.post('/api/auth/google', async (req, res) => {
 app.get('/api/auth/profile', requireAuth, async (req, res) => {
   try {
     const db = await getDb();
-    const user = await db.get('SELECT id, email, role, subscription_tier, is_verified, created_at FROM users WHERE id = ?', [req.user.id]);
+    const user = await db.get('SELECT id, email, role, subscription_tier, trial_ends_at, is_verified, created_at FROM users WHERE id = ?', [req.user.id]);
     if (!user) return res.status(404).json({ error: 'User not found' });
     res.json(user);
   } catch (err) {
@@ -975,14 +975,15 @@ app.post('/api/payments/revenuecat-webhook', async (req, res) => {
       event.type === 'RENEWAL' || 
       event.type === 'NON_RENEWING_PURCHASE'
     ) {
-      await db.run("UPDATE users SET subscription_tier = 'premium' WHERE email = ?", [email]);
-      console.log(`[RevenueCat] User ${email} upgraded to PREMIUM.`);
+      const trialEnds = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+      await db.run("UPDATE users SET subscription_tier = 'premium', trial_ends_at = ? WHERE email = ?", [trialEnds, email]);
+      console.log(`[RevenueCat] User ${email} upgraded to PREMIUM. Trial ends at: ${trialEnds}`);
     } else if (
       event.type === 'CANCELLATION' || 
       event.type === 'EXPIRATION' || 
       event.type === 'BILLING_ISSUE'
     ) {
-      await db.run("UPDATE users SET subscription_tier = 'free' WHERE email = ?", [email]);
+      await db.run("UPDATE users SET subscription_tier = 'free', trial_ends_at = NULL WHERE email = ?", [email]);
       console.log(`[RevenueCat] User ${email} downgraded to FREE.`);
     }
 

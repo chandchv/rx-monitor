@@ -101,9 +101,21 @@
       }, 4000);
     }
 
+    function getRequestHeaders() {
+      const token = localStorage.getItem('rx-monitor-token');
+      const headers = {
+        'Content-Type': 'application/json',
+        'x-visitor-id': localStorage.getItem('rx-monitor-visitor-id') || ''
+      };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      return headers;
+    }
+
     async function loadStats() {
       try {
-        const res = await fetch('/api/system-status');
+        const res = await fetch('/api/system-status', { headers: getRequestHeaders() });
         if (!res.ok) throw new Error('Failed to load system stats.');
         const stats = await res.json();
 
@@ -126,7 +138,7 @@
     async function loadLogs() {
       const tbody = document.getElementById('system-logs-tbody');
       try {
-        const res = await fetch('/api/system-logs?limit=100');
+        const res = await fetch('/api/system-logs?limit=100', { headers: getRequestHeaders() });
         if (!res.ok) throw new Error('Failed to load logs list.');
         const logs = await res.json();
 

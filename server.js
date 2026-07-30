@@ -1130,6 +1130,45 @@ app.get('/api/system-status', async (req, res) => {
   }
 });
 
+app.get('/api/logs', requireAuth, async (req, res) => {
+  try {
+    const db = await getDb();
+    const limit = parseInt(req.query.limit) || 100;
+    const offset = parseInt(req.query.offset) || 0;
+    const status = req.query.status;
+
+    let query = `
+      SELECT l.*, m.name as monitor_name 
+      FROM logs l 
+      JOIN monitors m ON l.monitor_id = m.id 
+    `;
+    const params = [];
+    const conditions = [];
+
+    if (req.user.role !== 'admin') {
+      conditions.push('m.user_id = ?');
+      params.push(req.user.id);
+    }
+
+    if (status && status !== 'ALL') {
+      conditions.push('l.status = ?');
+      params.push(status.toUpperCase());
+    }
+
+    if (conditions.length > 0) {
+      query += ' WHERE ' + conditions.join(' AND ');
+    }
+
+    query += ' ORDER BY l.checked_at DESC LIMIT ? OFFSET ?';
+    params.push(limit, offset);
+
+    const logs = await db.all(query, params);
+    res.json(logs);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.get('/api/system-logs', async (req, res) => {
   try {
     const db = await getDb();

@@ -677,6 +677,23 @@ async function initSchema() {
       monitor_id INTEGER UNIQUE REFERENCES monitors(id) ON DELETE CASCADE,
       target_percentage REAL NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS promo_codes (
+      id SERIAL PRIMARY KEY,
+      code TEXT UNIQUE NOT NULL,
+      max_uses INTEGER DEFAULT 35,
+      current_uses INTEGER DEFAULT 0,
+      duration_days INTEGER DEFAULT 365,
+      created_at TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS promo_redemptions (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+      promo_code_id INTEGER REFERENCES promo_codes(id) ON DELETE CASCADE,
+      redeemed_at TEXT,
+      UNIQUE(user_id, promo_code_id)
+    );
   `);
 
   // Index creation (using standard PG syntax)
@@ -726,6 +743,22 @@ async function initSchema() {
     await dbInstance.run(
       'INSERT INTO settings (key, value) VALUES ($1, $2) ON CONFLICT (key) DO NOTHING',
       [setting.key, setting.value]
+    );
+  }
+
+  // Seed default promo codes for beta testers (limit 35 users per code, 1 year duration)
+  const defaultCodes = [
+    { code: 'BETA2026', max_uses: 35, duration_days: 365 },
+    { code: 'UPTIMEBETA35', max_uses: 35, duration_days: 365 },
+    { code: 'TESTERPRO', max_uses: 35, duration_days: 365 }
+  ];
+
+  for (const promo of defaultCodes) {
+    await dbInstance.run(
+      `INSERT INTO promo_codes (code, max_uses, current_uses, duration_days, created_at)
+       VALUES ($1, $2, 0, $3, $4)
+       ON CONFLICT (code) DO NOTHING`,
+      [promo.code, promo.max_uses, promo.duration_days, new Date().toISOString()]
     );
   }
 }

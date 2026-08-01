@@ -2,7 +2,7 @@
 # =============================================================================
 # RxMonitor Server Agent - Installer
 # Installs a lightweight monitoring agent that pushes system metrics
-# to your RxMonitor dashboard every 60 seconds.
+# to your UptimeBunny dashboard every 60 seconds.
 #
 # Usage: curl -sSL https://YOUR_DOMAIN/install-agent.sh | bash -s YOUR_API_KEY
 # =============================================================================
@@ -19,7 +19,7 @@ fi
 # Detect the server URL from the script source or use the default
 SERVER_URL="${RXM_SERVER_URL:-__SERVER_URL__}"
 
-echo "🚀 Installing RxMonitor Agent..."
+echo "🚀 Installing UptimeBunny Agent..."
 echo "   Server: $SERVER_URL"
 echo ""
 
@@ -225,7 +225,7 @@ sudo bash "$AGENT_DIR/agent.sh" && echo "✅ First metrics push successful!" || 
 
 echo ""
 echo "============================================="
-echo "  ✅ RxMonitor Agent Installed Successfully!"
+echo "  ✅ UptimeBunny Agent Installed Successfully!"
 echo "============================================="
 echo ""
 echo "  📊 Metrics will be pushed every 60 seconds"

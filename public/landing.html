@@ -3,18 +3,19 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>RxMonitor - Free Uptime Monitoring for Websites, APIs &amp; Servers</title>
-  <meta name="description" content="Monitor your websites, APIs, and servers with RxMonitor. Free uptime monitoring with instant Telegram &amp; Email alerts, SSL certificate tracking, server metrics, response time analytics, and public status pages.">
-  <meta name="keywords" content="uptime monitoring, website monitoring, API monitoring, server monitoring, SSL certificate monitoring, status page, response time analytics, incident management, Telegram alerts, free monitoring tool">
-  <meta property="og:title" content="RxMonitor - Free Uptime Monitoring for Websites, APIs &amp; Servers">
-  <meta property="og:description" content="Know when your site goes down before your users do. Free uptime monitoring with instant alerts, SSL checks, server metrics, and public status pages.">
+  <title>UptimeBunny (uptimebunny) - Free Uptime Monitoring for Websites, APIs &amp; Servers</title>
+  <link rel="icon" type="image/png" href="/assets/favicon.png">
+  <meta name="description" content="UptimeBunny (uptimebunny) is a real-time website and server monitoring tool that alerts you immediately when your site, API, or server goes down. Free uptime monitoring with instant alerts, SSL tracking, and status pages.">
+  <meta name="keywords" content="uptimebunny, uptime bunny, uptime monitoring, website monitoring, API monitoring, server monitoring, SSL certificate monitoring, status page, response time analytics">
+  <meta property="og:title" content="UptimeBunny (uptimebunny) - Free Uptime Monitoring for Websites, APIs &amp; Servers">
+  <meta property="og:description" content="Know when your site goes down before your users do. UptimeBunny provides real-time website monitoring with instant outage alerts and SSL tracking.">
   <meta property="og:type" content="website">
-  <meta property="og:url" content="https://rxmonitor.com">
-  <meta property="og:site_name" content="RxMonitor">
+  <meta property="og:url" content="https://uptimebunny.com">
+  <meta property="og:site_name" content="UptimeBunny (uptimebunny)">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="RxMonitor - Free Uptime Monitoring">
-  <meta name="twitter:description" content="Monitor websites, APIs, and servers. Get instant alerts via Telegram and Email. Free for up to 5 monitors.">
-  <link rel="canonical" href="https://rxmonitor.com">
+  <meta name="twitter:title" content="UptimeBunny (uptimebunny) - Free Uptime Monitoring">
+  <meta name="twitter:description" content="Monitor websites, APIs, and servers. Get instant alerts when your service experiences downtime.">
+  <link rel="canonical" href="https://uptimebunny.com">
   <link rel="stylesheet" href="landing.css">
 
   <!-- Structured Data for SEO -->
@@ -22,10 +23,11 @@
   {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
-    "name": "RxMonitor",
+    "name": "UptimeBunny",
+    "alternateName": "uptimebunny",
     "applicationCategory": "DeveloperApplication",
-    "operatingSystem": "Web",
-    "description": "Free uptime monitoring for websites, APIs, and servers with instant alerts, SSL monitoring, server metrics, and public status pages.",
+    "operatingSystem": "Web, Android, iOS",
+    "description": "UptimeBunny (uptimebunny) is a website monitoring tool that alerts you when your site goes down, offering HTTP/HTTPS status checks, SSL certificate tracking, and server metrics.",
     "offers": [
       {
         "@type": "Offer",
@@ -33,27 +35,14 @@
         "priceCurrency": "INR",
         "name": "Free Plan",
         "description": "Up to 5 monitors with Telegram and Email alerts"
-      },
-      {
-        "@type": "Offer",
-        "price": "499",
-        "priceCurrency": "INR",
-        "name": "Premium Plan",
-        "description": "Unlimited monitors with advanced analytics and server agents"
       }
     ],
     "featureList": [
       "HTTP/HTTPS Uptime Monitoring",
       "SSL Certificate Expiry Alerts",
       "Server Agent Metrics (CPU, Memory, Disk)",
-      "Response Time Percentile Analytics",
-      "Telegram and Email Notifications",
-      "Public Status Pages",
-      "Incident Timeline Management",
-      "Custom Dashboards",
-      "Multi-Monitor Comparison",
-      "Application Log Ingestion",
-      "Dark and Light Theme"
+      "Instant Down/Up Alerts",
+      "Public Status Pages"
     ]
   }
   </script>
@@ -62,9 +51,10 @@
   <!-- Navigation -->
   <nav class="landing-nav" aria-label="Main navigation">
     <div class="landing-container">
-      <a href="/" class="landing-nav__logo" aria-label="RxMonitor home">
-        <span class="landing-nav__logo-icon">📡</span>
-        RxMonitor
+      <a href="/" class="landing-nav__logo" aria-label="UptimeBunny (uptimebunny) home">
+        <img src="/assets/logo.png" alt="UptimeBunny" style="height:32px; width:auto; vertical-align:middle; margin-right:8px;">
+        <span style="font-weight: 700; font-size: 20px;">UptimeBunny</span>
+        <span style="font-size: 12px; color: #8b949e; margin-left: 4px; font-weight: 400;">(uptimebunny)</span>
       </a>
       <button class="landing-nav__hamburger" aria-label="Toggle navigation menu" aria-expanded="false">
         <span></span>
@@ -73,6 +63,8 @@
       </button>
       <div class="landing-nav__links">
         <a href="#features" class="landing-nav__link" aria-label="View all features">Features</a>
+        <a href="/privacy.html" class="landing-nav__link">Privacy Policy</a>
+        <a href="/terms.html" class="landing-nav__link">Terms of Service</a>
         <a href="/dashboard?login=true" class="landing-nav__link" aria-label="Sign in to your dashboard">Sign In</a>
         <a href="/dashboard" class="landing-nav__cta" aria-label="Get started free - go to dashboard">Get Started Free</a>
       </div>
@@ -84,14 +76,42 @@
     <section class="hero">
       <div class="landing-container">
         <div class="hero__content">
-          <h1 class="hero__headline">Know when your site goes down. <span class="hero__headline-accent">Before your users do.</span></h1>
-          <p class="hero__subheadline">Reliable uptime monitoring for websites, APIs, and servers with instant alerts and detailed analytics.</p>
+          <h1 class="hero__headline">UptimeBunny (uptimebunny)<br><span class="hero__headline-accent">Website &amp; Server Uptime Monitoring Tool</span></h1>
+          <p class="hero__subheadline">UptimeBunny (uptimebunny) is a 24/7 website and server monitoring tool that alerts you immediately via Push Notifications, Email, and Telegram when your site or API goes down.</p>
           <p class="hero__free-message">Always free for up to 5 monitors</p>
           <div class="hero__cta-group">
             <a href="/dashboard" class="btn-primary" aria-label="Get started free - create your account">Get Started Free</a>
             <a href="/dashboard?login=true" class="btn-secondary" aria-label="Sign in to your existing account">Sign In</a>
           </div>
           <p class="hero__reassurance">No credit card required</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- About & App Purpose Section (Google Verification Requirement) -->
+    <section class="app-purpose-card" style="background: rgba(22, 27, 34, 0.85); border-top: 1px solid #30363d; border-bottom: 1px solid #30363d; padding: 48px 0;">
+      <div class="landing-container">
+        <div style="max-width: 900px; margin: 0 auto; text-align: center;">
+          <span style="font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: #58a6ff;">Application Overview</span>
+          <h2 style="font-size: 28px; font-weight: 700; color: #f0f6fc; margin-top: 6px; margin-bottom: 16px;">What is UptimeBunny (uptimebunny)?</h2>
+          <p style="font-size: 16px; color: #c9d1d9; line-height: 1.7; margin-bottom: 32px;">
+            <strong>UptimeBunny (uptimebunny)</strong> is a continuous 24/7 website and server uptime monitoring application. It performs periodic HTTP/HTTPS pings and TCP port checks against your configured target URLs to ensure your digital infrastructure stays online. If your website or API suffers an outage or severe latency, UptimeBunny instantly relays push notifications, email alerts, and Telegram messages so you can fix issues immediately.
+          </p>
+
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; text-align: left;">
+            <div style="background: #0d1117; padding: 22px; border-radius: 12px; border: 1px solid #30363d;">
+              <h3 style="font-size: 17px; color: #58a6ff; margin-bottom: 8px;">📡 1. Continuous Uptime Pings</h3>
+              <p style="font-size: 14px; color: #8b949e; line-height: 1.5;">Performs automated HTTP status checks, monitors SLA response times, and alerts you before your customers notice downtime.</p>
+            </div>
+            <div style="background: #0d1117; padding: 22px; border-radius: 12px; border: 1px solid #30363d;">
+              <h3 style="font-size: 17px; color: #58a6ff; margin-bottom: 8px;">🔔 2. Multi-Channel Alerts</h3>
+              <p style="font-size: 14px; color: #8b949e; line-height: 1.5;">Delivers real-time notifications via Mobile Push, Email, and Telegram when your website or SSL certificate encounters errors.</p>
+            </div>
+            <div style="background: #0d1117; padding: 22px; border-radius: 12px; border: 1px solid #30363d;">
+              <h3 style="font-size: 17px; color: #58a6ff; margin-bottom: 8px;">🔑 3. Google Sign-In Usage</h3>
+              <p style="font-size: 14px; color: #8b949e; line-height: 1.5;">We use Google Sign-In solely to securely verify your email address and authenticate your account to route your downtime alerts.</p>
+            </div>
+          </div>
         </div>
       </div>
     </section>
@@ -281,9 +301,9 @@
   <!-- Footer -->
   <footer class="landing-footer">
     <div class="landing-container">
-      <div class="landing-footer__brand">
-        <span class="landing-footer__brand-icon">📡</span>
-        RxMonitor
+      <div class="landing-footer__brand" style="display:flex;align-items:center;gap:8px;">
+        <img src="/assets/logo.png" alt="UptimeBunny" style="height:28px; width:auto;">
+        UptimeBunny
       </div>
       <div class="landing-footer__columns">
         <div class="landing-footer__col">
@@ -307,8 +327,14 @@
           <a href="/comparison.html" class="landing-footer__link">Compare Monitors</a>
           <a href="/dashboards.html" class="landing-footer__link">Custom Dashboards</a>
         </div>
+        <div class="landing-footer__col">
+          <h4 class="landing-footer__col-title">Legal &amp; Policies</h4>
+          <a href="/privacy.html" class="landing-footer__link">Privacy Policy</a>
+          <a href="/terms.html" class="landing-footer__link">Terms of Service</a>
+          <a href="/delete-account.html" class="landing-footer__link">Account Deletion</a>
+        </div>
       </div>
-      <p class="landing-footer__copy">&copy; 2025 RxMonitor. All rights reserved.</p>
+      <p class="landing-footer__copy">&copy; 2026 UptimeBunny. All rights reserved.</p>
     </div>
   </footer>
 

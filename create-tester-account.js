@@ -2,7 +2,7 @@ import { getDb } from './database.js';
 import bcrypt from 'bcrypt';
 
 async function main() {
-  const email = 'playstore-tester@goroomz.in';
+  const email = 'playstore-tester@uptimebunny.com';
   const password = 'TestPassword123!';
 
   console.log(`🚀 Creating Play Store tester account: ${email}...`);

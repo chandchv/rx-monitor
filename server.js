@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import express from 'express';
+import rateLimit from 'express-rate-limit';
 import cors from 'cors';
 import path from 'path';
 import os from 'os';
@@ -153,6 +154,28 @@ async function checkMonitorOwnership(req, res, monitorId) {
 app.set('trust proxy', true); // Trust nginx reverse proxy for correct protocol detection
 app.use(cors());
 app.use(express.json());
+
+// Security headers middleware
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocations=()');
+  next();
+});
+
+// Authentication Rate Limiter (10 requests per 15 minutes per IP)
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: { error: 'Too many authentication attempts. Please try again in 15 minutes.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+app.use('/api/auth/', authLimiter);
+app.use('/api/login', authLimiter);
+
 app.use(authenticateToken);
 
 // --- Custom Domain Middleware & Cache ---

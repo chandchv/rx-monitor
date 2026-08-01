@@ -20,8 +20,8 @@ const RxHeader = (() => {
     <header class="app-header">
       <div class="logo-area">
         <a href="/dashboard" style="display:flex;align-items:center;gap:10px;text-decoration:none;">
-          <span class="logo-icon">📡</span>
-          <h1>RxMonitor</h1>
+          <img src="/assets/logo.png" alt="UptimeBunny" style="height:34px; width:auto; vertical-align:middle;">
+          <h1>UptimeBunny</h1>
         </a>
       </div>
 
@@ -124,8 +124,8 @@ const RxHeader = (() => {
     <div id="mobile-drawer" class="mobile-drawer" aria-hidden="true">
       <div class="mobile-drawer-header">
         <div class="logo-area" style="gap:8px;">
-          <span class="logo-icon" style="font-size:22px;">📡</span>
-          <span style="font-weight:700; font-size:18px;">RxMonitor</span>
+          <img src="/assets/logo.png" alt="UptimeBunny" style="height:26px; width:auto; vertical-align:middle;">
+          <span style="font-weight:700; font-size:18px;">UptimeBunny</span>
         </div>
         <button id="btn-drawer-close" class="btn btn-icon-round" aria-label="Close menu">✕</button>
       </div>

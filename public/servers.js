@@ -1,4 +1,4 @@
-// RxMonitor - Server Metrics Dashboard
+// UptimeBunny - Server Metrics Dashboard
 const API_URL = '';
 const token = localStorage.getItem('rx-monitor-token');
 

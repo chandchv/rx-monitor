@@ -609,7 +609,7 @@ async function startRazorpayUpgrade() {
         key: order.key,
         amount: order.amount,
         currency: order.currency,
-        name: 'RxMonitor Premium',
+        name: 'UptimeBunny Premium',
         description: 'Upgrade for unlimited server monitors',
         order_id: order.id,
         handler: async function (response) {

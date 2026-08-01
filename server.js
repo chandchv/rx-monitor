@@ -164,10 +164,10 @@ app.use((req, res, next) => {
   next();
 });
 
-// Authentication Rate Limiter (10 requests per 15 minutes per IP)
+// Authentication Rate Limiter (60 requests per 15 minutes per IP)
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 10,
+  max: 60,
   message: { error: 'Too many authentication attempts. Please try again in 15 minutes.' },
   standardHeaders: true,
   legacyHeaders: false,

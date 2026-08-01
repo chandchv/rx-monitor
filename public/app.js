@@ -314,10 +314,10 @@ async function handleGoogleCredentialResponse(response) {
       updateAuthUI();
       fetchMonitors();
     } else {
-      showToast(data.error || 'Google login failed.', 'error');
+      showToast(data.error || 'Google sign-in failed. Please try again.', 'error');
     }
   } catch (err) {
-    showToast('Network error during Google sign-in.', 'error');
+    showToast('Sign-in error: ' + (err.message || 'Please check your connection.'), 'error');
   }
 }
 

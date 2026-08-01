@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.rxdoctor.rxmonitor",
+      "sha256_cert_fingerprints": [
+        "10:B6:33:F3:33:C5:16:D7:98:97:DF:2A:42:01:A2:DB:B3:36:31:8B:D8:1A:1D:CE:9D:44:A2:3D:28:B6:58:69"
+      ]
+    }
+  }
+]

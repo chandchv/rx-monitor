@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UptimeBunny - Frequently Asked Questions &amp; How-To Guides</title>
+  <link rel="icon" type="image/png" href="/assets/favicon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-color: #0c0f1d;
+      --card-bg: #161b22;
+      --border-color: #30363d;
+      --text-color: #f0f6fc;
+      --text-muted: #8b949e;
+      --primary-color: #58a6ff;
+      --accent-color: #238636;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      font-family: 'Outfit', sans-serif;
+      line-height: 1.6;
+      padding: 40px 20px;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      background-color: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 40px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 36px;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 24px;
+    }
+
+    .logo-img {
+      height: 52px;
+      width: auto;
+      margin-bottom: 12px;
+    }
+
+    h1 {
+      font-size: 32px;
+      font-weight: 700;
+      color: var(--text-color);
+      margin-bottom: 8px;
+    }
+
+    .subtitle {
+      color: var(--text-muted);
+      font-size: 15px;
+    }
+
+    details {
+      background: #0d1117;
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 16px;
+      cursor: pointer;
+    }
+
+    summary {
+      font-size: 17px;
+      font-weight: 600;
+      color: var(--text-color);
+      list-style: none;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .faq-answer {
+      color: #c9d1d9;
+      font-size: 14px;
+      line-height: 1.7;
+      margin-top: 14px;
+      border-top: 1px solid var(--border-color);
+      padding-top: 12px;
+    }
+
+    code {
+      background: #161b22;
+      color: var(--primary-color);
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-family: monospace;
+      font-size: 13px;
+    }
+
+    .footer {
+      text-align: center;
+      margin-top: 40px;
+      border-top: 1px solid var(--border-color);
+      padding-top: 24px;
+      color: var(--text-muted);
+      font-size: 13px;
+    }
+
+    a {
+      color: var(--primary-color);
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <img src="/assets/logo.png" alt="UptimeBunny" class="logo-img">
+      <h1>Frequently Asked Questions &amp; Guides</h1>
+      <div class="subtitle">How-to guides for UptimeBunny website, API, SSL &amp; Linux server monitoring</div>
+    </div>
+
+    <!-- FAQ Item 1 -->
+    <details open>
+      <summary>
+        <span>❓ What is UptimeBunny and how does it work?</span>
+        <span style="color: var(--primary-color);">▼</span>
+      </summary>
+      <div class="faq-answer">
+        UptimeBunny is a 24/7 uptime monitoring platform for websites, web applications, APIs, SSL certificates, and Linux servers. It performs continuous automated HTTP/HTTPS pings and TCP port checks. When your website or server experiences downtime or high latency, UptimeBunny immediately alerts you via Push Notifications, Email, and Telegram.
+      </div>
+    </details>
+
+    <!-- FAQ Item 2 -->
+    <details>
+      <summary>
+        <span>🖥️ How do I install the Linux Server Agent (Nginx, PM2, Gunicorn, PostgreSQL)?</span>
+        <span style="color: var(--primary-color);">▼</span>
+      </summary>
+      <div class="faq-answer">
+        Open the UptimeBunny app or web dashboard, navigate to <strong>Servers</strong>, copy your single-command installer script, and run it on your Linux terminal (Ubuntu / Debian / CentOS / RHEL):<br><br>
+        <code>curl -sSL https://uptimebunny.com/install-agent.sh | bash -s -- --key YOUR_API_KEY --services nginx,apache2,pm2,gunicorn,postgres,mysql,redis</code><br><br>
+        The agent automatically detects active services, collects CPU %, RAM, Disk, Load averages, and streams service log histories to your dashboard every 60 seconds.
+      </div>
+    </details>
+
+    <!-- FAQ Item 3 -->
+    <details>
+      <summary>
+        <span>🎁 How do I redeem a Beta Access Code for 1 Year of Free Premium?</span>
+        <span style="color: var(--primary-color);">▼</span>
+      </summary>
+      <div class="faq-answer">
+        Open the UptimeBunny mobile app, go to <strong>Settings &gt; Manage Subscription</strong>, scroll down to <em>Redeem Beta Access Code</em>, enter promo code <code>BETA2026</code> or <code>UPTIMEBETA35</code>, and tap <strong>Redeem</strong>. Your account will instantly upgrade to Premium for 365 days.
+      </div>
+    </details>
+
+    <!-- FAQ Item 4 -->
+    <details>
+      <summary>
+        <span>🔒 How does SSL Certificate Monitoring work?</span>
+        <span style="color: var(--primary-color);">▼</span>
+      </summary>
+      <div class="faq-answer">
+        UptimeBunny automatically inspects the TLS/SSL certificate of every HTTPS monitor. It checks valid issuer credentials, expiration dates, and cipher protocols, sending warning alerts at 30 days, 15 days, and 1 day before expiration.
+      </div>
+    </details>
+
+    <!-- FAQ Item 5 -->
+    <details>
+      <summary>
+        <span>🔔 How do I configure Instant Telegram &amp; Email Outage Alerts?</span>
+        <span style="color: var(--primary-color);">▼</span>
+      </summary>
+      <div class="faq-answer">
+        Go to <strong>Alerting / Settings</strong> in your dashboard or app. Enter your email address or Telegram Chat ID. You will receive real-time notifications with downtime duration, diagnostic status codes, and recovery notifications as soon as your service comes back UP.
+      </div>
+    </details>
+
+    <!-- FAQ Item 6 -->
+    <details>
+      <summary>
+        <span>🗑️ How do I delete my account or monitor history?</span>
+        <span style="color: var(--primary-color);">▼</span>
+      </summary>
+      <div class="faq-answer">
+        You can purge your account and monitor history at any time from your account settings in the app or by visiting our <a href="/delete-account.html">Account Deletion Page</a>.
+      </div>
+    </details>
+
+    <div class="footer">
+      &copy; 2026 UptimeBunny. All rights reserved. | <a href="/privacy.html">Privacy Policy</a> | <a href="/terms.html">Terms of Service</a>
+    </div>
+  </div>
+</body>
+</html>

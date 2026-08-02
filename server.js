@@ -807,6 +807,69 @@ app.get('/api/auth/profile', requireAuth, async (req, res) => {
   }
 });
 
+// --- Promo Code Redemption API for Beta Testers ---
+app.post('/api/subscriptions/redeem', requireAuth, async (req, res) => {
+  const { code } = req.body;
+  if (!code || typeof code !== 'string') {
+    return res.status(400).json({ error: 'Promo code is required.' });
+  }
+
+  const cleanCode = code.trim().toUpperCase();
+
+  try {
+    const db = await getDb();
+    const promo = await db.get('SELECT * FROM promo_codes WHERE UPPER(code) = ?', [cleanCode]);
+
+    if (!promo) {
+      return res.status(404).json({ error: 'Invalid promo code. Please check and try again.' });
+    }
+
+    if (promo.current_uses >= promo.max_uses) {
+      return res.status(400).json({ error: `This promo code has reached its limit of ${promo.max_uses} redemptions.` });
+    }
+
+    // Check if user already redeemed this promo
+    const existingRedemption = await db.get(
+      'SELECT * FROM promo_redemptions WHERE user_id = ? AND promo_code_id = ?',
+      [req.user.id, promo.id]
+    );
+
+    if (existingRedemption) {
+      return res.status(400).json({ error: 'You have already redeemed this promo code.' });
+    }
+
+    // Calculate 1 year (365 days) expiration date
+    const expirationDate = new Date();
+    expirationDate.setDate(expirationDate.getDate() + (promo.duration_days || 365));
+    const trialEndsAt = expirationDate.toISOString();
+
+    // Upgrade user to premium
+    await db.run(
+      "UPDATE users SET subscription_tier = 'premium', trial_ends_at = ? WHERE id = ?",
+      [trialEndsAt, req.user.id]
+    );
+
+    // Increment current_uses
+    await db.run('UPDATE promo_codes SET current_uses = current_uses + 1 WHERE id = ?', [promo.id]);
+
+    // Record redemption
+    await db.run(
+      'INSERT INTO promo_redemptions (user_id, promo_code_id, redeemed_at) VALUES (?, ?, ?)',
+      [req.user.id, promo.id, new Date().toISOString()]
+    );
+
+    res.json({
+      success: true,
+      message: `🎉 Success! Code '${cleanCode}' redeemed! You now have 1 year of Premium access.`,
+      tier: 'premium',
+      expires_at: trialEndsAt,
+      remaining_uses: promo.max_uses - (promo.current_uses + 1)
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.post('/api/auth/change-password', requireAuth, async (req, res) => {
   const { currentPassword, newPassword } = req.body;
   if (!currentPassword || !newPassword) {

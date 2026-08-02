@@ -898,6 +898,153 @@ app.post('/api/auth/change-password', requireAuth, async (req, res) => {
   }
 });
 
+// --- Server Metrics & Agent APIs ---
+
+const serverAgentStore = new Map();
+
+app.post('/api/agent/metrics', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization || '';
+    const token = authHeader.replace(/^Bearer\s+/i, '').trim();
+
+    const db = await getDb();
+    let userId = null;
+
+    if (token) {
+      const apiKey = await db.get('SELECT user_id FROM api_keys WHERE key_hash = ? OR key_prefix = ?', [token, token]);
+      if (apiKey) {
+        userId = apiKey.user_id;
+      } else {
+        try {
+          const decoded = jwt.verify(token, JWT_SECRET);
+          userId = decoded.id;
+        } catch (_) {}
+      }
+    }
+
+    if (!userId) {
+      const firstUser = await db.get("SELECT id FROM users ORDER BY id ASC LIMIT 1");
+      userId = firstUser ? firstUser.id : 1;
+    }
+
+    const {
+      hostname,
+      cpu,
+      memory,
+      memory_used_mb,
+      memory_total_mb,
+      disk,
+      disk_used_gb,
+      disk_total_gb,
+      load,
+      load_5m,
+      load_15m,
+      network_rx,
+      network_tx,
+      services,
+      custom_services
+    } = req.body;
+
+    const serverKey = `${userId}:${hostname || 'unknown-host'}`;
+    const now = new Date().toISOString();
+
+    const metricPayload = {
+      user_id: userId,
+      hostname: hostname || 'Linux Server',
+      ip_address: req.ip || req.headers['x-forwarded-for'] || '',
+      cpu_percent: parseFloat(cpu) || 0,
+      memory_percent: parseFloat(memory) || 0,
+      memory_used_mb: memory_used_mb || 0,
+      memory_total_mb: memory_total_mb || 0,
+      disk_percent: parseFloat(disk) || 0,
+      disk_used_gb: disk_used_gb || 0,
+      disk_total_gb: disk_total_gb || 0,
+      load_avg_1m: parseFloat(load) || 0,
+      load_avg_5m: parseFloat(load_5m) || 0,
+      load_avg_15m: parseFloat(load_15m) || 0,
+      network_rx_mb: parseFloat(network_rx) || 0,
+      network_tx_mb: parseFloat(network_tx) || 0,
+      services: services || [],
+      custom_services: custom_services || {},
+      last_seen: now
+    };
+
+    serverAgentStore.set(serverKey, metricPayload);
+
+    await db.run(
+      `INSERT INTO server_metrics (user_id, hostname, cpu_percent, memory_percent, disk_percent, collected_at)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [userId, hostname || 'Linux Server', parseFloat(cpu) || 0, parseFloat(memory) || 0, parseFloat(disk) || 0, now]
+    ).catch(() => {});
+
+    res.json({ success: true, message: 'Metrics received.' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/server-metrics', requireAuth, async (req, res) => {
+  try {
+    const userServers = [];
+    const now = Date.now();
+
+    for (const [key, payload] of serverAgentStore.entries()) {
+      if (payload.user_id === req.user.id) {
+        const lastSeenMs = new Date(payload.last_seen).getTime();
+        if (now - lastSeenMs < 10 * 60 * 1000) {
+          userServers.push(payload);
+        }
+      }
+    }
+
+    res.json({ servers: userServers });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/user/api-keys', requireAuth, async (req, res) => {
+  try {
+    const db = await getDb();
+    let keys = await db.all('SELECT * FROM api_keys WHERE user_id = ? AND is_active = 1', [req.user.id]);
+
+    if (keys.length === 0) {
+      const prefix = 'rxm_live_' + Math.random().toString(36).substring(2, 10);
+      const result = await db.run(
+        `INSERT INTO api_keys (user_id, key_hash, key_prefix, label, created_at, is_active)
+         VALUES (?, ?, ?, ?, ?, 1)`,
+        [req.user.id, prefix, prefix, 'Default Server Agent Key', new Date().toISOString()]
+      );
+      keys = [{ id: result.lastID, key_prefix: prefix, label: 'Default Server Agent Key', created_at: new Date().toISOString() }];
+    }
+
+    res.json({ keys: keys.map(k => ({ id: k.id, key: k.key_prefix || k.key_hash, label: k.label, created_at: k.created_at })) });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/keys', requireAuth, async (req, res) => {
+  try {
+    const db = await getDb();
+    let keys = await db.all('SELECT * FROM api_keys WHERE user_id = ? AND is_active = 1', [req.user.id]);
+
+    if (keys.length === 0) {
+      const prefix = 'rxm_live_' + Math.random().toString(36).substring(2, 10);
+      const result = await db.run(
+        `INSERT INTO api_keys (user_id, key_hash, key_prefix, label, created_at, is_active)
+         VALUES (?, ?, ?, ?, ?, 1)`,
+        [req.user.id, prefix, prefix, 'Default Server Agent Key', new Date().toISOString()]
+      );
+      keys = [{ id: result.lastID, key_prefix: prefix, label: 'Default Server Agent Key', created_at: new Date().toISOString() }];
+    }
+
+    res.json(keys.map(k => ({ id: k.id, key_prefix: k.key_prefix || k.key_hash, label: k.label, created_at: k.created_at })));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.post('/api/auth/resend-verification', requireAuth, async (req, res) => {
   try {
     const db = await getDb();

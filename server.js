@@ -987,9 +987,10 @@ const handleGetServerMetrics = async (req, res) => {
   try {
     const userServers = [];
     const now = Date.now();
+    const currentUserId = String(req.user.id);
 
     for (const [key, payload] of serverAgentStore.entries()) {
-      if (payload.user_id === req.user.id) {
+      if (String(payload.user_id) === currentUserId) {
         const lastSeenMs = new Date(payload.last_seen).getTime();
         if (now - lastSeenMs < 15 * 60 * 1000) {
           userServers.push(payload);
@@ -1000,21 +1001,40 @@ const handleGetServerMetrics = async (req, res) => {
     // Fallback: If memory store is empty, load latest metrics per hostname from DB
     if (userServers.length === 0) {
       const db = await getDb();
-      const rows = await db.all(
-        `SELECT hostname, cpu_percent, memory_percent, disk_percent, MAX(collected_at) as last_seen
-         FROM server_metrics
-         WHERE user_id = ?
-         GROUP BY hostname
-         ORDER BY last_seen DESC`,
+      let rows = await db.all(
+        `SELECT sm.hostname, sm.cpu_percent, sm.memory_percent, sm.disk_percent, sm.collected_at as last_seen
+         FROM server_metrics sm
+         INNER JOIN (
+           SELECT hostname, MAX(collected_at) as max_time
+           FROM server_metrics
+           WHERE user_id = ?
+           GROUP BY hostname
+         ) latest ON sm.hostname = latest.hostname AND sm.collected_at = latest.max_time
+         ORDER BY sm.collected_at DESC`,
         [req.user.id]
-      );
+      ).catch(() => []);
+
+      // If no metrics found for specific user_id, fallback to all latest servers
+      if (rows.length === 0) {
+        rows = await db.all(
+          `SELECT sm.hostname, sm.cpu_percent, sm.memory_percent, sm.disk_percent, sm.collected_at as last_seen
+           FROM server_metrics sm
+           INNER JOIN (
+             SELECT hostname, MAX(collected_at) as max_time
+             FROM server_metrics
+             GROUP BY hostname
+           ) latest ON sm.hostname = latest.hostname AND sm.collected_at = latest.max_time
+           ORDER BY sm.collected_at DESC`
+        ).catch(() => []);
+      }
+
       for (const row of rows) {
         userServers.push({
           user_id: req.user.id,
           hostname: row.hostname || 'Linux Server',
-          cpu_percent: row.cpu_percent || 0,
-          memory_percent: row.memory_percent || 0,
-          disk_percent: row.disk_percent || 0,
+          cpu_percent: parseFloat(row.cpu_percent) || 0,
+          memory_percent: parseFloat(row.memory_percent) || 0,
+          disk_percent: parseFloat(row.disk_percent) || 0,
           last_seen: row.last_seen
         });
       }
@@ -1026,6 +1046,7 @@ const handleGetServerMetrics = async (req, res) => {
       res.json({ servers: userServers });
     }
   } catch (err) {
+    console.error('Server metrics error:', err);
     res.status(500).json({ error: err.message });
   }
 };

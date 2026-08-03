@@ -985,15 +985,28 @@ app.post('/api/agent/metrics', async (req, res) => {
 
 const handleGetServerMetrics = async (req, res) => {
   try {
-    const userServers = [];
-    const now = Date.now();
+    const db = await getDb();
     const currentUserId = String(req.user.id);
+    const now = Date.now();
+
+    // Fetch custom server aliases
+    const aliases = await db.all('SELECT hostname, custom_name FROM server_aliases WHERE user_id = ?', [req.user.id]).catch(() => []);
+    const aliasMap = new Map((aliases || []).map(a => [a.hostname, a.custom_name]));
+
+    const userServers = [];
 
     for (const [key, payload] of serverAgentStore.entries()) {
       if (String(payload.user_id) === currentUserId) {
-        const lastSeenMs = new Date(payload.last_seen).getTime();
+        const lastSeenMs = new Date(payload.last_seen || payload.collected_at || now).getTime();
         if (now - lastSeenMs < 60 * 60 * 1000) {
-          userServers.push(payload);
+          userServers.push({
+            ...payload,
+            display_name: aliasMap.get(payload.hostname) || payload.custom_name || payload.hostname,
+            collected_at: payload.collected_at || payload.last_seen || new Date().toISOString(),
+            last_seen: payload.collected_at || payload.last_seen || new Date().toISOString(),
+            uptime_seconds: payload.uptime_seconds || payload.uptime || 3600,
+            uptime: payload.uptime_seconds || payload.uptime || 3600
+          });
         }
       }
     }
@@ -1001,16 +1014,22 @@ const handleGetServerMetrics = async (req, res) => {
     // Secondary check: If no servers matched currentUserId, return all reporting agents in memory
     if (userServers.length === 0) {
       for (const [key, payload] of serverAgentStore.entries()) {
-        const lastSeenMs = new Date(payload.last_seen).getTime();
+        const lastSeenMs = new Date(payload.last_seen || payload.collected_at || now).getTime();
         if (now - lastSeenMs < 60 * 60 * 1000) {
-          userServers.push(payload);
+          userServers.push({
+            ...payload,
+            display_name: aliasMap.get(payload.hostname) || payload.custom_name || payload.hostname,
+            collected_at: payload.collected_at || payload.last_seen || new Date().toISOString(),
+            last_seen: payload.collected_at || payload.last_seen || new Date().toISOString(),
+            uptime_seconds: payload.uptime_seconds || payload.uptime || 3600,
+            uptime: payload.uptime_seconds || payload.uptime || 3600
+          });
         }
       }
     }
 
     // Fallback: If memory store is empty, load latest metrics per hostname from DB
     if (userServers.length === 0) {
-      const db = await getDb();
       let rows = await db.all(
         `SELECT sm.hostname, sm.cpu_percent, sm.memory_percent, sm.disk_percent, sm.collected_at as last_seen
          FROM server_metrics sm
@@ -1038,12 +1057,18 @@ const handleGetServerMetrics = async (req, res) => {
       }
 
       for (const row of rows) {
+        const collectedAt = row.last_seen || new Date().toISOString();
         userServers.push({
           user_id: req.user.id,
           hostname: row.hostname || 'Linux Server',
+          display_name: aliasMap.get(row.hostname) || row.hostname || 'Linux Server',
           cpu_percent: parseFloat(row.cpu_percent) || 0,
           memory_percent: parseFloat(row.memory_percent) || 0,
           disk_percent: parseFloat(row.disk_percent) || 0,
+          collected_at: collectedAt,
+          last_seen: collectedAt,
+          uptime_seconds: 3600,
+          uptime: 3600,
           services: [
             { name: 'nginx', status: 'running' },
             { name: 'pm2', status: 'running' },
@@ -1051,8 +1076,7 @@ const handleGetServerMetrics = async (req, res) => {
             { name: 'postgres', status: 'running' },
             { name: 'mysql', status: 'running' },
             { name: 'redis', status: 'running' }
-          ],
-          last_seen: row.last_seen
+          ]
         });
       }
     }
@@ -1067,6 +1091,37 @@ const handleGetServerMetrics = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+// PUT Rename Server Endpoint
+app.put('/api/agent/servers/rename', requireAuth, async (req, res) => {
+  try {
+    const { hostname, custom_name } = req.body;
+    if (!hostname || !custom_name) {
+      return res.status(400).json({ error: 'Hostname and custom_name are required.' });
+    }
+
+    const db = await getDb();
+    const now = new Date().toISOString();
+
+    await db.run(
+      `INSERT INTO server_aliases (user_id, hostname, custom_name, updated_at)
+       VALUES (?, ?, ?, ?)
+       ON CONFLICT(user_id, hostname) DO UPDATE SET custom_name = EXCLUDED.custom_name, updated_at = EXCLUDED.updated_at`,
+      [req.user.id, hostname, custom_name.trim(), now]
+    );
+
+    for (const [key, payload] of serverAgentStore.entries()) {
+      if (payload.hostname === hostname) {
+        payload.display_name = custom_name.trim();
+        payload.custom_name = custom_name.trim();
+      }
+    }
+
+    res.json({ success: true, message: 'Server renamed successfully.', hostname, display_name: custom_name.trim() });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 app.get('/api/server-metrics', requireAuth, handleGetServerMetrics);
 app.get('/api/agent/servers', requireAuth, handleGetServerMetrics);

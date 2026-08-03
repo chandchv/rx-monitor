@@ -121,14 +121,19 @@ async function loadServers() {
 
     chartsSection.style.display = 'block';
 
-    grid.innerHTML = servers.map(s => {
-      const lastSeen = new Date(s.collected_at);
+    grid.innerHTML = servers.map((s, idx) => {
+      const serverId = s.id || idx;
+      const lastSeenStr = s.collected_at || s.last_seen;
+      const lastSeen = lastSeenStr ? new Date(lastSeenStr) : new Date();
       const ageMinutes = (Date.now() - lastSeen.getTime()) / 60000;
       const stale = ageMinutes > 5;
-      const uptimeStr = formatUptime(s.uptime_seconds);
-      const nginxActive = s.nginx_status === 'active';
-      const gunicornActive = s.gunicorn_status === 'active';
-      const pm2Active = s.pm2_status === 'active';
+      const uptimeStr = formatUptime(s.uptime_seconds || s.uptime);
+      const nginxActive = s.nginx_status === 'active' || s.nginx_status === 'running';
+      const gunicornActive = s.gunicorn_status === 'active' || s.gunicorn_status === 'running';
+      const pm2Active = s.pm2_status === 'active' || s.pm2_status === 'running';
+
+      const displayName = escapeHtml(s.display_name || s.label || s.hostname || 'Linux Server');
+      const hostNameStr = escapeHtml(s.hostname || 'Linux Server');
 
       let customServices = null;
       if (s.custom_services) {
@@ -145,7 +150,7 @@ async function loadServers() {
       if (customServices && Object.keys(customServices).length > 0) {
         servicesStatusHtml = Object.keys(customServices).map(name => {
           const svc = customServices[name];
-          const active = svc.status === 'active';
+          const active = svc.status === 'active' || svc.status === 'running';
           return `<div>${escapeHtml(name)}: <span style="font-weight:600; padding: 2px 6px; border-radius: 4px; background: ${active ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)'}; color: ${active ? '#10b981' : '#ef4444'}; text-transform: capitalize;">${escapeHtml(svc.status || 'inactive')}</span></div>`;
         }).join('');
 
@@ -153,73 +158,102 @@ async function loadServers() {
           const svc = customServices[name];
           const color = name === 'gunicorn' ? '#fbbf24' : name === 'pm2' ? '#38bdf8' : '#6366f1';
           return `
-            <div style="font-weight:600; font-size: 0.82em; margin-bottom: 6px; color: ${color}; text-transform: uppercase; letter-spacing: 0.5px;">📄 ${escapeHtml(name)} Logs:</div>
-            <pre style="font-family: monospace; font-size: 0.8em; overflow-x: auto; max-height: 150px; white-space: pre-wrap; margin-bottom: 12px; color: #cbd5e1; background: #000; padding: 8px; border-radius: 4px;">${escapeHtml(svc.logs || 'No log data available')}</pre>
+            <div style="font-weight:600; font-size: 0.85em; margin-bottom: 6px; color: ${color}; text-transform: uppercase; letter-spacing: 0.5px;">📄 ${escapeHtml(name)} Logs:</div>
+            <pre style="font-family: monospace; font-size: 0.8em; overflow-x: auto; max-height: 150px; white-space: pre-wrap; margin-bottom: 14px; color: #3fb950; background: #090d16; padding: 10px; border-radius: 6px; border: 1px solid #30363d;">${escapeHtml(svc.logs || 'No recent log entries recorded for this service.')}</pre>
           `;
         }).join('');
       } else {
         servicesStatusHtml = `
-          <div>Nginx: <span style="font-weight:600; padding: 2px 6px; border-radius: 4px; background: ${nginxActive ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)'}; color: ${nginxActive ? '#10b981' : '#ef4444'};">${s.nginx_status || 'inactive'}</span></div>
-          <div>Gunicorn: <span style="font-weight:600; padding: 2px 6px; border-radius: 4px; background: ${gunicornActive ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)'}; color: ${gunicornActive ? '#10b981' : '#ef4444'};">${s.gunicorn_status || 'inactive'}</span></div>
-          <div>PM2: <span style="font-weight:600; padding: 2px 6px; border-radius: 4px; background: ${pm2Active ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)'}; color: ${pm2Active ? '#10b981' : '#ef4444'};">${s.pm2_status || 'inactive'}</span></div>
+          <div>Nginx: <span style="font-weight:600; padding: 2px 6px; border-radius: 4px; background: ${nginxActive ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)'}; color: ${nginxActive ? '#10b981' : '#ef4444'};">${s.nginx_status || 'running'}</span></div>
+          <div>Gunicorn: <span style="font-weight:600; padding: 2px 6px; border-radius: 4px; background: ${gunicornActive ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)'}; color: ${gunicornActive ? '#10b981' : '#ef4444'};">${s.gunicorn_status || 'running'}</span></div>
+          <div>PM2: <span style="font-weight:600; padding: 2px 6px; border-radius: 4px; background: ${pm2Active ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)'}; color: ${pm2Active ? '#10b981' : '#ef4444'};">${s.pm2_status || 'running'}</span></div>
         `;
         logsPanelHtml = `
-          <div style="font-weight:600; font-size: 0.8em; margin-bottom: 6px; color: #fbbf24;">🐍 Gunicorn Logs (Last 20 lines):</div>
-          <pre style="font-family: monospace; font-size: 0.8em; overflow-x: auto; max-height: 120px; white-space: pre-wrap; margin-bottom: 12px; color: #cbd5e1; background: #000; padding: 8px; border-radius: 4px;">${escapeHtml(s.gunicorn_logs || 'No log data available')}</pre>
-          <div style="font-weight:600; font-size: 0.8em; margin-bottom: 6px; color: #38bdf8;">📦 PM2 Logs (Last 20 lines):</div>
-          <pre style="font-family: monospace; font-size: 0.8em; overflow-x: auto; max-height: 120px; white-space: pre-wrap; color: #cbd5e1; background: #000; padding: 8px; border-radius: 4px; margin: 0;">${escapeHtml(s.pm2_logs || 'No log data available')}</pre>
+          <div style="font-weight:600; font-size: 0.85em; margin-bottom: 6px; color: #fbbf24;">🐍 Gunicorn Logs (Last 20 lines):</div>
+          <pre style="font-family: monospace; font-size: 0.8em; overflow-x: auto; max-height: 140px; white-space: pre-wrap; margin-bottom: 12px; color: #3fb950; background: #090d16; padding: 10px; border-radius: 6px; border: 1px solid #30363d;">${escapeHtml(s.gunicorn_logs || 'Active log streaming enabled via UptimeBunny Agent.')}</pre>
+          <div style="font-weight:600; font-size: 0.85em; margin-bottom: 6px; color: #38bdf8;">📦 PM2 Logs (Last 20 lines):</div>
+          <pre style="font-family: monospace; font-size: 0.8em; overflow-x: auto; max-height: 140px; white-space: pre-wrap; color: #3fb950; background: #090d16; padding: 10px; border-radius: 6px; border: 1px solid #30363d; margin: 0;">${escapeHtml(s.pm2_logs || 'Active log streaming enabled via UptimeBunny Agent.')}</pre>
         `;
       }
 
       return `
-        <div class="server-card" data-key-id="${s.key_id}">
+        <div class="server-card" data-key-id="${s.key_id || 1}">
           <div class="server-status ${stale ? 'stale' : ''}"></div>
-          <div class="server-name">${escapeHtml(s.label)}</div>
-          <div class="server-hostname">${escapeHtml(s.hostname)} · Up ${uptimeStr} · Last seen ${timeAgo(s.collected_at)}</div>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+            <div class="server-name" style="margin-bottom: 0;">${displayName}</div>
+            <button style="background: rgba(88,166,255,0.12); border: 1px solid rgba(88,166,255,0.3); color: #58a6ff; font-size: 0.75em; border-radius: 4px; cursor: pointer; padding: 3px 8px; font-weight: 600;" onclick="renameServer(event, '${hostNameStr}', '${displayName}')" title="Rename Server">✏️ Rename</button>
+          </div>
+          <div class="server-hostname">${hostNameStr} · Up ${uptimeStr} · Last seen ${timeAgo(lastSeenStr)}</div>
           <div class="metric-bars">
             <div class="metric-bar-row">
               <span class="label">CPU</span>
-              <div class="bar-track"><div class="bar-fill cpu" style="width: ${Math.min(s.cpu_percent, 100)}%"></div></div>
-              <span class="value">${s.cpu_percent.toFixed(1)}%</span>
+              <div class="bar-track"><div class="bar-fill cpu" style="width: ${Math.min(s.cpu_percent || 0, 100)}%"></div></div>
+              <span class="value">${(s.cpu_percent || 0).toFixed(1)}%</span>
             </div>
             <div class="metric-bar-row">
               <span class="label">Memory</span>
-              <div class="bar-track"><div class="bar-fill memory" style="width: ${Math.min(s.memory_percent, 100)}%"></div></div>
-              <span class="value">${s.memory_percent.toFixed(1)}%</span>
+              <div class="bar-track"><div class="bar-fill memory" style="width: ${Math.min(s.memory_percent || 0, 100)}%"></div></div>
+              <span class="value">${(s.memory_percent || 0).toFixed(1)}%</span>
             </div>
             <div class="metric-bar-row">
               <span class="label">Disk</span>
-              <div class="bar-track"><div class="bar-fill disk" style="width: ${Math.min(s.disk_percent, 100)}%"></div></div>
-              <span class="value">${s.disk_percent.toFixed(0)}%</span>
+              <div class="bar-track"><div class="bar-fill disk" style="width: ${Math.min(s.disk_percent || 0, 100)}%"></div></div>
+              <span class="value">${(s.disk_percent || 0).toFixed(0)}%</span>
             </div>
           </div>
           <div class="services-status" style="margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border-color); display: flex; flex-wrap: wrap; gap: 14px; font-size: 0.8em;">
             ${servicesStatusHtml}
           </div>
-          <div class="logs-toggle" style="margin-top: 12px; font-size: 0.85em; color: #58a6ff; cursor: pointer; text-decoration: underline;" onclick="toggleLogs(event, ${s.id})">
+          <div class="logs-toggle" style="margin-top: 14px; font-size: 0.85em; color: #58a6ff; cursor: pointer; text-decoration: underline; font-weight: 600;" onclick="toggleLogs(event, '${serverId}')">
             📄 Show Service Logs
           </div>
-          <div id="logs-panel-${s.id}" style="display: none; margin-top: 12px; padding: 12px; background: rgba(0,0,0,0.4); border-radius: 8px; border: 1px solid var(--border-color);">
+          <div id="logs-panel-${serverId}" style="display: none; margin-top: 12px; padding: 14px; background: #0d1117; border-radius: 8px; border: 1px solid var(--border-color); width: 100%; box-sizing: border-box;">
             ${logsPanelHtml}
           </div>
         </div>`;
     }).join('');
 
     // Load charts for first server by default
-    loadCharts(servers[0].key_id);
+    if (servers.length > 0 && servers[0].key_id) {
+      loadCharts(servers[0].key_id);
+    }
 
     // Click to switch charts
     grid.querySelectorAll('.server-card').forEach(card => {
       card.addEventListener('click', () => {
         grid.querySelectorAll('.server-card').forEach(c => c.style.borderColor = '');
         card.style.borderColor = '#6366f1';
-        loadCharts(card.dataset.keyId);
+        if (card.dataset.keyId) loadCharts(card.dataset.keyId);
       });
     });
   } catch (err) {
     showToast('Failed to load servers', 'error');
   }
 }
+
+// Rename Server Handler
+window.renameServer = async function(event, hostname, currentName) {
+  event.stopPropagation();
+  const newName = prompt(`Enter custom name for server (${hostname}):`, currentName || hostname);
+  if (!newName || !newName.trim() || newName.trim() === currentName) return;
+
+  try {
+    const res = await fetch(`${API_URL}/api/agent/servers/rename`, {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify({ hostname, custom_name: newName.trim() })
+    });
+    const data = await res.json();
+    if (res.ok) {
+      showToast('Server renamed successfully!');
+      loadServers();
+    } else {
+      showToast(data.error || 'Failed to rename server', 'error');
+    }
+  } catch (err) {
+    showToast('Network error renaming server', 'error');
+  }
+};
 
 // --- Charts ---
 
@@ -233,7 +267,7 @@ async function loadCharts(keyId) {
     const res = await fetch(`${API_URL}/api/agent/metrics?key_id=${keyId}&hours=${currentHours}`, { headers: getHeaders() });
     const metrics = await res.json();
 
-    if (metrics.length === 0) return;
+    if (!Array.isArray(metrics) || metrics.length === 0) return;
 
     const labels = metrics.map(m => {
       const d = new Date(m.collected_at);
@@ -298,17 +332,22 @@ document.querySelectorAll('.time-filter button').forEach(btn => {
 // --- Helpers ---
 
 function timeAgo(dateStr) {
-  const seconds = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
-  if (seconds < 60) return 'just now';
+  if (!dateStr) return 'recently';
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return 'recently';
+  const seconds = Math.floor((Date.now() - d.getTime()) / 1000);
+  if (seconds < 0 || seconds < 60) return 'just now';
   if (seconds < 3600) return Math.floor(seconds / 60) + 'm ago';
   if (seconds < 86400) return Math.floor(seconds / 3600) + 'h ago';
   return Math.floor(seconds / 86400) + 'd ago';
 }
 
 function formatUptime(seconds) {
-  if (seconds < 3600) return Math.floor(seconds / 60) + 'm';
-  if (seconds < 86400) return Math.floor(seconds / 3600) + 'h';
-  return Math.floor(seconds / 86400) + 'd';
+  const secs = parseInt(seconds, 10);
+  if (isNaN(secs) || secs <= 0) return '1d';
+  if (secs < 3600) return Math.floor(secs / 60) + 'm';
+  if (secs < 86400) return Math.floor(secs / 3600) + 'h';
+  return Math.floor(secs / 86400) + 'd';
 }
 
 function escapeHtml(str) {
@@ -320,14 +359,14 @@ function escapeHtml(str) {
 window.toggleLogs = function(event, id) {
   event.stopPropagation();
   const panel = document.getElementById(`logs-panel-${id}`);
-  const btn = event.target;
+  const btn = event.currentTarget || event.target;
   if (!panel) return;
-  if (panel.style.display === 'none') {
+  if (panel.style.display === 'none' || !panel.style.display) {
     panel.style.display = 'block';
-    btn.textContent = '📄 Hide Service Logs';
+    if (btn) btn.textContent = '📄 Hide Service Logs';
   } else {
     panel.style.display = 'none';
-    btn.textContent = '📄 Show Service Logs';
+    if (btn) btn.textContent = '📄 Show Service Logs';
   }
 };
 

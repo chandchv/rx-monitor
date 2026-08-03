@@ -989,8 +989,20 @@ const handleGetServerMetrics = async (req, res) => {
     const currentUserId = String(req.user.id);
     const now = Date.now();
 
-    // Fetch custom server aliases
-    const aliases = await db.all('SELECT hostname, custom_name FROM server_aliases WHERE user_id = ?', [req.user.id]).catch(() => []);
+    // Fetch custom server aliases safely
+    const aliases = await db.all('SELECT hostname, custom_name FROM server_aliases WHERE user_id = ?', [req.user.id]).catch(async () => {
+      await db.exec(`
+        CREATE TABLE IF NOT EXISTS server_aliases (
+          id SERIAL PRIMARY KEY,
+          user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+          hostname TEXT NOT NULL,
+          custom_name TEXT NOT NULL,
+          updated_at TEXT,
+          CONSTRAINT unique_user_hostname UNIQUE (user_id, hostname)
+        );
+      `).catch(() => {});
+      return [];
+    });
     const aliasMap = new Map((aliases || []).map(a => [a.hostname, a.custom_name]));
 
     const userServers = [];
@@ -1101,12 +1113,25 @@ app.put('/api/agent/servers/rename', requireAuth, async (req, res) => {
     }
 
     const db = await getDb();
+
+    // Ensure server_aliases table exists on Postgres / SQLite
+    await db.exec(`
+      CREATE TABLE IF NOT EXISTS server_aliases (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        hostname TEXT NOT NULL,
+        custom_name TEXT NOT NULL,
+        updated_at TEXT,
+        CONSTRAINT unique_user_hostname UNIQUE (user_id, hostname)
+      );
+    `).catch(() => {});
+
     const now = new Date().toISOString();
 
     await db.run(
       `INSERT INTO server_aliases (user_id, hostname, custom_name, updated_at)
        VALUES (?, ?, ?, ?)
-       ON CONFLICT(user_id, hostname) DO UPDATE SET custom_name = EXCLUDED.custom_name, updated_at = EXCLUDED.updated_at`,
+       ON CONFLICT (user_id, hostname) DO UPDATE SET custom_name = EXCLUDED.custom_name, updated_at = EXCLUDED.updated_at`,
       [req.user.id, hostname, custom_name.trim(), now]
     );
 
@@ -1119,6 +1144,7 @@ app.put('/api/agent/servers/rename', requireAuth, async (req, res) => {
 
     res.json({ success: true, message: 'Server renamed successfully.', hostname, display_name: custom_name.trim() });
   } catch (err) {
+    console.error('Rename server error:', err);
     res.status(500).json({ error: err.message });
   }
 });

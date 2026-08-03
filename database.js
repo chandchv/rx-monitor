@@ -324,6 +324,15 @@ async function initSchema() {
       collected_at TEXT
     );
 
+    CREATE TABLE IF NOT EXISTS server_aliases (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+      hostname TEXT NOT NULL,
+      custom_name TEXT NOT NULL,
+      updated_at TEXT,
+      CONSTRAINT unique_user_hostname UNIQUE (user_id, hostname)
+    );
+
     CREATE TABLE IF NOT EXISTS synthetic_transactions (
       id SERIAL PRIMARY KEY,
       monitor_id INTEGER REFERENCES monitors(id) ON DELETE CASCADE,

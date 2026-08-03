@@ -220,7 +220,7 @@ async function loadServers() {
           <div class="server-status ${stale ? 'stale' : ''}"></div>
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
             <div class="server-name" style="margin-bottom: 0;">${displayName}</div>
-            <button style="background: rgba(88,166,255,0.12); border: 1px solid rgba(88,166,255,0.3); color: #58a6ff; font-size: 0.75em; border-radius: 4px; cursor: pointer; padding: 3px 8px; font-weight: 600;" onclick="renameServer(event, '${hostNameStr}', '${displayName}')" title="Rename Server">✏️ Rename</button>
+            <button class="btn-rename-server" data-hostname="${hostNameStr}" data-display-name="${displayName}">✏️ Rename</button>
           </div>
           <div class="server-hostname">${hostNameStr} · Up ${uptimeStr} · Last seen ${timeAgo(lastSeenStr)}</div>
           <div class="metric-bars">
@@ -252,6 +252,16 @@ async function loadServers() {
         </div>`;
     }).join('');
 
+    // Attach Rename Button Listeners
+    grid.querySelectorAll('.btn-rename-server').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const hostname = btn.dataset.hostname;
+        const currentName = btn.dataset.displayName;
+        openRenameModal(hostname, currentName);
+      });
+    });
+
     // Load charts for first server by default
     if (servers.length > 0 && servers[0].key_id) {
       loadCharts(servers[0].key_id);
@@ -270,29 +280,48 @@ async function loadServers() {
   }
 }
 
-// Rename Server Handler
-window.renameServer = async function(event, hostname, currentName) {
-  event.stopPropagation();
-  const newName = prompt(`Enter custom name for server (${hostname}):`, currentName || hostname);
-  if (!newName || !newName.trim() || newName.trim() === currentName) return;
+// Rename Server Modal Handlers
+let currentRenameHost = '';
 
-  try {
-    const res = await fetch(`${API_URL}/api/agent/servers/rename`, {
-      method: 'PUT',
-      headers: getHeaders(),
-      body: JSON.stringify({ hostname, custom_name: newName.trim() })
-    });
-    const data = await res.json();
-    if (res.ok) {
-      showToast('Server renamed successfully!');
-      loadServers();
-    } else {
-      showToast(data.error || 'Failed to rename server', 'error');
+function openRenameModal(hostname, currentName) {
+  currentRenameHost = hostname;
+  document.getElementById('rename-target-host').textContent = hostname;
+  document.getElementById('rename-input').value = currentName || hostname;
+  document.getElementById('rename-modal').style.display = 'flex';
+}
+
+const cancelRenameBtn = document.getElementById('btn-cancel-rename');
+if (cancelRenameBtn) {
+  cancelRenameBtn.addEventListener('click', () => {
+    document.getElementById('rename-modal').style.display = 'none';
+  });
+}
+
+const saveRenameBtn = document.getElementById('btn-save-rename');
+if (saveRenameBtn) {
+  saveRenameBtn.addEventListener('click', async () => {
+    const newName = document.getElementById('rename-input').value.trim();
+    if (!newName || !currentRenameHost) return;
+
+    try {
+      const res = await fetch(`${API_URL}/api/agent/servers/rename`, {
+        method: 'PUT',
+        headers: getHeaders(),
+        body: JSON.stringify({ hostname: currentRenameHost, custom_name: newName })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        document.getElementById('rename-modal').style.display = 'none';
+        showToast('Server renamed successfully!');
+        loadServers();
+      } else {
+        showToast(data.error || 'Failed to rename server', 'error');
+      }
+    } catch (err) {
+      showToast('Network error renaming server', 'error');
     }
-  } catch (err) {
-    showToast('Network error renaming server', 'error');
-  }
-};
+  });
+}
 
 // --- Charts ---
 

@@ -228,6 +228,20 @@
       border-color: #6366f1;
       color: white;
     }
+    .btn-rename-server {
+      background: rgba(88, 166, 255, 0.12);
+      border: 1px solid rgba(88, 166, 255, 0.3);
+      color: #58a6ff;
+      font-size: 0.78em;
+      border-radius: 6px;
+      cursor: pointer;
+      padding: 4px 10px;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .btn-rename-server:hover {
+      background: rgba(88, 166, 255, 0.25);
+    }
   </style>
 </head>
 <body>
@@ -290,6 +304,21 @@
       <div class="chart-container">
         <h3>⚡ Load Average</h3>
         <div class="chart-canvas"><canvas id="chart-load"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Rename Server Modal -->
+  <div id="rename-modal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.75); z-index: 10000; align-items: center; justify-content: center; padding: 20px;">
+    <div style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 24px; max-width: 420px; width: 100%; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+      <h3 style="margin-top: 0; margin-bottom: 8px; font-size: 1.2em; color: #fff;">✏️ Rename Server</h3>
+      <p style="color: var(--color-muted); font-size: 0.85em; margin-bottom: 16px;">
+        Assign a custom display name for <strong id="rename-target-host" style="color: #58a6ff;"></strong>:
+      </p>
+      <input type="text" id="rename-input" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background: #0d1117; color: #fff; font-size: 0.9em; box-sizing: border-box; margin-bottom: 16px;" placeholder="e.g. Production Web App">
+      <div style="display: flex; gap: 10px; justify-content: flex-end;">
+        <button id="btn-cancel-rename" class="btn btn-secondary" style="padding: 8px 16px;">Cancel</button>
+        <button id="btn-save-rename" class="btn btn-primary" style="padding: 8px 16px; background: #1f6feb;">Save Name</button>
       </div>
     </div>
   </div>

@@ -983,7 +983,7 @@ app.post('/api/agent/metrics', async (req, res) => {
   }
 });
 
-app.get('/api/server-metrics', requireAuth, async (req, res) => {
+const handleGetServerMetrics = async (req, res) => {
   try {
     const userServers = [];
     const now = Date.now();
@@ -991,17 +991,47 @@ app.get('/api/server-metrics', requireAuth, async (req, res) => {
     for (const [key, payload] of serverAgentStore.entries()) {
       if (payload.user_id === req.user.id) {
         const lastSeenMs = new Date(payload.last_seen).getTime();
-        if (now - lastSeenMs < 10 * 60 * 1000) {
+        if (now - lastSeenMs < 15 * 60 * 1000) {
           userServers.push(payload);
         }
       }
     }
 
-    res.json({ servers: userServers });
+    // Fallback: If memory store is empty, load latest metrics per hostname from DB
+    if (userServers.length === 0) {
+      const db = await getDb();
+      const rows = await db.all(
+        `SELECT hostname, cpu_percent, memory_percent, disk_percent, MAX(collected_at) as last_seen
+         FROM server_metrics
+         WHERE user_id = ?
+         GROUP BY hostname
+         ORDER BY last_seen DESC`,
+        [req.user.id]
+      );
+      for (const row of rows) {
+        userServers.push({
+          user_id: req.user.id,
+          hostname: row.hostname || 'Linux Server',
+          cpu_percent: row.cpu_percent || 0,
+          memory_percent: row.memory_percent || 0,
+          disk_percent: row.disk_percent || 0,
+          last_seen: row.last_seen
+        });
+      }
+    }
+
+    if (req.path === '/api/agent/servers') {
+      res.json(userServers);
+    } else {
+      res.json({ servers: userServers });
+    }
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
-});
+};
+
+app.get('/api/server-metrics', requireAuth, handleGetServerMetrics);
+app.get('/api/agent/servers', requireAuth, handleGetServerMetrics);
 
 app.get('/api/user/api-keys', requireAuth, async (req, res) => {
   try {

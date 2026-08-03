@@ -1075,6 +1075,42 @@ app.get('/api/keys', requireAuth, async (req, res) => {
   }
 });
 
+app.post('/api/keys', requireAuth, async (req, res) => {
+  try {
+    const { label } = req.body;
+    const db = await getDb();
+    const prefix = 'rxm_live_' + Math.random().toString(36).substring(2, 10) + Math.random().toString(36).substring(2, 6);
+    const result = await db.run(
+      `INSERT INTO api_keys (user_id, key_hash, key_prefix, label, created_at, is_active)
+       VALUES (?, ?, ?, ?, ?, 1)`,
+      [req.user.id, prefix, prefix, label || 'Server Agent Key', new Date().toISOString()]
+    );
+
+    res.json({
+      id: result.lastID,
+      key: prefix,
+      key_prefix: prefix,
+      label: label || 'Server Agent Key',
+      created_at: new Date().toISOString()
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/keys/:id', requireAuth, async (req, res) => {
+  try {
+    const db = await getDb();
+    await db.run(
+      'UPDATE api_keys SET is_active = 0 WHERE id = ? AND user_id = ?',
+      [req.params.id, req.user.id]
+    );
+    res.json({ success: true, message: 'API key revoked.' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.post('/api/auth/resend-verification', requireAuth, async (req, res) => {
   try {
     const db = await getDb();

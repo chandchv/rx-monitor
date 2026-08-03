@@ -22,28 +22,41 @@ function getHeaders() {
 
 // Set install URL
 const baseUrl = window.location.origin;
-document.getElementById('install-url').textContent = baseUrl;
-document.getElementById('install-cmd').querySelector('pre') || 
-  (document.getElementById('install-cmd').textContent = `curl -sSL ${baseUrl}/install-agent.sh | bash -s YOUR_API_KEY`);
+let activeUserApiKey = '';
+
+function updateInstallCommand(apiKey) {
+  const keyToUse = apiKey || activeUserApiKey || 'YOUR_API_KEY';
+  const cmd = `curl -sSL ${baseUrl}/install-agent.sh | bash -s -- --key ${keyToUse} --services nginx,apache,pm2,gunicorn,postgres,mysql,redis`;
+  const cmdEl = document.getElementById('install-cmd');
+  if (cmdEl) cmdEl.textContent = cmd;
+}
 
 // --- API Keys ---
 
 async function loadKeys() {
   try {
-    const res = await fetch(`${API_URL}/api/keys`, { headers: getHeaders() });
+    let res = await fetch(`${API_URL}/api/keys`, { headers: getHeaders() });
     if (res.status === 401) { window.location.href = '/'; return; }
-    const keys = await res.json();
-    const container = document.getElementById('keys-list');
+    let keys = await res.json();
     
-    if (keys.length === 0) {
-      container.innerHTML = '<p style="color: var(--color-muted); font-size: 0.9em;">No API keys yet. Generate one to start monitoring servers.</p>';
-      return;
+    // Auto-generate default key if none exists so user never sees empty state
+    if (!Array.isArray(keys) || keys.length === 0) {
+      const createRes = await fetch(`${API_URL}/api/keys`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify({ label: 'Default Server Agent Key' })
+      });
+      const newKeyData = await createRes.json();
+      if (newKeyData.key) {
+        keys = [{ id: newKeyData.id || 1, key_prefix: newKeyData.key, label: 'Default Server Agent Key', created_at: new Date().toISOString() }];
+      }
     }
 
+    const container = document.getElementById('keys-list');
     container.innerHTML = keys.map(k => `
       <div class="key-row">
         <div class="key-info">
-          <span class="key-prefix">${k.key_prefix}••••••••</span>
+          <span class="key-prefix">${k.key_prefix || k.key}••••••••</span>
           <span class="key-label">${k.label} · Created ${new Date(k.created_at).toLocaleDateString()}${k.last_used_at ? ' · Last used ' + timeAgo(k.last_used_at) : ''}</span>
         </div>
         <div class="key-actions">
@@ -51,6 +64,11 @@ async function loadKeys() {
         </div>
       </div>
     `).join('');
+
+    if (keys.length > 0) {
+      activeUserApiKey = keys[0].key_prefix || keys[0].key;
+      updateInstallCommand(activeUserApiKey);
+    }
   } catch (err) {
     showToast('Failed to load API keys', 'error');
   }
@@ -71,6 +89,8 @@ document.getElementById('btn-create-key').addEventListener('click', async () => 
       const display = document.getElementById('new-key-display');
       document.getElementById('new-key-value').textContent = data.key;
       display.style.display = 'block';
+      activeUserApiKey = data.key;
+      updateInstallCommand(data.key);
       showToast('API key created! Save it now.');
       loadKeys();
     } else {
@@ -85,6 +105,25 @@ document.getElementById('btn-copy-key').addEventListener('click', () => {
   const key = document.getElementById('new-key-value').textContent;
   navigator.clipboard.writeText(key).then(() => showToast('Key copied to clipboard'));
 });
+
+const copyCmdBtn = document.getElementById('btn-copy-install-cmd');
+if (copyCmdBtn) {
+  copyCmdBtn.addEventListener('click', () => {
+    const cmd = document.getElementById('install-cmd').textContent;
+    navigator.clipboard.writeText(cmd).then(() => showToast('Installer command copied to clipboard!'));
+  });
+}
+
+const addServerBtn = document.getElementById('btn-add-server-cmd');
+if (addServerBtn) {
+  addServerBtn.addEventListener('click', async () => {
+    if (!activeUserApiKey) {
+      await loadKeys();
+    }
+    const cmd = document.getElementById('install-cmd').textContent;
+    navigator.clipboard.writeText(cmd).then(() => showToast('Installer command copied to clipboard! Paste it into your Linux terminal.'));
+  });
+}
 
 async function deleteKey(id) {
   if (!confirm('Revoke this API key? The agent using it will stop reporting.')) return;

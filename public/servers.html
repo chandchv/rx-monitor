@@ -181,16 +181,23 @@
     }
     .install-command h3 {
       margin: 0 0 12px 0;
-      font-size: 1em;
+      font-size: 1.05em;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
     }
     .install-command pre {
-      background: rgba(0,0,0,0.3);
+      background: #090d16;
       padding: 16px;
       border-radius: 8px;
+      border: 1px solid #30363d;
       overflow-x: auto;
       font-size: 0.85em;
-      color: #10b981;
-      margin: 0;
+      color: #58a6ff;
+      font-family: monospace;
+      white-space: pre-wrap;
+      word-break: break-all;
+      margin: 0 0 12px 0;
     }
     .no-servers {
       text-align: center;
@@ -233,24 +240,28 @@
     <!-- API Keys Section -->
     <section class="api-keys-section">
       <h3>
-        <span>🔑 API Keys</span>
-        <button id="btn-create-key" class="btn btn-primary" style="padding: 8px 16px; font-size: 0.85em;">+ Generate Key</button>
+        <span>🔑 Agent API Keys</span>
+        <button id="btn-create-key" class="btn btn-primary" style="padding: 8px 16px; font-size: 0.85em;">+ Generate API Key</button>
       </h3>
       <div id="new-key-display" class="new-key-display">
         <strong>⚠️ Save this key now — it won't be shown again!</strong>
         <code id="new-key-value"></code>
-        <button id="btn-copy-key" class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.8em;">📋 Copy</button>
+        <button id="btn-copy-key" class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.8em;">📋 Copy Key</button>
       </div>
       <div id="keys-list"></div>
     </section>
 
     <!-- Install Command -->
     <section class="install-command">
-      <h3>📦 Install Agent on Your Server</h3>
+      <h3>
+        <span>📦 Install Agent on Your Server</span>
+        <button id="btn-add-server-cmd" class="btn" style="background: #238636; color: #fff; border: none; padding: 6px 14px; font-size: 0.85em; border-radius: 6px; cursor: pointer; font-weight: 600;">+ Add Server</button>
+      </h3>
       <p style="color: var(--color-muted); font-size: 0.9em; margin: 0 0 12px 0;">
-        Run this on any Linux server you want to monitor. The agent pushes CPU, RAM, disk, load, and network metrics every 60 seconds.
+        Run this single command on your Linux terminal to install the agent with auto-detected service log streaming (Nginx, PM2, Gunicorn, PostgreSQL, MySQL, Redis):
       </p>
-      <pre id="install-cmd">curl -sSL <span id="install-url"></span>/install-agent.sh | bash -s YOUR_API_KEY</pre>
+      <pre id="install-cmd">curl -sSL <span id="install-url"></span>/install-agent.sh | bash -s -- --key YOUR_API_KEY --services nginx,apache,pm2,gunicorn,postgres,mysql,redis</pre>
+      <button id="btn-copy-install-cmd" class="btn" style="background: #238636; color: #fff; border: none; padding: 8px 16px; font-size: 0.85em; border-radius: 6px; cursor: pointer; font-weight: 600;">📋 Copy 1-Line Installer Command</button>
     </section>
 
     <!-- Server Cards -->

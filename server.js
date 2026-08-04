@@ -1023,26 +1023,9 @@ const handleGetServerMetrics = async (req, res) => {
       }
     }
 
-    // Secondary check: If no servers matched currentUserId, return all reporting agents in memory
+    // Fallback: If memory store is empty, load latest metrics per hostname from DB for this user
     if (userServers.length === 0) {
-      for (const [key, payload] of serverAgentStore.entries()) {
-        const lastSeenMs = new Date(payload.last_seen || payload.collected_at || now).getTime();
-        if (now - lastSeenMs < 60 * 60 * 1000) {
-          userServers.push({
-            ...payload,
-            display_name: aliasMap.get(payload.hostname) || payload.custom_name || payload.hostname,
-            collected_at: payload.collected_at || payload.last_seen || new Date().toISOString(),
-            last_seen: payload.collected_at || payload.last_seen || new Date().toISOString(),
-            uptime_seconds: payload.uptime_seconds || payload.uptime || 3600,
-            uptime: payload.uptime_seconds || payload.uptime || 3600
-          });
-        }
-      }
-    }
-
-    // Fallback: If memory store is empty, load latest metrics per hostname from DB
-    if (userServers.length === 0) {
-      let rows = await db.all(
+      const rows = await db.all(
         `SELECT sm.hostname, sm.cpu_percent, sm.memory_percent, sm.disk_percent, sm.collected_at as last_seen
          FROM server_metrics sm
          INNER JOIN (
@@ -1054,19 +1037,6 @@ const handleGetServerMetrics = async (req, res) => {
          ORDER BY sm.collected_at DESC`,
         [req.user.id]
       ).catch(() => []);
-
-      if (rows.length === 0) {
-        rows = await db.all(
-          `SELECT sm.hostname, sm.cpu_percent, sm.memory_percent, sm.disk_percent, sm.collected_at as last_seen
-           FROM server_metrics sm
-           INNER JOIN (
-             SELECT hostname, MAX(collected_at) as max_time
-             FROM server_metrics
-             GROUP BY hostname
-           ) latest ON sm.hostname = latest.hostname AND sm.collected_at = latest.max_time
-           ORDER BY sm.collected_at DESC`
-        ).catch(() => []);
-      }
 
       for (const row of rows) {
         const collectedAt = row.last_seen || new Date().toISOString();
@@ -2012,27 +1982,6 @@ app.get('/api/agent/metrics', requireAuth, async (req, res) => {
     }
 
     res.json(metrics);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// Get latest metric per server (summary view)
-app.get('/api/agent/servers', requireAuth, async (req, res) => {
-  try {
-    const db = await getDb();
-    const servers = await db.all(`
-      SELECT sm.*, ak.label, ak.key_prefix, ak.id as key_id
-      FROM server_metrics sm
-      INNER JOIN api_keys ak ON sm.api_key_id = ak.id
-      WHERE sm.user_id = ?
-        AND sm.id IN (
-          SELECT MAX(id) FROM server_metrics WHERE user_id = ? GROUP BY api_key_id
-        )
-      ORDER BY sm.collected_at DESC
-    `, [req.user.id, req.user.id]);
-
-    res.json(servers);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

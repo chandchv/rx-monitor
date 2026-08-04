@@ -4,28 +4,36 @@
   document.documentElement.setAttribute('data-theme', savedTheme);
 })();
 
+// Helper to update toggle button icons
+window.updateThemeIcon = function(btn, theme) {
+  if (!btn) return;
+  btn.innerHTML = theme === 'light' ? '<span class="icon">🌙</span>' : '<span class="icon">☀️</span>';
+};
+
+// Global toggle helper called by header or page scripts
+window.toggleTheme = function(btn) {
+  const activeTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+  const newTheme = activeTheme === 'light' ? 'dark' : 'light';
+  
+  document.documentElement.setAttribute('data-theme', newTheme);
+  localStorage.setItem('rx-monitor-theme', newTheme);
+  
+  if (btn) {
+    window.updateThemeIcon(btn, newTheme);
+  }
+  
+  // Emit a custom event if charts need to update their grid/text colors
+  window.dispatchEvent(new CustomEvent('themechanged', { detail: { theme: newTheme } }));
+};
+
 document.addEventListener('DOMContentLoaded', () => {
   const themeToggleBtn = document.getElementById('theme-toggle');
   if (themeToggleBtn) {
-    const updateIcon = (theme) => {
-      // Use clean icons (sun/moon emoji or text) for toggle
-      themeToggleBtn.innerHTML = theme === 'light' ? '<span class="icon">🌙</span>' : '<span class="icon">☀️</span>';
-    };
-
-    // Set initial state
     const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
-    updateIcon(currentTheme);
+    window.updateThemeIcon(themeToggleBtn, currentTheme);
 
     themeToggleBtn.addEventListener('click', () => {
-      const activeTheme = document.documentElement.getAttribute('data-theme') || 'dark';
-      const newTheme = activeTheme === 'light' ? 'dark' : 'light';
-      
-      document.documentElement.setAttribute('data-theme', newTheme);
-      localStorage.setItem('rx-monitor-theme', newTheme);
-      updateIcon(newTheme);
-      
-      // Emit a custom event if charts need to update their grid/text colors
-      window.dispatchEvent(new CustomEvent('themechanged', { detail: { theme: newTheme } }));
+      window.toggleTheme(themeToggleBtn);
     });
   }
 });

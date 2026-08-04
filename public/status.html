@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,25 +11,20 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <script src="theme.js"></script>
+  <script src="header.js"></script>
 </head>
+
 <body class="public-status-page">
   <div class="glass-bg"></div>
 
-  <div class="container" style="max-width: 900px; padding-top: 60px; position: relative;">
-    <button id="theme-toggle" class="btn btn-secondary" style="position: absolute; top: 15px; right: 24px; padding: 10px; border-radius: 50%; width: 40px; height: 40px; justify-content: center;" title="Toggle Light/Dark Mode">
-      <span class="icon">☀️</span>
-    </button>
-    <!-- Header -->
-    <header class="app-header" style="justify-content: center; text-align: center; flex-direction: column; gap: 10px; padding: 30px;">
-      <div class="logo-area" style="justify-content: center; align-items: center; gap: 10px;">
-        <img src="/assets/logo.png" alt="UptimeBunny" style="height:42px; width:auto;">
-        <h1 style="font-size: 28px; margin:0;">UptimeBunny</h1>
-      </div>
-      <p style="color: var(--color-muted); font-size: 14px;">Real-time service operational status and 24/7 uptime monitoring for websites, APIs, and servers.</p>
-      <div id="overall-status-banner" class="badge" style="font-size: 14px; padding: 8px 16px; margin-top: 10px;">
-        Checking services...
-      </div>
-    </header>
+  <div class="container" style="position: relative;">
+    <!-- Shared header injected by header.js -->
+    <div id="app-header"></div>
+
+    <div id="overall-status-banner" class="badge"
+      style="font-size: 14px; padding: 8px 16px; margin: 10px auto 20px auto; display: block; text-align: center; max-width: max-content;">
+      Checking services...
+    </div>
 
     <!-- Public Monitors list -->
     <div class="card">
@@ -36,7 +32,7 @@
         <h2>Operational Status</h2>
         <span style="font-size: 12px; color: var(--color-muted);" id="last-updated-text">Updating...</span>
       </div>
-      
+
       <div id="public-monitors-list" class="monitors-list">
         <div class="loading-state">Loading status board...</div>
       </div>
@@ -44,7 +40,8 @@
 
     <!-- Footer -->
     <footer style="text-align: center; margin-top: 40px; color: var(--color-muted); font-size: 12px;">
-      Powered by <a href="/" style="color: var(--color-primary); text-decoration: none; font-weight: 500;">UptimeBunny</a>
+      Powered by <a href="/"
+        style="color: var(--color-primary); text-decoration: none; font-weight: 500;">UptimeBunny</a>
     </footer>
   </div>
 
@@ -58,7 +55,7 @@
         const res = await fetch('/api/public/monitors');
         if (!res.ok) throw new Error('Failed to load status data.');
         const monitors = await res.json();
-        
+
         updateEl.textContent = `Last updated: ${new Date().toLocaleTimeString()}`;
 
         if (monitors.length === 0) {
@@ -88,7 +85,7 @@
           const ticksCount = 30;
           const ticks = [];
           const recent = monitor.recentLogs || [];
-          
+
           const emptyCount = Math.max(0, ticksCount - recent.length);
           for (let i = 0; i < emptyCount; i++) {
             ticks.push('<div class="history-tick tick-empty"></div>');
@@ -127,7 +124,7 @@
     }
 
     function escapeHTML(str) {
-      return str.replace(/[&<>'"]/g, 
+      return str.replace(/[&<>'"]/g,
         tag => ({
           '&': '&amp;',
           '<': '&lt;',
@@ -144,4 +141,5 @@
     });
   </script>
 </body>
+
 </html>

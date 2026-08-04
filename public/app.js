@@ -30,56 +30,44 @@ async function apiFetch(url, options = {}) {
 // DOM Elements
 const monitorsList = document.getElementById('monitors-list');
 const btnRefresh = document.getElementById('btn-refresh');
-const btnAddMonitor = document.getElementById('btn-add-monitor');
-const btnSettings = document.getElementById('btn-settings');
+let btnAddMonitor;
+let btnSettings;
 const toastEl = document.getElementById('toast');
 
 // Auth DOM Elements
-const btnLoginTrigger = document.getElementById('btn-login-trigger');
-const btnLogout = document.getElementById('btn-logout');
-const btnUpgrade = document.getElementById('btn-upgrade');
-const userMenu = document.getElementById('user-menu');
-const userAvatarBtn = document.getElementById('user-avatar-btn');
-const userDropdown = document.getElementById('user-dropdown');
-const userGreeting = document.getElementById('user-greeting');
-const dropdownEmail = document.getElementById('dropdown-email');
-const dropdownTier = document.getElementById('dropdown-tier');
-const dropdownAdmin = document.getElementById('dropdown-admin');
-const navAdmin = document.getElementById('nav-admin');
+let btnLoginTrigger;
+let btnLogout;
+let btnUpgrade;
+let userMenu;
+let userAvatarBtn;
+let userDropdown;
+let userGreeting;
+let dropdownEmail;
+let dropdownTier;
+let dropdownAdmin;
+let navAdmin;
 const modalAuth = document.getElementById('modal-auth');
 const signinForm = document.getElementById('signin-form');
 const signupForm = document.getElementById('signup-form');
 const authTabBtns = document.querySelectorAll('[data-auth-tab]');
 const authTabPanes = document.querySelectorAll('.auth-tab-pane');
 
-// Dropdown toggle
-if (userAvatarBtn) {
-  userAvatarBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    const isOpen = userDropdown.classList.contains('open');
-    userDropdown.classList.toggle('open', !isOpen);
-    userAvatarBtn.setAttribute('aria-expanded', String(!isOpen));
-  });
-  document.addEventListener('click', () => {
-    userDropdown.classList.remove('open');
-    userAvatarBtn.setAttribute('aria-expanded', 'false');
-  });
-}
+
 
 // Mobile Drawer Elements
-const btnHamburger   = document.getElementById('btn-hamburger');
-const mobileDrawer   = document.getElementById('mobile-drawer');
-const mobileOverlay  = document.getElementById('mobile-overlay');
-const btnDrawerClose = document.getElementById('btn-drawer-close');
-const drawerUserStrip  = document.getElementById('drawer-user-strip');
-const drawerUsername   = document.getElementById('drawer-username');
-const drawerUsertier   = document.getElementById('drawer-usertier');
-const drawerAdminLink  = document.getElementById('drawer-admin-link');
-const drawerBtnAdd     = document.getElementById('drawer-btn-add');
-const drawerBtnUpgrade = document.getElementById('drawer-btn-upgrade');
-const drawerBtnSettings= document.getElementById('drawer-btn-settings');
-const drawerBtnLogin   = document.getElementById('drawer-btn-login');
-const drawerBtnLogout  = document.getElementById('drawer-btn-logout');
+let btnHamburger;
+let mobileDrawer;
+let mobileOverlay;
+let btnDrawerClose;
+let drawerUserStrip;
+let drawerUsername;
+let drawerUsertier;
+let drawerAdminLink;
+let drawerBtnAdd;
+let drawerBtnUpgrade;
+let drawerBtnSettings;
+let drawerBtnLogin;
+let drawerBtnLogout;
 
 function openDrawer() {
   mobileDrawer.classList.add('is-open');
@@ -99,45 +87,7 @@ function closeDrawer() {
   document.body.style.overflow = '';
 }
 
-if (btnHamburger)   btnHamburger.addEventListener('click', openDrawer);
-if (btnDrawerClose) btnDrawerClose.addEventListener('click', closeDrawer);
-if (mobileOverlay)  mobileOverlay.addEventListener('click', closeDrawer);
 
-// Proxy drawer buttons to main actions
-if (drawerBtnAdd) {
-  drawerBtnAdd.addEventListener('click', () => {
-    closeDrawer();
-    document.getElementById('btn-add-monitor').click();
-  });
-}
-if (drawerBtnSettings) {
-  drawerBtnSettings.addEventListener('click', () => {
-    closeDrawer();
-    document.getElementById('btn-settings').click();
-  });
-}
-if (drawerBtnLogin) {
-  drawerBtnLogin.addEventListener('click', () => {
-    closeDrawer();
-    openModal(modalAuth);
-  });
-}
-if (drawerBtnLogout) {
-  drawerBtnLogout.addEventListener('click', () => {
-    closeDrawer();
-    localStorage.removeItem('rx-monitor-token');
-    localStorage.removeItem('rx-monitor-user');
-    showToast('Logged out successfully.');
-    updateAuthUI();
-    fetchMonitors();
-  });
-}
-if (drawerBtnUpgrade) {
-  drawerBtnUpgrade.addEventListener('click', () => {
-    closeDrawer();
-    startRazorpayUpgrade();
-  });
-}
 
 
 // Modal Elements
@@ -189,6 +139,35 @@ const monitorsCache = new Map();
 
 // Initialize immediately since the script runs at the bottom of the body
 function init() {
+  // Query dynamic elements now that header is injected
+  btnAddMonitor = document.getElementById('btn-add-monitor');
+  btnSettings = document.getElementById('btn-settings');
+  btnLoginTrigger = document.getElementById('btn-login-trigger');
+  btnLogout = document.getElementById('btn-logout');
+  btnUpgrade = document.getElementById('btn-upgrade');
+  userMenu = document.getElementById('user-menu');
+  userAvatarBtn = document.getElementById('user-avatar-btn');
+  userDropdown = document.getElementById('user-dropdown');
+  userGreeting = document.getElementById('user-greeting');
+  dropdownEmail = document.getElementById('dropdown-email');
+  dropdownTier = document.getElementById('dropdown-tier');
+  dropdownAdmin = document.getElementById('dropdown-admin');
+  navAdmin = document.getElementById('nav-admin');
+
+  btnHamburger = document.getElementById('btn-hamburger');
+  mobileDrawer = document.getElementById('mobile-drawer');
+  mobileOverlay = document.getElementById('mobile-overlay');
+  btnDrawerClose = document.getElementById('btn-drawer-close');
+  drawerUserStrip = document.getElementById('drawer-user-strip');
+  drawerUsername = document.getElementById('drawer-username');
+  drawerUsertier = document.getElementById('drawer-usertier');
+  drawerAdminLink = document.getElementById('drawer-admin-link');
+  drawerBtnAdd = document.getElementById('drawer-btn-add');
+  drawerBtnUpgrade = document.getElementById('drawer-btn-upgrade');
+  drawerBtnSettings = document.getElementById('drawer-btn-settings');
+  drawerBtnLogin = document.getElementById('drawer-btn-login');
+  drawerBtnLogout = document.getElementById('drawer-btn-logout');
+
   updateAuthUI();
   initGoogleSignIn();
   fetchMonitors();
@@ -371,16 +350,22 @@ function setupEventListeners() {
   });
 
   // Action Buttons
-  btnRefresh.addEventListener('click', fetchMonitors);
+  if (btnRefresh) {
+    btnRefresh.addEventListener('click', fetchMonitors);
+  }
   
-  btnAddMonitor.addEventListener('click', () => {
-    monitorForm.reset();
-    monitorIdInput.value = '';
-    monitorModalTitle.textContent = 'Add New Monitor';
-    openModal(modalMonitor);
-  });
+  if (btnAddMonitor) {
+    btnAddMonitor.addEventListener('click', () => {
+      monitorForm.reset();
+      monitorIdInput.value = '';
+      monitorModalTitle.textContent = 'Add New Monitor';
+      openModal(modalMonitor);
+    });
+  }
 
-  btnSettings.addEventListener('click', openSettingsModal);
+  if (btnSettings) {
+    btnSettings.addEventListener('click', openSettingsModal);
+  }
 
   // Delegated handler for all monitor action buttons (safe - no inline onclick)
   monitorsList.addEventListener('click', (e) => {
@@ -477,21 +462,82 @@ function setupEventListeners() {
   });
 
   // Auth Button actions
-  btnLoginTrigger.addEventListener('click', () => {
-    openModal(modalAuth);
-  });
+  if (btnLoginTrigger) {
+    btnLoginTrigger.addEventListener('click', () => {
+      openModal(modalAuth);
+    });
+  }
 
-  btnLogout.addEventListener('click', () => {
-    localStorage.removeItem('rx-monitor-token');
-    localStorage.removeItem('rx-monitor-user');
-    showToast('Logged out successfully.');
-    updateAuthUI();
-    fetchMonitors();
-  });
+  if (btnLogout) {
+    btnLogout.addEventListener('click', () => {
+      localStorage.removeItem('rx-monitor-token');
+      localStorage.removeItem('rx-monitor-user');
+      showToast('Logged out successfully.');
+      updateAuthUI();
+      fetchMonitors();
+    });
+  }
 
-  btnUpgrade.addEventListener('click', () => {
-    startRazorpayUpgrade();
-  });
+  if (btnUpgrade) {
+    btnUpgrade.addEventListener('click', () => {
+      startRazorpayUpgrade();
+    });
+  }
+
+  // Dropdown toggle
+  if (userAvatarBtn) {
+    userAvatarBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isOpen = userDropdown.classList.contains('open');
+      userDropdown.classList.toggle('open', !isOpen);
+      userAvatarBtn.setAttribute('aria-expanded', String(!isOpen));
+    });
+    document.addEventListener('click', () => {
+      if (userDropdown) userDropdown.classList.remove('open');
+      if (userAvatarBtn) userAvatarBtn.setAttribute('aria-expanded', 'false');
+    });
+  }
+
+  // Mobile Drawer
+  if (btnHamburger)   btnHamburger.addEventListener('click', openDrawer);
+  if (btnDrawerClose) btnDrawerClose.addEventListener('click', closeDrawer);
+  if (mobileOverlay)  mobileOverlay.addEventListener('click', closeDrawer);
+
+  // Proxy drawer buttons to main actions
+  if (drawerBtnAdd) {
+    drawerBtnAdd.addEventListener('click', () => {
+      closeDrawer();
+      if (btnAddMonitor) btnAddMonitor.click();
+    });
+  }
+  if (drawerBtnSettings) {
+    drawerBtnSettings.addEventListener('click', () => {
+      closeDrawer();
+      if (btnSettings) btnSettings.click();
+    });
+  }
+  if (drawerBtnLogin) {
+    drawerBtnLogin.addEventListener('click', () => {
+      closeDrawer();
+      openModal(modalAuth);
+    });
+  }
+  if (drawerBtnLogout) {
+    drawerBtnLogout.addEventListener('click', () => {
+      closeDrawer();
+      localStorage.removeItem('rx-monitor-token');
+      localStorage.removeItem('rx-monitor-user');
+      showToast('Logged out successfully.');
+      updateAuthUI();
+      fetchMonitors();
+    });
+  }
+  if (drawerBtnUpgrade) {
+    drawerBtnUpgrade.addEventListener('click', () => {
+      closeDrawer();
+      startRazorpayUpgrade();
+    });
+  }
 
   // Auth Tabs toggling
   authTabBtns.forEach(btn => {

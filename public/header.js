@@ -15,6 +15,18 @@ const RxHeader = (() => {
     return isActive(href) ? 'active' : '';
   }
 
+  function isAlertsActive() {
+    return currentPath.includes('/alerting.html') || currentPath.includes('/incidents.html');
+  }
+
+  function isToolsActive() {
+    return currentPath.includes('/status.html') || 
+           currentPath.includes('/logs.html') || 
+           currentPath.includes('/app-logs.html') || 
+           currentPath.includes('/dashboards.html') || 
+           currentPath.includes('/comparison.html');
+  }
+
   function getHeaderHTML() {
     return `
     <header class="app-header">
@@ -32,33 +44,19 @@ const RxHeader = (() => {
         <a href="/servers.html" class="nav-link ${activeClass('/servers.html')}">
           <span class="nav-icon">📊</span> Servers
         </a>
+        <a href="/alerting.html" class="nav-link ${isAlertsActive() ? 'active' : ''}">
+          <span class="nav-icon">🔔</span> Alerts
+        </a>
 
         <div class="nav-dropdown">
-          <button class="nav-link nav-dropdown-trigger">
-            <span class="nav-icon">🔍</span> Monitoring <span class="dropdown-caret">▾</span>
+          <button class="nav-link nav-dropdown-trigger ${isToolsActive() ? 'active' : ''}">
+            <span class="nav-icon">🛠️</span> Tools <span class="dropdown-caret">▾</span>
           </button>
           <div class="nav-dropdown-menu">
-            <a href="/alerting.html" class="nav-dropdown-item ${activeClass('/alerting.html')}">🔔 Alerting</a>
-            <a href="/incidents.html" class="nav-dropdown-item ${activeClass('/incidents.html')}">⚠️ Incidents</a>
             <a href="/status.html" class="nav-dropdown-item ${activeClass('/status.html')}">🌐 Status Page</a>
-          </div>
-        </div>
-
-        <div class="nav-dropdown">
-          <button class="nav-link nav-dropdown-trigger">
-            <span class="nav-icon">📋</span> Logs <span class="dropdown-caret">▾</span>
-          </button>
-          <div class="nav-dropdown-menu">
+            <a href="/incidents.html" class="nav-dropdown-item ${activeClass('/incidents.html')}">⚠️ Incidents</a>
             <a href="/logs.html" class="nav-dropdown-item ${activeClass('/logs.html')}">📋 System Logs</a>
             <a href="/app-logs.html" class="nav-dropdown-item ${activeClass('/app-logs.html')}">📜 App Logs</a>
-          </div>
-        </div>
-
-        <div class="nav-dropdown">
-          <button class="nav-link nav-dropdown-trigger">
-            <span class="nav-icon">📈</span> Analytics <span class="dropdown-caret">▾</span>
-          </button>
-          <div class="nav-dropdown-menu">
             <a href="/dashboards.html" class="nav-dropdown-item ${activeClass('/dashboards.html')}">📈 Dashboards</a>
             <a href="/comparison.html" class="nav-dropdown-item ${activeClass('/comparison.html')}">⚖️ Compare</a>
           </div>
@@ -145,27 +143,30 @@ const RxHeader = (() => {
         <a href="/servers.html" class="drawer-nav-link ${activeClass('/servers.html')}">
           <span>📊</span> Servers
         </a>
-        <a href="/alerting.html" class="drawer-nav-link ${activeClass('/alerting.html')}">
-          <span>🔔</span> Alerting
+        <a href="/alerting.html" class="drawer-nav-link ${isAlertsActive() ? 'active' : ''}">
+          <span>🔔</span> Alerts
         </a>
-        <a href="/incidents.html" class="drawer-nav-link ${activeClass('/incidents.html')}">
-          <span>⚠️</span> Incidents
-        </a>
-        <a href="/status.html" class="drawer-nav-link ${activeClass('/status.html')}">
+        
+        <div class="drawer-section-title">Tools</div>
+        <a href="/status.html" class="drawer-nav-link drawer-sub-link ${activeClass('/status.html')}">
           <span>🌐</span> Status Page
         </a>
-        <a href="/logs.html" class="drawer-nav-link ${activeClass('/logs.html')}">
+        <a href="/incidents.html" class="drawer-nav-link drawer-sub-link ${activeClass('/incidents.html')}">
+          <span>⚠️</span> Incidents
+        </a>
+        <a href="/logs.html" class="drawer-nav-link drawer-sub-link ${activeClass('/logs.html')}">
           <span>📋</span> System Logs
         </a>
-        <a href="/app-logs.html" class="drawer-nav-link ${activeClass('/app-logs.html')}">
+        <a href="/app-logs.html" class="drawer-nav-link drawer-sub-link ${activeClass('/app-logs.html')}">
           <span>📜</span> App Logs
         </a>
-        <a href="/dashboards.html" class="drawer-nav-link ${activeClass('/dashboards.html')}">
+        <a href="/dashboards.html" class="drawer-nav-link drawer-sub-link ${activeClass('/dashboards.html')}">
           <span>📈</span> Dashboards
         </a>
-        <a href="/comparison.html" class="drawer-nav-link ${activeClass('/comparison.html')}">
+        <a href="/comparison.html" class="drawer-nav-link drawer-sub-link ${activeClass('/comparison.html')}">
           <span>⚖️</span> Compare
         </a>
+
         <a id="drawer-admin-link" href="/admin.html" class="drawer-nav-link ${activeClass('/admin.html')}" style="display:none;">
           <span>🛡️</span> Admin Panel
         </a>
@@ -404,12 +405,37 @@ const RxHeader = (() => {
     }
   }
 
+  function initThemeToggle() {
+    const themeToggle = document.getElementById('theme-toggle');
+    if (themeToggle) {
+      const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+      if (window.updateThemeIcon) {
+        window.updateThemeIcon(themeToggle, currentTheme);
+      } else {
+        themeToggle.innerHTML = currentTheme === 'light' ? '<span class="icon">🌙</span>' : '<span class="icon">☀️</span>';
+      }
+
+      themeToggle.addEventListener('click', () => {
+        if (window.toggleTheme) {
+          window.toggleTheme(themeToggle);
+        } else {
+          const activeTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+          const newTheme = activeTheme === 'light' ? 'dark' : 'light';
+          document.documentElement.setAttribute('data-theme', newTheme);
+          localStorage.setItem('rx-monitor-theme', newTheme);
+          themeToggle.innerHTML = newTheme === 'light' ? '<span class="icon">🌙</span>' : '<span class="icon">☀️</span>';
+        }
+      });
+    }
+  }
+
   function init() {
     // Skip injection if a header already exists (e.g., index.html has its own)
     if (document.querySelector('.app-header')) {
       // Just init dropdowns and drawer for existing header
       initDropdowns();
       initDrawer();
+      initThemeToggle();
       updateHeaderAuthUI();
       return;
     }
@@ -426,6 +452,7 @@ const RxHeader = (() => {
     }
     initDropdowns();
     initDrawer();
+    initThemeToggle();
     updateHeaderAuthUI();
   }
 

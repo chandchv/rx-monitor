@@ -171,6 +171,7 @@ const authLimiter = rateLimit({
   message: { error: 'Too many authentication attempts. Please try again in 15 minutes.' },
   standardHeaders: true,
   legacyHeaders: false,
+  validate: { trustProxy: false },
 });
 
 app.use('/api/auth/', authLimiter);
@@ -955,6 +956,19 @@ app.post('/api/agent/metrics', async (req, res) => {
     const serverKey = `${userId}:${hostname || 'unknown-host'}`;
     const now = new Date().toISOString();
 
+    let parsedCustomServices = {};
+    if (custom_services) {
+      if (typeof custom_services === 'string') {
+        try {
+          parsedCustomServices = JSON.parse(custom_services);
+        } catch (_) {
+          parsedCustomServices = {};
+        }
+      } else {
+        parsedCustomServices = custom_services;
+      }
+    }
+
     const metricPayload = {
       user_id: userId,
       hostname: hostname || 'Linux Server',
@@ -972,7 +986,7 @@ app.post('/api/agent/metrics', async (req, res) => {
       network_rx_mb: parseFloat(network_rx) || 0,
       network_tx_mb: parseFloat(network_tx) || 0,
       services: services || [],
-      custom_services: custom_services || {},
+      custom_services: parsedCustomServices,
       nginx_status: nginx_status || null,
       gunicorn_status: gunicorn_status || null,
       pm2_status: pm2_status || null,

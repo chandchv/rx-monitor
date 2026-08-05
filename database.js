@@ -161,6 +161,7 @@ export async function getDb() {
       await dbInstance.pool.query('ALTER TABLE server_metrics ADD COLUMN IF NOT EXISTS gunicorn_logs TEXT');
       await dbInstance.pool.query('ALTER TABLE server_metrics ADD COLUMN IF NOT EXISTS pm2_logs TEXT');
       await dbInstance.pool.query('ALTER TABLE server_metrics ADD COLUMN IF NOT EXISTS custom_services TEXT');
+      await dbInstance.pool.query('ALTER TABLE server_metrics ADD COLUMN IF NOT EXISTS ip_address TEXT');
       await dbInstance.pool.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS trial_ends_at TEXT');
     } catch (migrateErr) {
       console.log('Migration of tables columns skipped (already exists or db not postgres):', migrateErr.message);
@@ -321,6 +322,7 @@ async function initSchema() {
       gunicorn_logs TEXT,
       pm2_logs TEXT,
       custom_services TEXT,
+      ip_address TEXT,
       collected_at TEXT
     );
 

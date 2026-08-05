@@ -173,6 +173,7 @@ async function loadServers() {
 
       const displayName = escapeHtml(s.display_name || s.label || s.hostname || 'Linux Server');
       const hostNameStr = escapeHtml(s.hostname || 'Linux Server');
+      const ipAddressStr = s.ip_address ? ` (${escapeHtml(s.ip_address)})` : '';
 
       let customServices = null;
       if (s.custom_services) {
@@ -222,7 +223,7 @@ async function loadServers() {
             <div class="server-name" style="margin-bottom: 0;">${displayName}</div>
             <button class="btn-rename-server" data-hostname="${hostNameStr}" data-display-name="${displayName}">✏️ Rename</button>
           </div>
-          <div class="server-hostname">${hostNameStr} · Up ${uptimeStr} · Last seen ${timeAgo(lastSeenStr)}</div>
+          <div class="server-hostname">${hostNameStr}${ipAddressStr} · Up ${uptimeStr} · Last seen ${timeAgo(lastSeenStr)}</div>
           <div class="metric-bars">
             <div class="metric-bar-row">
               <span class="label">CPU</span>

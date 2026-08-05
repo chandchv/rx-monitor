@@ -942,7 +942,14 @@ app.post('/api/agent/metrics', async (req, res) => {
       network_rx,
       network_tx,
       services,
-      custom_services
+      custom_services,
+      nginx_status,
+      gunicorn_status,
+      pm2_status,
+      gunicorn_logs,
+      pm2_logs,
+      processes,
+      uptime
     } = req.body;
 
     const serverKey = `${userId}:${hostname || 'unknown-host'}`;
@@ -966,15 +973,30 @@ app.post('/api/agent/metrics', async (req, res) => {
       network_tx_mb: parseFloat(network_tx) || 0,
       services: services || [],
       custom_services: custom_services || {},
+      nginx_status: nginx_status || null,
+      gunicorn_status: gunicorn_status || null,
+      pm2_status: pm2_status || null,
+      gunicorn_logs: gunicorn_logs || null,
+      pm2_logs: pm2_logs || null,
+      process_count: processes || 0,
+      uptime_seconds: uptime || 0,
       last_seen: now
     };
 
     serverAgentStore.set(serverKey, metricPayload);
 
     await db.run(
-      `INSERT INTO server_metrics (user_id, hostname, cpu_percent, memory_percent, disk_percent, collected_at)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [userId, hostname || 'Linux Server', parseFloat(cpu) || 0, parseFloat(memory) || 0, parseFloat(disk) || 0, now]
+      `INSERT INTO server_metrics 
+        (user_id, hostname, cpu_percent, memory_percent, disk_percent, load_avg, network_rx_bytes, network_tx_bytes, process_count, uptime_seconds, nginx_status, gunicorn_status, pm2_status, gunicorn_logs, pm2_logs, custom_services, ip_address, collected_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        userId, hostname || 'Linux Server', parseFloat(cpu) || 0, parseFloat(memory) || 0, parseFloat(disk) || 0,
+        parseFloat(load) || 0, parseFloat(network_rx) || 0, parseFloat(network_tx) || 0, processes || 0, uptime || 0,
+        nginx_status || null, gunicorn_status || null, pm2_status || null, gunicorn_logs || null, pm2_logs || null,
+        custom_services ? (typeof custom_services === 'string' ? custom_services : JSON.stringify(custom_services)) : null,
+        req.ip || req.headers['x-forwarded-for'] || '',
+        now
+      ]
     ).catch(() => {});
 
     res.json({ success: true, message: 'Metrics received.' });
@@ -1026,7 +1048,8 @@ const handleGetServerMetrics = async (req, res) => {
     // Fallback: If memory store is empty, load latest metrics per hostname from DB for this user
     if (userServers.length === 0) {
       const rows = await db.all(
-        `SELECT sm.hostname, sm.cpu_percent, sm.memory_percent, sm.disk_percent, sm.collected_at as last_seen
+        `SELECT sm.hostname, sm.cpu_percent, sm.memory_percent, sm.disk_percent, sm.collected_at as last_seen,
+                sm.nginx_status, sm.gunicorn_status, sm.pm2_status, sm.gunicorn_logs, sm.pm2_logs, sm.custom_services, sm.uptime_seconds, sm.ip_address
          FROM server_metrics sm
          INNER JOIN (
            SELECT hostname, MAX(collected_at) as max_time
@@ -1049,12 +1072,19 @@ const handleGetServerMetrics = async (req, res) => {
           disk_percent: parseFloat(row.disk_percent) || 0,
           collected_at: collectedAt,
           last_seen: collectedAt,
-          uptime_seconds: 3600,
-          uptime: 3600,
+          uptime_seconds: row.uptime_seconds || 3600,
+          uptime: row.uptime_seconds || 3600,
+          nginx_status: row.nginx_status || null,
+          gunicorn_status: row.gunicorn_status || null,
+          pm2_status: row.pm2_status || null,
+          gunicorn_logs: row.gunicorn_logs || null,
+          pm2_logs: row.pm2_logs || null,
+          custom_services: row.custom_services || null,
+          ip_address: row.ip_address || '',
           services: [
-            { name: 'nginx', status: 'running' },
-            { name: 'pm2', status: 'running' },
-            { name: 'gunicorn', status: 'running' },
+            { name: 'nginx', status: row.nginx_status || 'inactive' },
+            { name: 'pm2', status: row.pm2_status || 'inactive' },
+            { name: 'gunicorn', status: row.gunicorn_status || 'inactive' },
             { name: 'postgres', status: 'running' },
             { name: 'mysql', status: 'running' },
             { name: 'redis', status: 'running' }
@@ -1930,35 +1960,7 @@ async function authenticateAgentKey(req, res) {
   return apiKey;
 }
 
-app.post('/api/agent/metrics', async (req, res) => {
-  try {
-    const apiKey = await authenticateAgentKey(req, res);
-    if (!apiKey) return;
 
-    const { 
-      hostname, cpu, memory, disk, load, network_rx, network_tx, processes, uptime,
-      nginx_status, gunicorn_status, pm2_status, gunicorn_logs, pm2_logs, custom_services
-    } = req.body;
-
-    const db = await getDb();
-    await db.run(
-      `INSERT INTO server_metrics 
-        (api_key_id, user_id, hostname, cpu_percent, memory_percent, disk_percent, load_avg, network_rx_bytes, network_tx_bytes, process_count, uptime_seconds, nginx_status, gunicorn_status, pm2_status, gunicorn_logs, pm2_logs, custom_services, collected_at) 
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        apiKey.id, apiKey.user_id, hostname || 'unknown', cpu || 0, memory || 0, disk || 0, load || 0, 
-        network_rx || 0, network_tx || 0, processes || 0, uptime || 0,
-        nginx_status || null, gunicorn_status || null, pm2_status || null, gunicorn_logs || null, pm2_logs || null,
-        custom_services ? (typeof custom_services === 'string' ? custom_services : JSON.stringify(custom_services)) : null,
-        new Date().toISOString()
-      ]
-    );
-
-    res.json({ success: true });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
 
 // Get metrics for the authenticated user's servers
 app.get('/api/agent/metrics', requireAuth, async (req, res) => {

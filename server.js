@@ -1093,7 +1093,15 @@ const handleGetServerMetrics = async (req, res) => {
           pm2_status: row.pm2_status || null,
           gunicorn_logs: row.gunicorn_logs || null,
           pm2_logs: row.pm2_logs || null,
-          custom_services: row.custom_services || null,
+          custom_services: (() => {
+            if (!row.custom_services) return null;
+            if (typeof row.custom_services !== 'string') return row.custom_services;
+            try {
+              return JSON.parse(row.custom_services);
+            } catch (_) {
+              return null;
+            }
+          })(),
           ip_address: row.ip_address || '',
           services: [
             { name: 'nginx', status: row.nginx_status || 'inactive' },
@@ -1997,7 +2005,20 @@ app.get('/api/agent/metrics', requireAuth, async (req, res) => {
       );
     }
 
-    res.json(metrics);
+    const parsedMetrics = (metrics || []).map(row => ({
+      ...row,
+      custom_services: (() => {
+        if (!row.custom_services) return null;
+        if (typeof row.custom_services !== 'string') return row.custom_services;
+        try {
+          return JSON.parse(row.custom_services);
+        } catch (_) {
+          return null;
+        }
+      })()
+    }));
+
+    res.json(parsedMetrics);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

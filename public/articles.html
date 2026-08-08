@@ -10,20 +10,27 @@
   <link rel="canonical" href="https://uptimebunny.com/articles">
   <link rel="stylesheet" href="/landing.css">
   <style>
+    body {
+      background-color: #f8fafc;
+      color: #1e293b;
+      margin: 0;
+      padding-top: 64px;
+    }
     .articles-hero {
       padding: 60px 0 40px;
       text-align: center;
-      background: radial-gradient(circle at 50% 20%, rgba(88, 166, 255, 0.15), transparent 70%);
+      background: #ffffff;
+      border-bottom: 1px solid #e2e8f0;
     }
     .articles-hero__title {
       font-size: 36px;
       font-weight: 800;
-      color: #f0f6fc;
+      color: #0f172a;
       margin-bottom: 12px;
     }
     .articles-hero__subtitle {
       font-size: 18px;
-      color: #8b949e;
+      color: #475569;
       max-width: 700px;
       margin: 0 auto;
       line-height: 1.6;
@@ -35,18 +42,20 @@
       padding: 40px 0 80px;
     }
     .article-card {
-      background: #161b22;
-      border: 1px solid #30363d;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
       border-radius: 12px;
       padding: 24px;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      transition: transform 0.2s ease, border-color 0.2s ease;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
     .article-card:hover {
       transform: translateY(-4px);
-      border-color: #58a6ff;
+      box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+      border-color: #cbd5e1;
     }
     .article-card__badge {
       display: inline-block;
@@ -59,34 +68,34 @@
       letter-spacing: 0.5px;
       margin-bottom: 16px;
     }
-    .badge-server { background: rgba(56, 139, 253, 0.15); color: #58a6ff; }
-    .badge-analytics { background: rgba(46, 160, 67, 0.15); color: #3fb950; }
-    .badge-seo { background: rgba(210, 153, 34, 0.15); color: #d29922; }
+    .badge-server { background: #dbeafe; color: #1e40af; }
+    .badge-analytics { background: #dcfce7; color: #166534; }
+    .badge-seo { background: #fef3c7; color: #92400e; }
 
     .article-card__title {
       font-size: 20px;
       font-weight: 700;
-      color: #f0f6fc;
+      color: #0f172a;
       margin-bottom: 12px;
       line-height: 1.4;
     }
     .article-card__excerpt {
       font-size: 14px;
-      color: #8b949e;
+      color: #334155;
       line-height: 1.6;
       margin-bottom: 20px;
     }
     .article-card__meta {
-      font-size: 12px;
-      color: #6e7681;
+      font-size: 13px;
+      color: #64748b;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      border-top: 1px solid #21262d;
+      border-top: 1px solid #f1f5f9;
       padding-top: 16px;
     }
     .article-card__link {
-      color: #58a6ff;
+      color: #2563eb;
       text-decoration: none;
       font-weight: 600;
     }
@@ -100,11 +109,11 @@
     <div class="landing-container">
       <a href="/" class="landing-nav__logo">
         <img src="/assets/logo.png" alt="UptimeBunny" style="height:32px; width:auto; vertical-align:middle; margin-right:8px;">
-        <span style="font-weight: 700; font-size: 20px;">UptimeBunny</span>
+        <span style="font-weight: 700; font-size: 20px; color:#0f172a;">UptimeBunny</span>
       </a>
       <div class="landing-nav__links">
         <a href="/" class="landing-nav__link">Home</a>
-        <a href="/articles" class="landing-nav__link" style="color:#58a6ff;">Knowledge Hub</a>
+        <a href="/articles" class="landing-nav__link" style="color:#2563eb; font-weight:600;">Knowledge Hub</a>
         <a href="/dashboard" class="landing-nav__cta">Dashboard</a>
       </div>
     </div>

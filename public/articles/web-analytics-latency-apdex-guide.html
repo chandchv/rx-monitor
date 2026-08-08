@@ -31,61 +31,87 @@
   }
   </script>
   <style>
+    body {
+      background-color: #ffffff;
+      color: #1e293b;
+      margin: 0;
+      padding-top: 64px;
+    }
     .article-container {
       max-width: 800px;
       margin: 0 auto;
       padding: 40px 20px 80px;
-      color: #c9d1d9;
+      color: #1e293b;
       line-height: 1.8;
     }
     .article-header {
-      border-bottom: 1px solid #30363d;
+      border-bottom: 1px solid #e2e8f0;
       padding-bottom: 24px;
       margin-bottom: 36px;
     }
     .article-title {
       font-size: 34px;
       font-weight: 800;
-      color: #f0f6fc;
+      color: #0f172a;
       line-height: 1.3;
       margin-bottom: 16px;
     }
     .article-meta {
       font-size: 14px;
-      color: #8b949e;
+      color: #475569;
+      font-weight: 500;
     }
     .article-content h2 {
       font-size: 24px;
       font-weight: 700;
-      color: #3fb950;
+      color: #166534;
       margin: 36px 0 16px;
+      border-bottom: 2px solid #f1f5f9;
+      padding-bottom: 8px;
     }
     .article-content h3 {
       font-size: 18px;
       font-weight: 600;
-      color: #f0f6fc;
+      color: #0f172a;
       margin: 24px 0 12px;
     }
     .article-content p {
       margin-bottom: 20px;
       font-size: 16px;
+      color: #334155;
+    }
+    .article-content ul, .article-content ol {
+      margin-bottom: 24px;
+      padding-left: 24px;
+      color: #334155;
+    }
+    .article-content li {
+      margin-bottom: 8px;
     }
     .formula-box {
-      background: #161b22;
-      border-left: 4px solid #3fb950;
+      background: #f0fdf4;
+      border-left: 4px solid #16a34a;
       padding: 16px 20px;
       font-family: monospace;
       font-size: 15px;
-      color: #f0f6fc;
+      color: #0f172a;
+      border-radius: 0 8px 8px 0;
       margin-bottom: 24px;
     }
     .cta-box {
-      background: linear-gradient(135deg, rgba(46,160,67,0.1), rgba(88,166,255,0.1));
-      border: 1px solid #3fb950;
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
       border-radius: 12px;
       padding: 32px;
       text-align: center;
       margin: 48px 0;
+    }
+    .cta-box h3 {
+      margin-top: 0;
+      color: #0f172a;
+    }
+    .cta-box p {
+      color: #475569;
     }
   </style>
 </head>
@@ -94,10 +120,10 @@
     <div class="landing-container">
       <a href="/" class="landing-nav__logo">
         <img src="/assets/logo.png" alt="UptimeBunny" style="height:32px; width:auto; vertical-align:middle; margin-right:8px;">
-        <span style="font-weight: 700; font-size: 20px;">UptimeBunny</span>
+        <span style="font-weight: 700; font-size: 20px; color:#0f172a;">UptimeBunny</span>
       </a>
       <div class="landing-nav__links">
-        <a href="/articles" class="landing-nav__link">&larr; All Articles</a>
+        <a href="/articles" class="landing-nav__link" style="color:#2563eb; font-weight:600;">&larr; All Articles</a>
         <a href="/dashboard" class="landing-nav__cta">Dashboard</a>
       </div>
     </div>
@@ -154,9 +180,9 @@
       </ul>
 
       <div class="cta-box">
-        <h3 style="margin-top:0; color:#f0f6fc;">Track Your Apdex &amp; SLA Metrics Automatically</h3>
+        <h3>Track Your Apdex &amp; SLA Metrics Automatically</h3>
         <p>UptimeBunny calculates response time percentiles and Apdex scores in real time.</p>
-        <a href="/dashboard" class="btn-primary" style="display:inline-block; padding:12px 24px; text-decoration:none; background:#2ea043; color:#fff; border-radius:6px; font-weight:700;">Start Analytics Tracking</a>
+        <a href="/dashboard" class="btn-primary" style="display:inline-block; padding:12px 24px; text-decoration:none; background:#2563eb; color:#fff; border-radius:6px; font-weight:700;">Start Analytics Tracking</a>
       </div>
     </article>
   </main>

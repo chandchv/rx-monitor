@@ -251,7 +251,7 @@ app.get('/articles/:slug', (req, res) => {
 });
 
 // Technical SEO routes
-app.get('/sitemap.xml', (req, res) => {
+app.get(['/sitemap.xml', '/sitemaps.xml'], (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'sitemap.xml'));
 });
 

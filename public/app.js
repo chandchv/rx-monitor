@@ -821,7 +821,8 @@ async function handleMonitorSubmit(e) {
   const targetUrl = monitorUrlInput.value;
   const targetNormalized = normalizeMonitorUrl(targetUrl);
 
-  const existingDuplicate = (monitors || []).find(m => {
+  const loadedMonitors = Array.from(monitorsCache.values());
+  const existingDuplicate = loadedMonitors.find(m => {
     if (id && m.id == id) return false;
     return normalizeMonitorUrl(m.url) === targetNormalized;
   });

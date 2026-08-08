@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Free SSL Certificate Expiry &amp; Health Monitoring Guide | UptimeBunny</title>
+  <meta name="description" content="Learn how free SSL certificate expiry monitoring works. Automatically track TLS validity, certificate authority issuer details, and receive alerts 30 days before expiration.">
+  <meta name="keywords" content="free SSL expiry monitoring, SSL certificate tracker, HTTPS security alert, TLS certificate monitor, Let's Encrypt expiration check">
+  <link rel="icon" type="image/png" href="/assets/favicon.png">
+  <link rel="canonical" href="https://uptimebunny.com/articles/free-ssl-certificate-expiry-monitoring.html">
+  <link rel="stylesheet" href="/landing.css">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Free SSL Certificate Expiry & Health Monitoring Guide",
+    "description": "In-depth guide on tracking SSL/TLS validity, chain validation, and setting up automated certificate expiration alerts.",
+    "author": {
+      "@type": "Organization",
+      "name": "UptimeBunny Security Team"
+    },
+    "publisher": {
+      "@type": "Organization",
+      "name": "UptimeBunny",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://uptimebunny.com/assets/logo.png"
+      }
+    },
+    "datePublished": "2026-08-08"
+  }
+  </script>
+  <style>
+    body {
+      background-color: #ffffff;
+      color: #1e293b;
+      margin: 0;
+      padding-top: 64px;
+    }
+    .article-container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 40px 20px 80px;
+      color: #1e293b;
+      line-height: 1.8;
+    }
+    .article-header {
+      border-bottom: 1px solid #e2e8f0;
+      padding-bottom: 24px;
+      margin-bottom: 36px;
+    }
+    .article-title {
+      font-size: 34px;
+      font-weight: 800;
+      color: #0f172a;
+      line-height: 1.3;
+      margin-bottom: 16px;
+    }
+    .article-meta {
+      font-size: 14px;
+      color: #475569;
+      font-weight: 500;
+    }
+    .article-content h2 {
+      font-size: 24px;
+      font-weight: 700;
+      color: #2563eb;
+      margin: 36px 0 16px;
+      border-bottom: 2px solid #f1f5f9;
+      padding-bottom: 8px;
+    }
+    .article-content p {
+      margin-bottom: 20px;
+      font-size: 16px;
+      color: #334155;
+    }
+    .cta-box {
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      border-radius: 12px;
+      padding: 32px;
+      text-align: center;
+      margin: 48px 0;
+    }
+    .cta-box h3 {
+      margin-top: 0;
+      color: #0f172a;
+    }
+  </style>
+</head>
+<body>
+  <nav class="landing-nav" aria-label="Main navigation">
+    <div class="landing-container">
+      <a href="/" class="landing-nav__logo">
+        <img src="/assets/logo.png" alt="UptimeBunny" style="height:32px; width:auto; vertical-align:middle; margin-right:8px;">
+        <span style="font-weight: 700; font-size: 20px; color:#0f172a;">UptimeBunny</span>
+      </a>
+      <div class="landing-nav__links">
+        <a href="/status.html" style="display:inline-flex; align-items:center; gap:6px; background:rgba(35,134,54,0.15); border:1px solid #238636; color:#3fb950; padding:4px 10px; border-radius:20px; font-size:12px; font-weight:600; text-decoration:none;">
+          <span style="width:7px; height:7px; background:#3fb950; border-radius:50%; display:inline-block;"></span>
+          All Systems Operational
+        </a>
+        <a href="/articles" class="landing-nav__link" style="color:#2563eb; font-weight:600;">&larr; All Articles</a>
+        <a href="/dashboard" class="landing-nav__cta">Dashboard</a>
+      </div>
+    </div>
+  </nav>
+
+  <main class="article-container">
+    <header class="article-header">
+      <h1 class="article-title">Free SSL Certificate Expiry &amp; Health Monitoring Guide</h1>
+      <div class="article-meta">
+        Published August 8, 2026 &bull; Category: Security &amp; SSL &bull; By UptimeBunny Security Team
+      </div>
+    </header>
+
+    <article class="article-content">
+      <p>
+        An expired SSL/TLS certificate can instantly destroy user trust, trigger terrifying browser security warnings (`NET::ERR_CERT_DATE_INVALID`), and cause Google search engine rankings to drop. <strong>Free SSL certificate expiry monitoring</strong> ensures you are warned weeks before any certificate expires.
+      </p>
+
+      <h2>1. Why Automated SSL Expiry Alerts Matter</h2>
+      <p>
+        Even with automated certbot/Let's Encrypt renewal scripts, silent failures happen due to firewalls, DNS changes, or expired ACME challenges. Continuous SSL monitoring verifies:
+      </p>
+      <ul>
+        <li><strong>Certificate Expiry Date:</strong> Automated alerts sent at 30 days, 15 days, and 1 day before expiration.</li>
+        <li><strong>Chain &amp; Issuer Validation:</strong> Verifies intermediate CA certificates and domain matching.</li>
+        <li><strong>TLS Cipher Strength:</strong> Ensures modern HTTPS cipher configurations.</li>
+      </ul>
+
+      <h2>2. How UptimeBunny Tracks SSL Expiration Automatically</h2>
+      <p>
+        Every HTTPS monitor added to UptimeBunny automatically performs TLS handshake diagnostics alongside availability checks, streaming cert expiration countdowns to your dashboard.
+      </p>
+
+      <h2>3. Related Resources</h2>
+      <ul>
+        <li><a href="/articles/website-downtime-seo-impact-guide.html" style="color:#2563eb;">Website Downtime &amp; SSL SEO Impact</a> &bull; Protect your search traffic.</li>
+        <li><a href="/status.html" style="color:#2563eb;">Live Public Status Pages</a> &bull; Demonstrate security compliance.</li>
+      </ul>
+
+      <div class="cta-box">
+        <h3>Start Free SSL Monitoring Now</h3>
+        <p>Monitor your HTTPS certificates automatically with UptimeBunny.</p>
+        <a href="/dashboard" class="btn-primary" style="display:inline-block; padding:12px 24px; text-decoration:none; background:#2563eb; color:#fff; border-radius:6px; font-weight:700;">Protect Your SSL Free</a>
+      </div>
+    </article>
+  </main>
+</body>
+</html>

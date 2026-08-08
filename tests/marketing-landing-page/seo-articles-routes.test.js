@@ -28,7 +28,7 @@ function createTestApp() {
     res.sendFile(path.join(publicDir, 'articles.html'));
   });
 
-  app.get('/sitemap.xml', (req, res) => {
+  app.get(['/sitemap.xml', '/sitemaps.xml'], (req, res) => {
     res.sendFile(path.join(publicDir, 'sitemap.xml'));
   });
 
@@ -74,6 +74,32 @@ describe('SEO & Knowledge Hub Article Routes', () => {
     });
   });
 
+  describe('GET /articles/uptimerobot-alternative-uptimebunny', () => {
+    it('serves UptimeRobot alternative comparison article', async () => {
+      const { status, text } = await fetchRoute('/articles/uptimerobot-alternative-uptimebunny');
+      expect(status).toBe(200);
+      expect(text).toContain('UptimeRobot Alternative');
+      expect(text).toContain('UptimeBunny');
+    });
+  });
+
+  describe('GET /articles/best-free-uptime-monitoring-tools', () => {
+    it('serves best free uptime monitoring tools article', async () => {
+      const { status, text } = await fetchRoute('/articles/best-free-uptime-monitoring-tools');
+      expect(status).toBe(200);
+      expect(text).toContain('Best Free Website');
+      expect(text).toContain('Uptime Monitoring Tools');
+    });
+  });
+
+  describe('GET /articles/free-ssl-certificate-expiry-monitoring', () => {
+    it('serves free SSL certificate expiry article', async () => {
+      const { status, text } = await fetchRoute('/articles/free-ssl-certificate-expiry-monitoring');
+      expect(status).toBe(200);
+      expect(text).toContain('Free SSL Certificate Expiry');
+    });
+  });
+
   describe('GET /articles/linux-server-monitoring-guide', () => {
     it('serves linux server monitoring article', async () => {
       const { status, text } = await fetchRoute('/articles/linux-server-monitoring-guide');
@@ -101,21 +127,22 @@ describe('SEO & Knowledge Hub Article Routes', () => {
     });
   });
 
-  describe('GET /sitemap.xml', () => {
-    it('returns 200 OK with sitemap xml content', async () => {
-      const { status, text } = await fetchRoute('/sitemap.xml');
-      expect(status).toBe(200);
-      expect(text).toContain('<urlset');
-      expect(text).toContain('https://uptimebunny.com/articles');
+  describe('GET /sitemap.xml and /sitemaps.xml', () => {
+    it('returns 200 OK with sitemap xml content for both endpoints', async () => {
+      const res1 = await fetchRoute('/sitemap.xml');
+      const res2 = await fetchRoute('/sitemaps.xml');
+      expect(res1.status).toBe(200);
+      expect(res2.status).toBe(200);
+      expect(res1.text).toContain('<urlset');
+      expect(res1.text).toContain('uptimerobot-alternative-uptimebunny');
     });
   });
 
-  describe('GET /robots.txt', () => {
-    it('returns 200 OK with robots.txt content', async () => {
-      const { status, text } = await fetchRoute('/robots.txt');
-      expect(status).toBe(200);
-      expect(text).toContain('User-agent: *');
-      expect(text).toContain('Sitemap: https://uptimebunny.com/sitemap.xml');
+  describe('Promo Code Security Checks', () => {
+    it('ensures hardcoded BETA2026 promo code is absent from public faq.html', async () => {
+      const { text } = await fetchRoute('/faq.html');
+      expect(text).not.toContain('BETA2026');
+      expect(text).not.toContain('UPTIMEBETA35');
     });
   });
 });

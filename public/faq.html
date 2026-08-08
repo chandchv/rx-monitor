@@ -4,10 +4,71 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>UptimeBunny - Frequently Asked Questions &amp; How-To Guides</title>
+  <meta name="description" content="Frequently asked questions and step-by-step guides for UptimeBunny website uptime monitoring, SSL certificate tracking, Linux server metrics, and outage alerts.">
+  <meta name="keywords" content="uptime monitoring FAQ, server monitoring guide, Linux agent setup, SSL certificate tracking, outage alerting FAQ">
   <link rel="icon" type="image/png" href="/assets/favicon.png">
+  <link rel="canonical" href="https://uptimebunny.com/faq.html">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Structured Data: FAQPage JSON-LD -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "What is UptimeBunny and how does it work?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "UptimeBunny is a 24/7 uptime monitoring platform for websites, web applications, APIs, SSL certificates, and Linux servers. It performs continuous automated HTTP/HTTPS pings and TCP port checks. When your website or server experiences downtime or high latency, UptimeBunny immediately alerts you via Push Notifications, Email, and Telegram."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How do I install the Linux Server Agent (Nginx, PM2, Gunicorn, PostgreSQL)?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Open the UptimeBunny dashboard, navigate to Servers, copy your single-command installer script, and run it on your Linux terminal (curl -sSL https://uptimebunny.com/install-agent.sh | bash -s -- --token YOUR_API_KEY). The agent automatically collects CPU, RAM, Disk, and process stats every 60 seconds."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How do I redeem a Beta Access Code for Premium access?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Open the UptimeBunny app or web dashboard, navigate to Settings > Manage Subscription, scroll down to Redeem Beta Access Code, enter your private invitation code, and tap Redeem."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How does SSL Certificate Monitoring work?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "UptimeBunny automatically inspects the TLS/SSL certificate of every HTTPS monitor. It checks valid issuer credentials, expiration dates, and cipher protocols, sending warning alerts at 30 days, 15 days, and 1 day before expiration."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How do I configure Instant Telegram & Email Outage Alerts?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Go to Alerting / Settings in your dashboard. Enter your email address or Telegram Chat ID. You will receive real-time notifications with downtime duration, diagnostic status codes, and recovery notifications."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How do I delete my account or monitor history?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "You can purge your account and monitor history at any time from your account settings in the app or by visiting our Account Deletion Page."
+        }
+      }
+    ]
+  }
+  </script>
   <style>
     :root {
       --bg-color: #0c0f1d;
@@ -122,12 +183,46 @@
       color: var(--primary-color);
       text-decoration: underline;
     }
+
+    .status-trust-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(35, 134, 54, 0.15);
+      border: 1px solid #238636;
+      color: #3fb950;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+      text-decoration: none;
+      margin-top: 16px;
+
+      transition: background 0.2s ease;
+    }
+    .status-trust-badge:hover {
+      background: rgba(35, 134, 54, 0.3);
+      text-decoration: none;
+    }
+    .status-dot-pulse {
+      width: 8px;
+      height: 8px;
+      background-color: #3fb950;
+      border-radius: 50%;
+      box-shadow: 0 0 0 0 rgba(63, 185, 80, 0.7);
+      animation: pulse-dot 2s infinite;
+    }
+    @keyframes pulse-dot {
+      0% { box-shadow: 0 0 0 0 rgba(63, 185, 80, 0.7); }
+      70% { box-shadow: 0 0 0 6px rgba(63, 185, 80, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(63, 185, 80, 0); }
+    }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="header">
-      <img src="/assets/logo.png" alt="UptimeBunny" class="logo-img">
+      <a href="/"><img src="/assets/logo.png" alt="UptimeBunny" class="logo-img"></a>
       <h1>Frequently Asked Questions &amp; Guides</h1>
       <div class="subtitle">How-to guides for UptimeBunny website, API, SSL &amp; Linux server monitoring</div>
     </div>
@@ -151,19 +246,19 @@
       </summary>
       <div class="faq-answer">
         Open the UptimeBunny app or web dashboard, navigate to <strong>Servers</strong>, copy your single-command installer script, and run it on your Linux terminal (Ubuntu / Debian / CentOS / RHEL):<br><br>
-        <code>curl -sSL https://uptimebunny.com/install-agent.sh | bash -s -- --key YOUR_API_KEY --services nginx,apache2,pm2,gunicorn,postgres,mysql,redis</code><br><br>
-        The agent automatically detects active services, collects CPU %, RAM, Disk, Load averages, and streams service log histories to your dashboard every 60 seconds.
+        <code>curl -sSL https://uptimebunny.com/install-agent.sh | bash -s -- --token YOUR_SERVER_TOKEN</code><br><br>
+        The agent automatically collects CPU %, RAM, Disk, Load averages, and streams service log histories to your dashboard every 60 seconds.
       </div>
     </details>
 
     <!-- FAQ Item 3 -->
     <details>
       <summary>
-        <span>🎁 How do I redeem a Beta Access Code for 1 Year of Free Premium?</span>
+        <span>🎁 How do I redeem a Beta Access Code for Premium access?</span>
         <span style="color: var(--primary-color);">▼</span>
       </summary>
       <div class="faq-answer">
-        Open the UptimeBunny mobile app, go to <strong>Settings &gt; Manage Subscription</strong>, scroll down to <em>Redeem Beta Access Code</em>, enter promo code <code>BETA2026</code> or <code>UPTIMEBETA35</code>, and tap <strong>Redeem</strong>. Your account will instantly upgrade to Premium for 365 days.
+        Open the UptimeBunny app or web dashboard, go to <strong>Settings &gt; Manage Subscription</strong>, scroll down to <em>Redeem Beta Access Code</em>, enter your private invitation or promotional code, and tap <strong>Redeem</strong>. Your account will upgrade to Premium.
       </div>
     </details>
 
@@ -201,7 +296,14 @@
     </details>
 
     <div class="footer">
-      &copy; 2026 UptimeBunny. All rights reserved. | <a href="/privacy.html">Privacy Policy</a> | <a href="/terms.html">Terms of Service</a>
+      <div>
+        <a href="/status.html" class="status-trust-badge">
+          <span class="status-dot-pulse"></span>
+          System Status: All Systems Operational
+        </a>
+      </div>
+      <br>
+      &copy; 2026 UptimeBunny. All rights reserved. | <a href="/articles">Knowledge Hub</a> | <a href="/privacy.html">Privacy Policy</a> | <a href="/terms.html">Terms of Service</a>
     </div>
   </div>
 </body>

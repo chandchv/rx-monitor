@@ -4,8 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Knowledge Hub - Website Uptime, Server Monitoring &amp; SEO Guides | UptimeBunny</title>
-  <meta name="description" content="Explore expert guides and articles on server uptime monitoring, Linux metrics, web response time analytics, Apdex scores, and protecting Google SEO rankings from website downtime.">
-  <meta name="keywords" content="server monitoring guide, website uptime articles, Linux server metrics, Apdex score analytics, website downtime SEO, SSL certificate security">
+  <meta name="description" content="Explore expert guides and articles on server uptime monitoring, UptimeRobot alternatives, Linux metrics, web response analytics, Apdex scores, and protecting Google SEO rankings.">
+  <meta name="keywords" content="server monitoring guide, UptimeRobot alternative, website uptime articles, Linux server metrics, Apdex score analytics, website downtime SEO, SSL certificate security">
   <link rel="icon" type="image/png" href="/assets/favicon.png">
   <link rel="canonical" href="https://uptimebunny.com/articles">
   <link rel="stylesheet" href="/landing.css">
@@ -71,6 +71,7 @@
     .badge-server { background: #dbeafe; color: #1e40af; }
     .badge-analytics { background: #dcfce7; color: #166534; }
     .badge-seo { background: #fef3c7; color: #92400e; }
+    .badge-comparison { background: #f3e8ff; color: #6b21a8; }
 
     .article-card__title {
       font-size: 20px;
@@ -112,6 +113,10 @@
         <span style="font-weight: 700; font-size: 20px; color:#0f172a;">UptimeBunny</span>
       </a>
       <div class="landing-nav__links">
+        <a href="/status.html" style="display:inline-flex; align-items:center; gap:6px; background:rgba(35,134,54,0.15); border:1px solid #238636; color:#3fb950; padding:4px 10px; border-radius:20px; font-size:12px; font-weight:600; text-decoration:none;">
+          <span style="width:7px; height:7px; background:#3fb950; border-radius:50%; display:inline-block;"></span>
+          All Systems Operational
+        </a>
         <a href="/" class="landing-nav__link">Home</a>
         <a href="/articles" class="landing-nav__link" style="color:#2563eb; font-weight:600;">Knowledge Hub</a>
         <a href="/dashboard" class="landing-nav__cta">Dashboard</a>
@@ -123,13 +128,70 @@
     <section class="articles-hero">
       <div class="landing-container">
         <h1 class="articles-hero__title">Uptime, Server Monitoring &amp; SEO Knowledge Hub</h1>
-        <p class="articles-hero__subtitle">In-depth technical guides and articles to help you master server health monitoring, web response analytics, and protect your Google SEO rankings from downtime.</p>
+        <p class="articles-hero__subtitle">In-depth technical guides, tool comparisons, and articles to help you master server health monitoring, web analytics, and protect your Google search rankings.</p>
       </div>
     </section>
 
     <div class="landing-container">
       <div class="articles-grid">
-        <!-- Article 1: Server Monitoring -->
+        <!-- Article 1: UptimeRobot Alternative -->
+        <article class="article-card">
+          <div>
+            <span class="article-card__badge badge-comparison">Comparisons</span>
+            <h2 class="article-card__title">
+              <a href="/articles/uptimerobot-alternative-uptimebunny.html" style="color:inherit; text-decoration:none;">
+                UptimeRobot Alternative: Why UptimeBunny is the Best Free Monitoring Tool
+              </a>
+            </h2>
+            <p class="article-card__excerpt">
+              Detailed comparison between UptimeRobot and UptimeBunny covering check intervals, Telegram alerts, Linux server resource metrics, and pricing.
+            </p>
+          </div>
+          <div class="article-card__meta">
+            <span>7 min read &bull; Comparisons</span>
+            <a href="/articles/uptimerobot-alternative-uptimebunny.html" class="article-card__link">Read Article &rarr;</a>
+          </div>
+        </article>
+
+        <!-- Article 2: Best Free Tools 2026 -->
+        <article class="article-card">
+          <div>
+            <span class="article-card__badge badge-comparison">Tool Reviews</span>
+            <h2 class="article-card__title">
+              <a href="/articles/best-free-uptime-monitoring-tools.html" style="color:inherit; text-decoration:none;">
+                Best Free Website &amp; Server Uptime Monitoring Tools in 2026
+              </a>
+            </h2>
+            <p class="article-card__excerpt">
+              Buyer-intent evaluation of top free uptime monitoring software for developers, SaaS founders, and sysadmins.
+            </p>
+          </div>
+          <div class="article-card__meta">
+            <span>9 min read &bull; Industry Reviews</span>
+            <a href="/articles/best-free-uptime-monitoring-tools.html" class="article-card__link">Read Article &rarr;</a>
+          </div>
+        </article>
+
+        <!-- Article 3: Free SSL Expiry Monitoring -->
+        <article class="article-card">
+          <div>
+            <span class="article-card__badge badge-seo">Security &amp; SSL</span>
+            <h2 class="article-card__title">
+              <a href="/articles/free-ssl-certificate-expiry-monitoring.html" style="color:inherit; text-decoration:none;">
+                Free SSL Certificate Expiry &amp; Health Monitoring Guide
+              </a>
+            </h2>
+            <p class="article-card__excerpt">
+              Learn how free SSL certificate expiry monitoring works. Automatically track TLS validity, issuer credentials, and get alerts 30 days before expiration.
+            </p>
+          </div>
+          <div class="article-card__meta">
+            <span>6 min read &bull; SSL &amp; Security</span>
+            <a href="/articles/free-ssl-certificate-expiry-monitoring.html" class="article-card__link">Read Article &rarr;</a>
+          </div>
+        </article>
+
+        <!-- Article 4: Linux Server Monitoring -->
         <article class="article-card">
           <div>
             <span class="article-card__badge badge-server">Server Monitoring</span>
@@ -148,7 +210,7 @@
           </div>
         </article>
 
-        <!-- Article 2: Web Analytics & Latency -->
+        <!-- Article 5: Web Analytics & Latency -->
         <article class="article-card">
           <div>
             <span class="article-card__badge badge-analytics">Web Analytics &amp; Latency</span>
@@ -167,7 +229,7 @@
           </div>
         </article>
 
-        <!-- Article 3: SEO of Monitored Sites -->
+        <!-- Article 6: SEO & Website Downtime -->
         <article class="article-card">
           <div>
             <span class="article-card__badge badge-seo">SEO &amp; Search Rankings</span>

@@ -57,6 +57,27 @@ function decodeJwt(token) {
   }
 }
 
+export function normalizeMonitorUrl(inputUrl) {
+  if (!inputUrl || typeof inputUrl !== 'string') return '';
+  let str = inputUrl.trim().toLowerCase();
+  if (!/^https?:\/\//i.test(str)) {
+    str = 'http://' + str;
+  }
+  try {
+    const parsed = new URL(str);
+    let host = parsed.host.toLowerCase();
+    let pathname = parsed.pathname.toLowerCase();
+    if (pathname.endsWith('/') && pathname.length > 1) {
+      pathname = pathname.slice(0, -1);
+    } else if (pathname === '/') {
+      pathname = '';
+    }
+    return `${host}${pathname}${parsed.search.toLowerCase()}${parsed.hash.toLowerCase()}`;
+  } catch (e) {
+    return str.replace(/^https?:\/\//i, '').replace(/\/+$/, '').toLowerCase();
+  }
+}
+
 // --- Authentication Middleware ---
 function authenticateToken(req, res, next) {
   const authHeader = req.headers['authorization'] || req.headers['Authorization'];
@@ -214,6 +235,30 @@ app.get('/dashboard', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
+// Articles Knowledge Hub routes
+app.get('/articles', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'articles.html'));
+});
+
+app.get('/articles/:slug', (req, res) => {
+  let slug = req.params.slug;
+  if (!slug.endsWith('.html')) slug += '.html';
+  const articlePath = path.join(__dirname, 'public', 'articles', slug);
+  if (fs.existsSync(articlePath)) {
+    return res.sendFile(articlePath);
+  }
+  res.sendFile(path.join(__dirname, 'public', 'articles.html'));
+});
+
+// Technical SEO routes
+app.get('/sitemap.xml', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'sitemap.xml'));
+});
+
+app.get('/robots.txt', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'robots.txt'));
+});
+
 // Dynamic install-agent.sh — MUST be before express.static so it intercepts the request
 app.get('/install-agent.sh', (req, res) => {
   // Detect actual protocol behind nginx proxy
@@ -356,6 +401,29 @@ app.post('/api/monitors', async (req, res) => {
 
   try {
     const db = await getDb();
+
+    // Prevent duplicate monitors with same normalized URL
+    const targetNormalized = normalizeMonitorUrl(url);
+    let existingMonitors = [];
+    if (req.user) {
+      existingMonitors = await db.all('SELECT id, name, url FROM monitors WHERE user_id = ?', [req.user.id]);
+    } else if (visitorId) {
+      existingMonitors = await db.all(
+        'SELECT id, name, url FROM monitors WHERE user_id IS NULL AND (visitor_id = ? OR visitor_id IS NULL)',
+        [visitorId]
+      );
+    } else {
+      existingMonitors = await db.all('SELECT id, name, url FROM monitors WHERE user_id IS NULL');
+    }
+
+    const duplicate = existingMonitors.find(m => normalizeMonitorUrl(m.url) === targetNormalized);
+    if (duplicate) {
+      return res.status(400).json({ 
+        error: `Monitor is already running with the same URL ("${duplicate.name || duplicate.url}").`,
+        duplicate: true,
+        existingMonitor: duplicate
+      });
+    }
 
     if (req.user) {
       // Check limits based on tier
@@ -534,6 +602,32 @@ app.put('/api/monitors/:id', async (req, res) => {
     if (!monitor) return;
 
     const db = await getDb();
+
+    if (url) {
+      const targetNormalized = normalizeMonitorUrl(url);
+      const visitorId = req.headers['x-visitor-id'];
+      let existingMonitors = [];
+      if (req.user) {
+        existingMonitors = await db.all('SELECT id, name, url FROM monitors WHERE user_id = ? AND id != ?', [req.user.id, req.params.id]);
+      } else if (visitorId) {
+        existingMonitors = await db.all(
+          'SELECT id, name, url FROM monitors WHERE user_id IS NULL AND (visitor_id = ? OR visitor_id IS NULL) AND id != ?',
+          [visitorId, req.params.id]
+        );
+      } else {
+        existingMonitors = await db.all('SELECT id, name, url FROM monitors WHERE user_id IS NULL AND id != ?', [req.params.id]);
+      }
+
+      const duplicate = existingMonitors.find(m => normalizeMonitorUrl(m.url) === targetNormalized);
+      if (duplicate) {
+        return res.status(400).json({ 
+          error: `Monitor is already running with the same URL ("${duplicate.name || duplicate.url}").`,
+          duplicate: true,
+          existingMonitor: duplicate
+        });
+      }
+    }
+
     await db.run(
       `UPDATE monitors SET 
         name = COALESCE(?, name),
@@ -912,9 +1006,15 @@ app.post('/api/agent/metrics', async (req, res) => {
     let userId = null;
 
     if (token) {
-      const apiKey = await db.get('SELECT user_id FROM api_keys WHERE key_hash = ? OR key_prefix = ?', [token, token]);
-      if (apiKey) {
-        userId = apiKey.user_id;
+      if (token.startsWith('rxm_')) {
+        const keyHash = crypto.createHash('sha256').update(token).digest('hex');
+        let apiKey = await db.get('SELECT user_id FROM api_keys WHERE key_hash = ? AND is_active = 1', [keyHash]);
+        if (!apiKey) {
+          apiKey = await db.get('SELECT user_id FROM api_keys WHERE (key_hash = ? OR key_prefix = ?) AND is_active = 1', [token, token]);
+        }
+        if (apiKey) {
+          userId = apiKey.user_id;
+        }
       } else {
         try {
           const decoded = jwt.verify(token, JWT_SECRET);
@@ -1198,19 +1298,27 @@ app.get('/api/user/api-keys', requireAuth, async (req, res) => {
 app.get('/api/keys', requireAuth, async (req, res) => {
   try {
     const db = await getDb();
-    let keys = await db.all('SELECT * FROM api_keys WHERE user_id = ? AND is_active = 1', [req.user.id]);
+    let keys = await db.all('SELECT id, key_prefix, label, created_at, last_used_at, is_active FROM api_keys WHERE user_id = ? AND is_active = 1 ORDER BY created_at DESC', [req.user.id]);
 
     if (keys.length === 0) {
-      const prefix = 'rxm_live_' + Math.random().toString(36).substring(2, 10);
+      const rawKey = 'rxm_' + crypto.randomBytes(24).toString('hex');
+      const keyHash = crypto.createHash('sha256').update(rawKey).digest('hex');
+      const keyPrefix = rawKey.substring(0, 12);
       const result = await db.run(
         `INSERT INTO api_keys (user_id, key_hash, key_prefix, label, created_at, is_active)
          VALUES (?, ?, ?, ?, ?, 1)`,
-        [req.user.id, prefix, prefix, 'Default Server Agent Key', new Date().toISOString()]
+        [req.user.id, keyHash, keyPrefix, 'Default Server Agent Key', new Date().toISOString()]
       );
-      keys = [{ id: result.lastID, key_prefix: prefix, label: 'Default Server Agent Key', created_at: new Date().toISOString() }];
+      keys = [{ id: result.lastID, key_prefix: keyPrefix, label: 'Default Server Agent Key', created_at: new Date().toISOString() }];
     }
 
-    res.json(keys.map(k => ({ id: k.id, key_prefix: k.key_prefix || k.key_hash, label: k.label, created_at: k.created_at })));
+    res.json(keys.map(k => ({
+      id: k.id,
+      key_prefix: k.key_prefix || 'rxm_live_***',
+      label: k.label,
+      created_at: k.created_at,
+      last_used_at: k.last_used_at
+    })));
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -1220,17 +1328,21 @@ app.post('/api/keys', requireAuth, async (req, res) => {
   try {
     const { label } = req.body;
     const db = await getDb();
-    const prefix = 'rxm_live_' + Math.random().toString(36).substring(2, 10) + Math.random().toString(36).substring(2, 6);
+    
+    const rawKey = 'rxm_' + crypto.randomBytes(24).toString('hex');
+    const keyHash = crypto.createHash('sha256').update(rawKey).digest('hex');
+    const keyPrefix = rawKey.substring(0, 12);
+
     const result = await db.run(
       `INSERT INTO api_keys (user_id, key_hash, key_prefix, label, created_at, is_active)
        VALUES (?, ?, ?, ?, ?, 1)`,
-      [req.user.id, prefix, prefix, label || 'Server Agent Key', new Date().toISOString()]
+      [req.user.id, keyHash, keyPrefix, label || 'Server Agent Key', new Date().toISOString()]
     );
 
     res.json({
       id: result.lastID,
-      key: prefix,
-      key_prefix: prefix,
+      key: rawKey,
+      key_prefix: keyPrefix,
       label: label || 'Server Agent Key',
       created_at: new Date().toISOString()
     });
@@ -1883,51 +1995,7 @@ app.post('/api/system-logs/email', async (req, res) => {
   }
 });
 
-// --- API Key Management ---
-
-app.post('/api/keys', requireAuth, async (req, res) => {
-  const { label } = req.body;
-  try {
-    const db = await getDb();
-    // Generate a random API key
-    const rawKey = 'rxm_' + crypto.randomBytes(24).toString('hex');
-    const keyHash = crypto.createHash('sha256').update(rawKey).digest('hex');
-    const keyPrefix = rawKey.substring(0, 12);
-
-    await db.run(
-      'INSERT INTO api_keys (user_id, key_hash, key_prefix, label, created_at, is_active) VALUES (?, ?, ?, ?, ?, 1)',
-      [req.user.id, keyHash, keyPrefix, label || 'Default', new Date().toISOString()]
-    );
-
-    // Return the full key only once — user must save it
-    res.json({ key: rawKey, prefix: keyPrefix, label: label || 'Default' });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-app.get('/api/keys', requireAuth, async (req, res) => {
-  try {
-    const db = await getDb();
-    const keys = await db.all(
-      'SELECT id, key_prefix, label, created_at, last_used_at, is_active FROM api_keys WHERE user_id = ? ORDER BY created_at DESC',
-      [req.user.id]
-    );
-    res.json(keys);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-app.delete('/api/keys/:id', requireAuth, async (req, res) => {
-  try {
-    const db = await getDb();
-    await db.run('DELETE FROM api_keys WHERE id = ? AND user_id = ?', [req.params.id, req.user.id]);
-    res.json({ success: true });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
+// API Key Management is handled earlier in the file
 
 // --- Push Notification Registration ---
 app.post('/api/push-token', requireAuth, async (req, res) => {
@@ -1970,7 +2038,11 @@ async function authenticateAgentKey(req, res) {
 
   const keyHash = crypto.createHash('sha256').update(key).digest('hex');
   const db = await getDb();
-  const apiKey = await db.get('SELECT * FROM api_keys WHERE key_hash = ? AND is_active = 1', [keyHash]);
+  let apiKey = await db.get('SELECT * FROM api_keys WHERE key_hash = ? AND is_active = 1', [keyHash]);
+
+  if (!apiKey) {
+    apiKey = await db.get('SELECT * FROM api_keys WHERE (key_hash = ? OR key_prefix = ?) AND is_active = 1', [key, key]);
+  }
 
   if (!apiKey) {
     res.status(401).json({ error: 'API key is invalid or has been revoked.' });

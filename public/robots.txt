@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Allow: /articles
+Allow: /articles/*
+Allow: /sitemap.xml
+Disallow: /api/
+Disallow: /admin
+
+Sitemap: https://uptimebunny.com/sitemap.xml

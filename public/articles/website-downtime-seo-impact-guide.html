@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>How Website Downtime &amp; Slow Latency Destroy Google SEO Rankings | UptimeBunny</title>
+  <meta name="description" content="Discover how website downtime, HTTP 5xx errors, and slow server response times damage Google search rankings, exhaust crawl budget, and trigger de-indexing.">
+  <meta name="keywords" content="website downtime SEO impact, Googlebot crawl budget, Core Web Vitals TTFB, site availability Google ranking, SSL expiry SEO penalty, HTTP 503 error SEO">
+  <link rel="icon" type="image/png" href="/assets/favicon.png">
+  <link rel="canonical" href="https://uptimebunny.com/articles/website-downtime-seo-impact-guide.html">
+  <link rel="stylesheet" href="/landing.css">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "How Website Downtime & Slow Server Latency Destroy Your Google SEO Rankings",
+    "description": "In-depth SEO guide explaining how server downtime wastes Googlebot crawl budget, damages Core Web Vitals, and leads to indexation drops.",
+    "author": {
+      "@type": "Organization",
+      "name": "UptimeBunny SEO Research Team"
+    },
+    "publisher": {
+      "@type": "Organization",
+      "name": "UptimeBunny",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://uptimebunny.com/assets/logo.png"
+      }
+    },
+    "datePublished": "2026-08-08"
+  }
+  </script>
+  <style>
+    .article-container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 40px 20px 80px;
+      color: #c9d1d9;
+      line-height: 1.8;
+    }
+    .article-header {
+      border-bottom: 1px solid #30363d;
+      padding-bottom: 24px;
+      margin-bottom: 36px;
+    }
+    .article-title {
+      font-size: 34px;
+      font-weight: 800;
+      color: #f0f6fc;
+      line-height: 1.3;
+      margin-bottom: 16px;
+    }
+    .article-meta {
+      font-size: 14px;
+      color: #8b949e;
+    }
+    .article-content h2 {
+      font-size: 24px;
+      font-weight: 700;
+      color: #d29922;
+      margin: 36px 0 16px;
+    }
+    .article-content h3 {
+      font-size: 18px;
+      font-weight: 600;
+      color: #f0f6fc;
+      margin: 24px 0 12px;
+    }
+    .article-content p {
+      margin-bottom: 20px;
+      font-size: 16px;
+    }
+    .warning-box {
+      background: #161b22;
+      border-left: 4px solid #d29922;
+      padding: 16px 20px;
+      color: #f0f6fc;
+      margin-bottom: 24px;
+    }
+    .cta-box {
+      background: linear-gradient(135deg, rgba(210,153,34,0.1), rgba(88,166,255,0.1));
+      border: 1px solid #d29922;
+      border-radius: 12px;
+      padding: 32px;
+      text-align: center;
+      margin: 48px 0;
+    }
+  </style>
+</head>
+<body>
+  <nav class="landing-nav" aria-label="Main navigation">
+    <div class="landing-container">
+      <a href="/" class="landing-nav__logo">
+        <img src="/assets/logo.png" alt="UptimeBunny" style="height:32px; width:auto; vertical-align:middle; margin-right:8px;">
+        <span style="font-weight: 700; font-size: 20px;">UptimeBunny</span>
+      </a>
+      <div class="landing-nav__links">
+        <a href="/articles" class="landing-nav__link">&larr; All Articles</a>
+        <a href="/dashboard" class="landing-nav__cta">Dashboard</a>
+      </div>
+    </div>
+  </nav>
+
+  <main class="article-container">
+    <header class="article-header">
+      <h1 class="article-title">How Website Downtime &amp; Slow Server Latency Destroy Your Google SEO Rankings</h1>
+      <div class="article-meta">
+        Published August 8, 2026 &bull; Category: SEO &amp; Search Rankings &bull; By UptimeBunny SEO Research Team
+      </div>
+    </header>
+
+    <article class="article-content">
+      <p>
+        Search Engine Optimization (SEO) involves keyword optimization, content creation, and technical audits. However, one often-overlooked factor can completely erase your organic traffic overnight: <strong>unmonitored website downtime and high server latency</strong>.
+      </p>
+
+      <h2>1. How Googlebot Handles Server Downtime (HTTP 5xx Errors)</h2>
+      <p>
+        When Googlebot attempts to crawl a web page and encounters an HTTP 500 (Internal Server Error), HTTP 502 (Bad Gateway), or HTTP 503 (Service Unavailable) status code, it temporarily suspends crawling.
+      </p>
+      
+      <div class="warning-box">
+        <strong>The Googlebot Downtime Rule:</strong> If an outage persists for more than a few hours or recurs frequently, Googlebot marks the URLs as unreachable and begins removing them from Google Search SERP indexes to protect searcher user experience.
+      </div>
+
+      <h2>2. Impact on Google Crawl Budget</h2>
+      <p>
+        Google allocates a finite <strong>crawl budget</strong> to every domain. High Time to First Byte (TTFB) or slow response times force Googlebot to slow down its crawl rate. As a result:
+      </p>
+      <ul>
+        <li>New blog posts and product pages take longer to index.</li>
+        <li>Content updates to existing landing pages are delayed in Google Search.</li>
+        <li>Your site's Core Web Vitals score drops due to excessive TTFB latency.</li>
+      </ul>
+
+      <h2>3. The Hidden Cost of Expired SSL Certificates</h2>
+      <p>
+        When an SSL/TLS certificate expires, modern web browsers and Googlebot immediately block access with HTTPS security warnings (`NET::ERR_CERT_DATE_INVALID`). Search engines penalize sites with expired SSL certificates by lowering their ranking for secure keywords.
+
+      <h2>4. Protecting Your Organic Search Traffic</h2>
+      <p>
+        Using continuous 24/7 uptime monitoring ensures you are alerted via Telegram, Push Notifications, or Email within seconds of a server fault—allowing you to resolve issues before Googlebot notices.
+      </p>
+
+      <div class="cta-box">
+        <h3 style="margin-top:0; color:#f0f6fc;">Protect Your Google SEO Rankings With 24/7 Monitoring</h3>
+        <p>Set up free HTTP, SSL, and server health tracking with UptimeBunny.</p>
+        <a href="/dashboard" class="btn-primary" style="display:inline-block; padding:12px 24px; text-decoration:none; background:#2ea043; color:#fff; border-radius:6px; font-weight:700;">Protect Your Site Free</a>
+      </div>
+    </article>
+  </main>
+</body>
+</html>

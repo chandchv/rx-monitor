@@ -27,6 +27,27 @@ async function apiFetch(url, options = {}) {
   return response;
 }
 
+function normalizeMonitorUrl(inputUrl) {
+  if (!inputUrl || typeof inputUrl !== 'string') return '';
+  let str = inputUrl.trim().toLowerCase();
+  if (!/^https?:\/\//i.test(str)) {
+    str = 'http://' + str;
+  }
+  try {
+    const parsed = new URL(str);
+    let host = parsed.host.toLowerCase();
+    let pathname = parsed.pathname.toLowerCase();
+    if (pathname.endsWith('/') && pathname.length > 1) {
+      pathname = pathname.slice(0, -1);
+    } else if (pathname === '/') {
+      pathname = '';
+    }
+    return `${host}${pathname}${parsed.search.toLowerCase()}${parsed.hash.toLowerCase()}`;
+  } catch (e) {
+    return str.replace(/^https?:\/\//i, '').replace(/\/+$/, '').toLowerCase();
+  }
+}
+
 // DOM Elements
 const monitorsList = document.getElementById('monitors-list');
 const btnRefresh = document.getElementById('btn-refresh');
@@ -797,6 +818,19 @@ function renderMonitors(monitors) {
 async function handleMonitorSubmit(e) {
   e.preventDefault();
   const id = monitorIdInput.value;
+  const targetUrl = monitorUrlInput.value;
+  const targetNormalized = normalizeMonitorUrl(targetUrl);
+
+  const existingDuplicate = (monitors || []).find(m => {
+    if (id && m.id == id) return false;
+    return normalizeMonitorUrl(m.url) === targetNormalized;
+  });
+
+  if (existingDuplicate) {
+    showToast(`Monitor is already running with the same URL ("${existingDuplicate.name || existingDuplicate.url}").`, 'error');
+    return;
+  }
+
   const payload = {
     name: monitorNameInput.value,
     url: monitorUrlInput.value,

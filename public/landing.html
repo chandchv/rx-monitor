@@ -3,18 +3,18 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>UptimeBunny - Free Uptime Monitoring for Websites, APIs &amp; Servers</title>
+  <title>UptimeBunny - Free Website Uptime, Server Monitoring &amp; Web Analytics</title>
   <link rel="icon" type="image/png" href="/assets/favicon.png">
-  <meta name="description" content="UptimeBunny is a real-time website and server monitoring tool that alerts you immediately when your site, API, or server goes down. Free uptime monitoring with instant alerts, SSL tracking, and status pages.">
-  <meta name="keywords" content="uptimebunny, uptime bunny, uptime monitoring, website monitoring, API monitoring, server monitoring, SSL certificate monitoring, status page, response time analytics">
-  <meta property="og:title" content="UptimeBunny - Free Uptime Monitoring for Websites, APIs &amp; Servers">
-  <meta property="og:description" content="Know when your site goes down before your users do. UptimeBunny provides real-time website monitoring with instant outage alerts and SSL tracking.">
+  <meta name="description" content="UptimeBunny is a real-time website and server monitoring tool with instant outage alerts, Linux server metrics, response time analytics, SSL tracking, and SEO availability protection.">
+  <meta name="keywords" content="uptime monitoring, website monitoring, server monitoring, Linux server agent, CPU RAM disk monitoring, response time analytics, Apdex score calculator, website downtime SEO impact, SSL certificate monitoring, status page, HTTP 502 504 error checker">
+  <meta property="og:title" content="UptimeBunny - Free Website Uptime, Server Monitoring &amp; Web Analytics">
+  <meta property="og:description" content="Know when your site or server goes down before your users do. UptimeBunny provides real-time website monitoring, Linux server health tracking, instant alerts, and SEO availability protection.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://uptimebunny.com">
   <meta property="og:site_name" content="UptimeBunny">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="UptimeBunny - Free Uptime Monitoring">
-  <meta name="twitter:description" content="Monitor websites, APIs, and servers. Get instant alerts when your service experiences downtime.">
+  <meta name="twitter:title" content="UptimeBunny - Website &amp; Server Uptime Monitoring">
+  <meta name="twitter:description" content="Monitor websites, APIs, and Linux servers. Get instant outage alerts, web analytics, and protect your Google SEO rankings.">
   <link rel="canonical" href="https://uptimebunny.com">
   <link rel="stylesheet" href="landing.css">
 
@@ -27,7 +27,7 @@
     "alternateName": "uptimebunny",
     "applicationCategory": "DeveloperApplication",
     "operatingSystem": "Web, Android, iOS",
-    "description": "UptimeBunny is a website monitoring tool that alerts you when your site goes down, offering HTTP/HTTPS status checks, SSL certificate tracking, and server metrics.",
+    "description": "UptimeBunny is a continuous 24/7 website and server uptime monitoring application. It performs periodic HTTP/HTTPS pings, SSL certificate tracking, Linux server resource metrics (CPU, RAM, Disk), and web analytics.",
     "offers": [
       {
         "@type": "Offer",
@@ -39,10 +39,43 @@
     ],
     "featureList": [
       "HTTP/HTTPS Uptime Monitoring",
-      "SSL Certificate Expiry Alerts",
-      "Server Agent Metrics (CPU, Memory, Disk)",
-      "Instant Down/Up Alerts",
+      "Linux Server Health Metrics (CPU, RAM, Disk)",
+      "Response Time & Apdex Score Analytics",
+      "SSL Certificate Expiry Tracking",
+      "Instant Down/Up Notifications via Telegram & Email",
       "Public Status Pages"
+    ]
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Why is website uptime monitoring important for Google SEO?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Website downtime causes search engine crawlers like Googlebot to encounter HTTP 500, 502, or 503 errors. Prolonged or frequent outages reduce your Google crawl budget and can lead to de-indexing of critical landing pages."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How does Linux server monitoring work with UptimeBunny?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "UptimeBunny provides a lightweight bash daemon that streams CPU load, memory consumption, disk usage, and process status from your Linux servers directly to your dashboard with instant anomaly alerting."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What is Apdex score in web analytics?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Apdex (Application Performance Index) measures user satisfaction based on HTTP response times. It converts complex latency metrics into a standard score between 0 and 1."
+        }
+      }
     ]
   }
   </script>
@@ -62,6 +95,7 @@
       </button>
       <div class="landing-nav__links">
         <a href="#features" class="landing-nav__link" aria-label="View all features">Features</a>
+        <a href="/articles" class="landing-nav__link">Articles &amp; Guides</a>
         <a href="/privacy.html" class="landing-nav__link">Privacy Policy</a>
         <a href="/terms.html" class="landing-nav__link">Terms of Service</a>
         <a href="/dashboard?login=true" class="landing-nav__link" aria-label="Sign in to your dashboard">Sign In</a>
@@ -406,6 +440,14 @@
           <a href="/logs.html" class="landing-footer__link">System Logs</a>
           <a href="/comparison.html" class="landing-footer__link">Compare Monitors</a>
           <a href="/dashboards.html" class="landing-footer__link">Custom Dashboards</a>
+        </div>
+        <div class="landing-footer__col">
+          <h4 class="landing-footer__col-title">Resources &amp; Guides</h4>
+          <a href="/articles" class="landing-footer__link">Knowledge Hub</a>
+          <a href="/articles/linux-server-monitoring-guide.html" class="landing-footer__link">Linux Server Monitoring</a>
+          <a href="/articles/web-analytics-latency-apdex-guide.html" class="landing-footer__link">Web Latency &amp; Apdex</a>
+          <a href="/articles/website-downtime-seo-impact-guide.html" class="landing-footer__link">Website Downtime &amp; SEO</a>
+          <a href="/faq.html" class="landing-footer__link">FAQ</a>
         </div>
         <div class="landing-footer__col">
           <h4 class="landing-footer__col-title">Legal &amp; Policies</h4>

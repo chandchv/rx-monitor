@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>UptimeBunny - Frequently Asked Questions &amp; How-To Guides</title>
-  <meta name="description" content="Frequently asked questions and step-by-step guides for UptimeBunny website uptime monitoring, SSL certificate tracking, Linux server metrics, and outage alerts.">
-  <meta name="keywords" content="uptime monitoring FAQ, server monitoring guide, Linux agent setup, SSL certificate tracking, outage alerting FAQ">
+  <title>Frequently Asked Questions: SSL Expiry, Linux Load &amp; Free European Uptime Monitoring | UptimeBunny</title>
+  <meta name="description" content="FAQ &amp; How-to guides for UptimeBunny. Learn about free uptime monitoring in Europe, Linux server load monitoring, SSL certificate expiration tracking, and Apdex ratings.">
+  <meta name="keywords" content="linux server monitoring, ssl expiry monitoring, apdex rating, linux server load monitoring, monitor ssl certificate expiration, ssl certificate monitoring, free uptime monitoring europe, monitor uptime free, ssl certificate expiration monitoring, ssl expiration monitoring">
   <link rel="icon" type="image/png" href="/assets/favicon.png">
   <link rel="canonical" href="https://uptimebunny.com/faq.html">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -20,50 +20,34 @@
     "mainEntity": [
       {
         "@type": "Question",
-        "name": "What is UptimeBunny and how does it work?",
+        "name": "How do I monitor uptime free with European check nodes?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "UptimeBunny is a 24/7 uptime monitoring platform for websites, web applications, APIs, SSL certificates, and Linux servers. It performs continuous automated HTTP/HTTPS pings and TCP port checks. When your website or server experiences downtime or high latency, UptimeBunny immediately alerts you via Push Notifications, Email, and Telegram."
+          "text": "UptimeBunny provides free uptime monitoring in Europe (Frankfurt, London, Paris, Amsterdam) with 60-second ping checks, 5 free monitors, and instant Telegram and Email alerts."
         }
       },
       {
         "@type": "Question",
-        "name": "How do I install the Linux Server Agent (Nginx, PM2, Gunicorn, PostgreSQL)?",
+        "name": "How does Linux server load monitoring work?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Open the UptimeBunny dashboard, navigate to Servers, copy your single-command installer script, and run it on your Linux terminal (curl -sSL https://uptimebunny.com/install-agent.sh | bash -s -- --token YOUR_API_KEY). The agent automatically collects CPU, RAM, Disk, and process stats every 60 seconds."
+          "text": "The lightweight UptimeBunny bash agent tracks 1-minute, 5-minute, and 15-minute system load averages, CPU %, RAM consumption, and disk space every 60 seconds."
         }
       },
       {
         "@type": "Question",
-        "name": "How do I redeem a Beta Access Code for Premium access?",
+        "name": "How does automated SSL certificate expiration monitoring work?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Open the UptimeBunny app or web dashboard, navigate to Settings > Manage Subscription, scroll down to Redeem Beta Access Code, enter your private invitation code, and tap Redeem."
+          "text": "UptimeBunny performs continuous SSL expiry monitoring on every HTTPS monitor, inspecting TLS validity and notifying you 30, 15, 7, and 1 day before expiration."
         }
       },
       {
         "@type": "Question",
-        "name": "How does SSL Certificate Monitoring work?",
+        "name": "What is an Apdex rating in web response analytics?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "UptimeBunny automatically inspects the TLS/SSL certificate of every HTTPS monitor. It checks valid issuer credentials, expiration dates, and cipher protocols, sending warning alerts at 30 days, 15 days, and 1 day before expiration."
-        }
-      },
-      {
-        "@type": "Question",
-        "name": "How do I configure Instant Telegram & Email Outage Alerts?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "Go to Alerting / Settings in your dashboard. Enter your email address or Telegram Chat ID. You will receive real-time notifications with downtime duration, diagnostic status codes, and recovery notifications."
-        }
-      },
-      {
-        "@type": "Question",
-        "name": "How do I delete my account or monitor history?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "You can purge your account and monitor history at any time from your account settings in the app or by visiting our Account Deletion Page."
+          "text": "An Apdex rating (Application Performance Index) measures user satisfaction from 0.00 to 1.00 based on HTTP response times against your target threshold T."
         }
       }
     ]

@@ -25,7 +25,17 @@ export async function getDb() {
 
   pool = new Pool({
     connectionString: cleanConnectionString,
-    ssl: isProduction ? { rejectUnauthorized: false } : false
+    ssl: isProduction ? { rejectUnauthorized: false } : false,
+    max: 20,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 5000,
+    keepAlive: true,
+    keepAliveInitialDelayMillis: 10000
+  });
+
+  // Catch background idle client disconnects cleanly without dumping raw Client stack traces into stderr
+  pool.on('error', (err) => {
+    console.warn('[DB] Idle PostgreSQL client connection closed:', err.message);
   });
 
   // Verify connection

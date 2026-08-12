@@ -217,7 +217,7 @@ async function loadServers() {
       }
 
       return `
-        <div class="server-card" data-key-id="${s.key_id || 1}">
+        <div class="server-card ${idx === 0 ? 'selected' : ''}" data-hostname="${hostNameStr}" data-key-id="${s.key_id || s.api_key_id || ''}" style="${idx === 0 ? 'border-color: #6366f1;' : ''}">
           <div class="server-status ${stale ? 'stale' : ''}"></div>
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
             <div class="server-name" style="margin-bottom: 0;">${displayName}</div>
@@ -264,16 +264,20 @@ async function loadServers() {
     });
 
     // Load charts for first server by default
-    if (servers.length > 0 && servers[0].key_id) {
-      loadCharts(servers[0].key_id);
+    if (servers.length > 0) {
+      const s = servers[0];
+      loadCharts({ hostname: s.hostname, keyId: s.key_id || s.api_key_id });
     }
 
     // Click to switch charts
-    grid.querySelectorAll('.server-card').forEach(card => {
+    grid.querySelectorAll('.server-card').forEach((card, idx) => {
       card.addEventListener('click', () => {
         grid.querySelectorAll('.server-card').forEach(c => c.style.borderColor = '');
         card.style.borderColor = '#6366f1';
-        if (card.dataset.keyId) loadCharts(card.dataset.keyId);
+        const s = servers[idx];
+        if (s) {
+          loadCharts({ hostname: s.hostname, keyId: s.key_id || s.api_key_id });
+        }
       });
     });
   } catch (err) {
@@ -327,25 +331,43 @@ if (saveRenameBtn) {
 // --- Charts ---
 
 let cpuChart, memChart, diskChart, loadChart;
-let currentKeyId = null;
+let currentTarget = null;
 let currentHours = 1;
 
-async function loadCharts(keyId) {
-  currentKeyId = keyId;
+async function loadCharts(target) {
+  if (target) currentTarget = target;
+  if (!currentTarget) return;
+
+  let hostname = null;
+  let keyId = null;
+
+  if (typeof currentTarget === 'object') {
+    hostname = currentTarget.hostname;
+    keyId = currentTarget.keyId;
+  } else if (typeof currentTarget === 'number' || (typeof currentTarget === 'string' && /^\d+$/.test(currentTarget))) {
+    keyId = currentTarget;
+  } else {
+    hostname = currentTarget;
+  }
+
+  let queryParams = `hours=${currentHours}`;
+  if (hostname) queryParams += `&hostname=${encodeURIComponent(hostname)}`;
+  if (keyId) queryParams += `&key_id=${encodeURIComponent(keyId)}`;
+
   try {
-    const res = await fetch(`${API_URL}/api/agent/metrics?key_id=${keyId}&hours=${currentHours}`, { headers: getHeaders() });
+    const res = await fetch(`${API_URL}/api/agent/metrics?${queryParams}`, { headers: getHeaders() });
     const metrics = await res.json();
 
-    if (!Array.isArray(metrics) || metrics.length === 0) return;
+    if (!Array.isArray(metrics)) return;
 
     const labels = metrics.map(m => {
       const d = new Date(m.collected_at);
       return currentHours <= 6 ? d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : d.toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
     });
-    const cpuData = metrics.map(m => m.cpu_percent);
-    const memData = metrics.map(m => m.memory_percent);
-    const diskData = metrics.map(m => m.disk_percent);
-    const loadData = metrics.map(m => m.load_avg);
+    const cpuData = metrics.map(m => parseFloat(m.cpu_percent) || 0);
+    const memData = metrics.map(m => parseFloat(m.memory_percent) || 0);
+    const diskData = metrics.map(m => parseFloat(m.disk_percent) || 0);
+    const loadData = metrics.map(m => parseFloat(m.load_avg) || 0);
 
     const chartOpts = (label, color, data, max) => ({
       type: 'line',
@@ -358,7 +380,8 @@ async function loadCharts(keyId) {
           backgroundColor: color + '20',
           fill: true,
           tension: 0.3,
-          pointRadius: 0,
+          pointRadius: metrics.length === 1 ? 4 : 2,
+          pointHoverRadius: 5,
           borderWidth: 2
         }]
       },
@@ -394,7 +417,7 @@ document.querySelectorAll('.time-filter button').forEach(btn => {
     document.querySelectorAll('.time-filter button').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     currentHours = parseInt(btn.dataset.hours);
-    if (currentKeyId) loadCharts(currentKeyId);
+    if (currentTarget) loadCharts(currentTarget);
   });
 });
 

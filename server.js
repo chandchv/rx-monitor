@@ -1004,16 +1004,18 @@ app.post('/api/agent/metrics', async (req, res) => {
 
     const db = await getDb();
     let userId = null;
+    let apiKeyId = null;
 
     if (token) {
       if (token.startsWith('rxm_')) {
         const keyHash = crypto.createHash('sha256').update(token).digest('hex');
-        let apiKey = await db.get('SELECT user_id FROM api_keys WHERE key_hash = ? AND is_active = 1', [keyHash]);
+        let apiKey = await db.get('SELECT id, user_id FROM api_keys WHERE key_hash = ? AND is_active = 1', [keyHash]);
         if (!apiKey) {
-          apiKey = await db.get('SELECT user_id FROM api_keys WHERE (key_hash = ? OR key_prefix = ?) AND is_active = 1', [token, token]);
+          apiKey = await db.get('SELECT id, user_id FROM api_keys WHERE (key_hash = ? OR key_prefix = ?) AND is_active = 1', [token, token]);
         }
         if (apiKey) {
           userId = apiKey.user_id;
+          apiKeyId = apiKey.id;
         }
       } else {
         try {
@@ -1070,6 +1072,8 @@ app.post('/api/agent/metrics', async (req, res) => {
     }
 
     const metricPayload = {
+      api_key_id: apiKeyId || null,
+      key_id: apiKeyId || null,
       user_id: userId,
       hostname: hostname || 'Linux Server',
       ip_address: req.ip || req.headers['x-forwarded-for'] || '',
@@ -1101,17 +1105,17 @@ app.post('/api/agent/metrics', async (req, res) => {
 
     await db.run(
       `INSERT INTO server_metrics 
-        (user_id, hostname, cpu_percent, memory_percent, disk_percent, load_avg, network_rx_bytes, network_tx_bytes, process_count, uptime_seconds, nginx_status, gunicorn_status, pm2_status, gunicorn_logs, pm2_logs, custom_services, ip_address, collected_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        (api_key_id, user_id, hostname, cpu_percent, memory_percent, disk_percent, load_avg, network_rx_bytes, network_tx_bytes, process_count, uptime_seconds, nginx_status, gunicorn_status, pm2_status, gunicorn_logs, pm2_logs, custom_services, ip_address, collected_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
-        userId, hostname || 'Linux Server', parseFloat(cpu) || 0, parseFloat(memory) || 0, parseFloat(disk) || 0,
+        apiKeyId || null, userId, hostname || 'Linux Server', parseFloat(cpu) || 0, parseFloat(memory) || 0, parseFloat(disk) || 0,
         parseFloat(load) || 0, parseFloat(network_rx) || 0, parseFloat(network_tx) || 0, processes || 0, uptime || 0,
         nginx_status || null, gunicorn_status || null, pm2_status || null, gunicorn_logs || null, pm2_logs || null,
         custom_services ? (typeof custom_services === 'string' ? custom_services : JSON.stringify(custom_services)) : null,
         req.ip || req.headers['x-forwarded-for'] || '',
         now
       ]
-    ).catch(() => {});
+    ).catch((err) => { console.error('Insert server_metrics error:', err); });
 
     res.json({ success: true, message: 'Metrics received.' });
   } catch (err) {
@@ -1149,6 +1153,8 @@ const handleGetServerMetrics = async (req, res) => {
         if (now - lastSeenMs < 60 * 60 * 1000) {
           userServers.push({
             ...payload,
+            key_id: payload.api_key_id || payload.key_id || null,
+            api_key_id: payload.api_key_id || payload.key_id || null,
             display_name: aliasMap.get(payload.hostname) || payload.custom_name || payload.hostname,
             collected_at: payload.collected_at || payload.last_seen || new Date().toISOString(),
             last_seen: payload.collected_at || payload.last_seen || new Date().toISOString(),
@@ -1162,7 +1168,7 @@ const handleGetServerMetrics = async (req, res) => {
     // Fallback: If memory store is empty, load latest metrics per hostname from DB for this user
     if (userServers.length === 0) {
       const rows = await db.all(
-        `SELECT sm.hostname, sm.cpu_percent, sm.memory_percent, sm.disk_percent, sm.collected_at as last_seen,
+        `SELECT sm.hostname, sm.api_key_id, sm.cpu_percent, sm.memory_percent, sm.disk_percent, sm.collected_at as last_seen,
                 sm.nginx_status, sm.gunicorn_status, sm.pm2_status, sm.gunicorn_logs, sm.pm2_logs, sm.custom_services, sm.uptime_seconds, sm.ip_address
          FROM server_metrics sm
          INNER JOIN (
@@ -1179,6 +1185,8 @@ const handleGetServerMetrics = async (req, res) => {
         const collectedAt = row.last_seen || new Date().toISOString();
         userServers.push({
           user_id: req.user.id,
+          api_key_id: row.api_key_id || null,
+          key_id: row.api_key_id || null,
           hostname: row.hostname || 'Linux Server',
           display_name: aliasMap.get(row.hostname) || row.hostname || 'Linux Server',
           cpu_percent: parseFloat(row.cpu_percent) || 0,
@@ -2062,14 +2070,28 @@ app.get('/api/agent/metrics', requireAuth, async (req, res) => {
     const db = await getDb();
     const hours = parseInt(req.query.hours) || 24;
     const keyId = req.query.key_id;
+    const hostname = req.query.hostname;
     const since = new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
 
-    let metrics;
-    if (keyId) {
+    let metrics = [];
+    if (hostname) {
       metrics = await db.all(
-        `SELECT * FROM server_metrics WHERE user_id = ? AND api_key_id = ? AND collected_at >= ? ORDER BY collected_at ASC`,
-        [req.user.id, keyId, since]
+        `SELECT * FROM server_metrics WHERE user_id = ? AND hostname = ? AND collected_at >= ? ORDER BY collected_at ASC`,
+        [req.user.id, hostname, since]
       );
+    } else if (keyId && keyId !== 'undefined' && keyId !== 'null') {
+      const parsedKeyId = parseInt(keyId);
+      if (!isNaN(parsedKeyId)) {
+        metrics = await db.all(
+          `SELECT * FROM server_metrics WHERE user_id = ? AND (api_key_id = ? OR hostname = ?) AND collected_at >= ? ORDER BY collected_at ASC`,
+          [req.user.id, parsedKeyId, keyId, since]
+        );
+      } else {
+        metrics = await db.all(
+          `SELECT * FROM server_metrics WHERE user_id = ? AND hostname = ? AND collected_at >= ? ORDER BY collected_at ASC`,
+          [req.user.id, keyId, since]
+        );
+      }
     } else {
       metrics = await db.all(
         `SELECT * FROM server_metrics WHERE user_id = ? AND collected_at >= ? ORDER BY collected_at ASC`,
@@ -2077,8 +2099,39 @@ app.get('/api/agent/metrics', requireAuth, async (req, res) => {
       );
     }
 
+    // Fallback 1: If no metrics found in requested time window for hostname/keyId, fetch most recent records without time limit
+    if ((!metrics || metrics.length === 0) && (hostname || keyId)) {
+      const targetHost = hostname || keyId;
+      const parsedKeyId = parseInt(keyId);
+      if (!isNaN(parsedKeyId)) {
+        metrics = await db.all(
+          `SELECT * FROM server_metrics WHERE user_id = ? AND (api_key_id = ? OR hostname = ?) ORDER BY collected_at DESC LIMIT 50`,
+          [req.user.id, parsedKeyId, targetHost]
+        );
+      } else {
+        metrics = await db.all(
+          `SELECT * FROM server_metrics WHERE user_id = ? AND hostname = ? ORDER BY collected_at DESC LIMIT 50`,
+          [req.user.id, targetHost]
+        );
+      }
+      if (metrics) metrics.reverse();
+    }
+
+    // Fallback 2: If still empty, fetch any metrics for this user
+    if (!metrics || metrics.length === 0) {
+      metrics = await db.all(
+        `SELECT * FROM server_metrics WHERE user_id = ? ORDER BY collected_at DESC LIMIT 50`,
+        [req.user.id]
+      );
+      if (metrics) metrics.reverse();
+    }
+
     const parsedMetrics = (metrics || []).map(row => ({
       ...row,
+      cpu_percent: parseFloat(row.cpu_percent) || 0,
+      memory_percent: parseFloat(row.memory_percent) || 0,
+      disk_percent: parseFloat(row.disk_percent) || 0,
+      load_avg: parseFloat(row.load_avg) || 0,
       custom_services: (() => {
         if (!row.custom_services) return null;
         if (typeof row.custom_services !== 'string') return row.custom_services;

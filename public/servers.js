@@ -23,6 +23,7 @@ function getHeaders() {
 // Set install URL
 const baseUrl = window.location.origin;
 let activeUserApiKey = '';
+let currentSelectedHost = null;
 
 function updateInstallCommand(apiKey) {
   const keyToUse = apiKey || activeUserApiKey || 'YOUR_API_KEY';

@@ -211,7 +211,7 @@
     .time-filter {
       display: flex;
       gap: 8px;
-      margin-bottom: 16px;
+      margin-bottom: 0;
     }
     .time-filter button {
       padding: 6px 14px;
@@ -241,6 +241,59 @@
     }
     .btn-rename-server:hover {
       background: rgba(88, 166, 255, 0.25);
+    }
+    .chip-btn {
+      padding: 5px 14px;
+      border-radius: 20px;
+      border: 1px solid var(--border-color);
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--color-muted);
+      cursor: pointer;
+      font-size: 0.8em;
+      font-weight: 500;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .chip-btn:hover {
+      background: rgba(99, 102, 241, 0.15);
+      color: #fff;
+      border-color: rgba(99, 102, 241, 0.4);
+    }
+    .chip-btn.active {
+      background: #6366f1;
+      border-color: #6366f1;
+      color: #ffffff;
+      box-shadow: 0 2px 10px rgba(99, 102, 241, 0.4);
+    }
+    .log-chip-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 12px;
+      padding-bottom: 10px;
+      border-bottom: 1px dashed var(--border-color);
+    }
+    .log-chip {
+      padding: 4px 10px;
+      border-radius: 14px;
+      border: 1px solid var(--border-color);
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--color-muted);
+      cursor: pointer;
+      font-size: 0.75em;
+      font-weight: 600;
+      transition: all 0.2s ease;
+    }
+    .log-chip:hover {
+      color: #fff;
+      border-color: #58a6ff;
+    }
+    .log-chip.active {
+      background: rgba(88, 166, 255, 0.2);
+      border-color: #58a6ff;
+      color: #58a6ff;
     }
   </style>
 </head>
@@ -283,11 +336,17 @@
 
     <!-- Charts -->
     <div id="charts-section" style="display: none;">
-      <div class="time-filter">
-        <button class="active" data-hours="1">1H</button>
-        <button data-hours="6">6H</button>
-        <button data-hours="24">24H</button>
-        <button data-hours="168">7D</button>
+      <div class="chart-controls-header" style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 16px; background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 14px 20px;">
+        <div class="server-filter-wrapper" style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+          <span style="font-size: 0.85em; color: var(--color-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">🖥️ Server Filter:</span>
+          <div id="server-filter-chips" style="display: flex; flex-wrap: wrap; gap: 8px;"></div>
+        </div>
+        <div class="time-filter">
+          <button class="active" data-hours="1">1H</button>
+          <button data-hours="6">6H</button>
+          <button data-hours="24">24H</button>
+          <button data-hours="168">7D</button>
+        </div>
       </div>
       <div class="chart-container">
         <h3>📈 CPU Usage (%)</h3>
@@ -304,8 +363,8 @@
       <div class="chart-container">
         <h3>⚡ Load Average</h3>
         <div class="chart-canvas"><canvas id="chart-load"></canvas></div>
+      </div>
     </div>
-  </div>
 
   <div class="container" style="margin-top: 24px; margin-bottom: 24px;">
     <div style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; text-align: center;">

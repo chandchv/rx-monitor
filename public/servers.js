@@ -185,39 +185,80 @@ async function loadServers() {
       }
 
       let servicesStatusHtml = '';
-      let logsPanelHtml = '';
+      let logChipsHtml = '';
+      let logsContentHtml = '';
+
+      const getServiceIcon = (name) => {
+        const n = (name || '').toLowerCase();
+        if (n.includes('gunicorn') || n.includes('python')) return '🐍';
+        if (n.includes('pm2') || n.includes('node')) return '📦';
+        if (n.includes('nginx') || n.includes('apache') || n.includes('httpd') || n.includes('caddy')) return '🌐';
+        if (n.includes('postgres') || n.includes('mysql') || n.includes('mariadb')) return '🐘';
+        if (n.includes('redis')) return '🍃';
+        if (n.includes('docker')) return '🐋';
+        return '📄';
+      };
 
       if (customServices && Object.keys(customServices).length > 0) {
-        servicesStatusHtml = Object.keys(customServices).map(name => {
+        const serviceNames = Object.keys(customServices);
+
+        servicesStatusHtml = serviceNames.map(name => {
           const svc = customServices[name];
           const active = svc.status === 'active' || svc.status === 'running';
-          return `<div>${escapeHtml(name)}: <span style="font-weight:600; padding: 2px 6px; border-radius: 4px; background: ${active ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)'}; color: ${active ? '#10b981' : '#ef4444'}; text-transform: capitalize;">${escapeHtml(svc.status || 'inactive')}</span></div>`;
+          return `<div>${getServiceIcon(name)} ${escapeHtml(name)}: <span style="font-weight:600; padding: 2px 6px; border-radius: 4px; background: ${active ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)'}; color: ${active ? '#10b981' : '#ef4444'}; text-transform: capitalize;">${escapeHtml(svc.status || 'inactive')}</span></div>`;
         }).join('');
 
-        logsPanelHtml = Object.keys(customServices).map(name => {
+        logChipsHtml = `
+          <div class="log-chip-bar">
+            <button class="log-chip active" data-server-id="${serverId}" data-service="all" onclick="filterServiceLogs(event, '${serverId}', 'all')">📄 All Logs (${serviceNames.length})</button>
+            ${serviceNames.map(name => `
+              <button class="log-chip" data-server-id="${serverId}" data-service="${escapeHtml(name)}" onclick="filterServiceLogs(event, '${serverId}', '${escapeHtml(name)}')">${getServiceIcon(name)} ${escapeHtml(name)}</button>
+            `).join('')}
+          </div>
+        `;
+
+        logsContentHtml = serviceNames.map(name => {
           const svc = customServices[name];
-          const color = name === 'gunicorn' ? '#fbbf24' : name === 'pm2' ? '#38bdf8' : '#6366f1';
+          const icon = getServiceIcon(name);
+          const color = name === 'gunicorn' ? '#fbbf24' : name === 'pm2' ? '#38bdf8' : '#58a6ff';
           return `
-            <div style="font-weight:600; font-size: 0.85em; margin-bottom: 6px; color: ${color}; text-transform: uppercase; letter-spacing: 0.5px;">📄 ${escapeHtml(name)} Logs:</div>
-            <pre style="font-family: monospace; font-size: 0.8em; overflow-x: auto; max-height: 150px; white-space: pre-wrap; margin-bottom: 14px; color: #3fb950; background: #090d16; padding: 10px; border-radius: 6px; border: 1px solid #30363d;">${escapeHtml(svc.logs || 'No recent log entries recorded for this service.')}</pre>
+            <div class="log-service-block" data-service="${escapeHtml(name)}" style="margin-bottom: 12px;">
+              <div style="font-weight:600; font-size: 0.85em; margin-bottom: 6px; color: ${color}; text-transform: uppercase; letter-spacing: 0.5px;">${icon} ${escapeHtml(name)} Logs:</div>
+              <pre style="font-family: monospace; font-size: 0.8em; overflow-x: auto; max-height: 160px; white-space: pre-wrap; margin: 0; color: #3fb950; background: #090d16; padding: 10px; border-radius: 6px; border: 1px solid #30363d;">${escapeHtml(svc.logs || 'No recent log entries recorded for this service.')}</pre>
+            </div>
           `;
         }).join('');
       } else {
         servicesStatusHtml = `
-          <div>Nginx: <span style="font-weight:600; padding: 2px 6px; border-radius: 4px; background: ${nginxActive ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)'}; color: ${nginxActive ? '#10b981' : '#ef4444'};">${s.nginx_status || 'running'}</span></div>
-          <div>Gunicorn: <span style="font-weight:600; padding: 2px 6px; border-radius: 4px; background: ${gunicornActive ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)'}; color: ${gunicornActive ? '#10b981' : '#ef4444'};">${s.gunicorn_status || 'running'}</span></div>
-          <div>PM2: <span style="font-weight:600; padding: 2px 6px; border-radius: 4px; background: ${pm2Active ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)'}; color: ${pm2Active ? '#10b981' : '#ef4444'};">${s.pm2_status || 'running'}</span></div>
+          <div>🌐 Nginx: <span style="font-weight:600; padding: 2px 6px; border-radius: 4px; background: ${nginxActive ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)'}; color: ${nginxActive ? '#10b981' : '#ef4444'};">${s.nginx_status || 'running'}</span></div>
+          <div>🐍 Gunicorn: <span style="font-weight:600; padding: 2px 6px; border-radius: 4px; background: ${gunicornActive ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)'}; color: ${gunicornActive ? '#10b981' : '#ef4444'};">${s.gunicorn_status || 'running'}</span></div>
+          <div>📦 PM2: <span style="font-weight:600; padding: 2px 6px; border-radius: 4px; background: ${pm2Active ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)'}; color: ${pm2Active ? '#10b981' : '#ef4444'};">${s.pm2_status || 'running'}</span></div>
         `;
-        logsPanelHtml = `
-          <div style="font-weight:600; font-size: 0.85em; margin-bottom: 6px; color: #fbbf24;">🐍 Gunicorn Logs (Last 20 lines):</div>
-          <pre style="font-family: monospace; font-size: 0.8em; overflow-x: auto; max-height: 140px; white-space: pre-wrap; margin-bottom: 12px; color: #3fb950; background: #090d16; padding: 10px; border-radius: 6px; border: 1px solid #30363d;">${escapeHtml(s.gunicorn_logs || 'Active log streaming enabled via UptimeBunny Agent.')}</pre>
-          <div style="font-weight:600; font-size: 0.85em; margin-bottom: 6px; color: #38bdf8;">📦 PM2 Logs (Last 20 lines):</div>
-          <pre style="font-family: monospace; font-size: 0.8em; overflow-x: auto; max-height: 140px; white-space: pre-wrap; color: #3fb950; background: #090d16; padding: 10px; border-radius: 6px; border: 1px solid #30363d; margin: 0;">${escapeHtml(s.pm2_logs || 'Active log streaming enabled via UptimeBunny Agent.')}</pre>
+
+        logChipsHtml = `
+          <div class="log-chip-bar">
+            <button class="log-chip active" data-server-id="${serverId}" data-service="all" onclick="filterServiceLogs(event, '${serverId}', 'all')">📄 All Logs (2)</button>
+            <button class="log-chip" data-server-id="${serverId}" data-service="gunicorn" onclick="filterServiceLogs(event, '${serverId}', 'gunicorn')">🐍 Gunicorn</button>
+            <button class="log-chip" data-server-id="${serverId}" data-service="pm2" onclick="filterServiceLogs(event, '${serverId}', 'pm2')">📦 PM2</button>
+          </div>
+        `;
+
+        logsContentHtml = `
+          <div class="log-service-block" data-service="gunicorn" style="margin-bottom: 12px;">
+            <div style="font-weight:600; font-size: 0.85em; margin-bottom: 6px; color: #fbbf24;">🐍 Gunicorn Logs (Last 20 lines):</div>
+            <pre style="font-family: monospace; font-size: 0.8em; overflow-x: auto; max-height: 140px; white-space: pre-wrap; margin: 0; color: #3fb950; background: #090d16; padding: 10px; border-radius: 6px; border: 1px solid #30363d;">${escapeHtml(s.gunicorn_logs || 'Active log streaming enabled via UptimeBunny Agent.')}</pre>
+          </div>
+          <div class="log-service-block" data-service="pm2">
+            <div style="font-weight:600; font-size: 0.85em; margin-bottom: 6px; color: #38bdf8;">📦 PM2 Logs (Last 20 lines):</div>
+            <pre style="font-family: monospace; font-size: 0.8em; overflow-x: auto; max-height: 140px; white-space: pre-wrap; color: #3fb950; background: #090d16; padding: 10px; border-radius: 6px; border: 1px solid #30363d; margin: 0;">${escapeHtml(s.pm2_logs || 'Active log streaming enabled via UptimeBunny Agent.')}</pre>
+          </div>
         `;
       }
 
+      const isSelected = currentSelectedHost === s.hostname || (!currentSelectedHost && idx === 0);
+
       return `
-        <div class="server-card ${idx === 0 ? 'selected' : ''}" data-hostname="${hostNameStr}" data-key-id="${s.key_id || s.api_key_id || ''}" style="${idx === 0 ? 'border-color: #6366f1;' : ''}">
+        <div class="server-card ${isSelected ? 'selected' : ''}" data-hostname="${hostNameStr}" data-key-id="${s.key_id || s.api_key_id || ''}" style="${isSelected ? 'border-color: #6366f1;' : ''}">
           <div class="server-status ${stale ? 'stale' : ''}"></div>
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
             <div class="server-name" style="margin-bottom: 0;">${displayName}</div>
@@ -248,7 +289,8 @@ async function loadServers() {
             📄 Show Service Logs
           </div>
           <div id="logs-panel-${serverId}" style="display: none; margin-top: 12px; padding: 14px; background: #0d1117; border-radius: 8px; border: 1px solid var(--border-color); width: 100%; box-sizing: border-box;">
-            ${logsPanelHtml}
+            ${logChipsHtml}
+            ${logsContentHtml}
           </div>
         </div>`;
     }).join('');
@@ -263,20 +305,43 @@ async function loadServers() {
       });
     });
 
-    // Load charts for first server by default
-    if (servers.length > 0) {
-      const s = servers[0];
-      loadCharts({ hostname: s.hostname, keyId: s.key_id || s.api_key_id });
+    // Populate Server Filter Chips above Charts
+    const filterContainer = document.getElementById('server-filter-chips');
+    if (filterContainer) {
+      let filterChipsHtml = `
+        <button class="chip-btn ${!currentSelectedHost ? 'active' : ''}" onclick="selectServerFilter('all')">
+          🌐 All Servers (${servers.length})
+        </button>
+      `;
+      servers.forEach((s, idx) => {
+        const name = s.display_name || s.label || s.hostname || 'Linux Server';
+        const isSelected = currentSelectedHost === s.hostname || (!currentSelectedHost && idx === 0 && servers.length === 1);
+        filterChipsHtml += `
+          <button class="chip-btn ${isSelected ? 'active' : ''}" data-hostname="${escapeHtml(s.hostname)}" onclick="selectServerFilter('${escapeHtml(s.hostname)}')">
+            🖥️ ${escapeHtml(name)}
+          </button>
+        `;
+      });
+      filterContainer.innerHTML = filterChipsHtml;
     }
 
-    // Click to switch charts
+    // Initial Chart Loading
+    if (servers.length > 0) {
+      if (currentSelectedHost) {
+        loadCharts({ hostname: currentSelectedHost });
+      } else {
+        const defaultServer = servers[0];
+        currentSelectedHost = defaultServer.hostname;
+        loadCharts({ hostname: defaultServer.hostname, keyId: defaultServer.key_id || defaultServer.api_key_id });
+      }
+    }
+
+    // Click on Server Card in Grid to filter charts
     grid.querySelectorAll('.server-card').forEach((card, idx) => {
       card.addEventListener('click', () => {
-        grid.querySelectorAll('.server-card').forEach(c => c.style.borderColor = '');
-        card.style.borderColor = '#6366f1';
         const s = servers[idx];
         if (s) {
-          loadCharts({ hostname: s.hostname, keyId: s.key_id || s.api_key_id });
+          selectServerFilter(s.hostname);
         }
       });
     });
@@ -447,6 +512,71 @@ function escapeHtml(str) {
   div.textContent = str || '';
   return div.innerHTML;
 }
+
+window.selectServerFilter = function(targetHost) {
+  if (targetHost === 'all') {
+    currentSelectedHost = null;
+  } else {
+    currentSelectedHost = targetHost;
+  }
+
+  // Update chip active states
+  const container = document.getElementById('server-filter-chips');
+  if (container) {
+    container.querySelectorAll('.chip-btn').forEach(btn => {
+      if (targetHost === 'all') {
+        btn.classList.toggle('active', btn.textContent.includes('All Servers'));
+      } else {
+        btn.classList.toggle('active', btn.dataset.hostname === targetHost);
+      }
+    });
+  }
+
+  // Highlight matching server card in grid
+  const grid = document.getElementById('servers-grid');
+  if (grid) {
+    grid.querySelectorAll('.server-card').forEach(card => {
+      const cardHost = card.dataset.hostname;
+      if (currentSelectedHost && cardHost === currentSelectedHost) {
+        card.style.borderColor = '#6366f1';
+        card.classList.add('selected');
+      } else if (!currentSelectedHost) {
+        card.style.borderColor = '';
+        card.classList.remove('selected');
+      } else {
+        card.style.borderColor = '';
+        card.classList.remove('selected');
+      }
+    });
+  }
+
+  // Reload charts
+  if (currentSelectedHost) {
+    loadCharts({ hostname: currentSelectedHost });
+  } else {
+    loadCharts({ hostname: null });
+  }
+};
+
+window.filterServiceLogs = function(event, serverId, serviceName) {
+  if (event) event.stopPropagation();
+  const panel = document.getElementById(`logs-panel-${serverId}`);
+  if (!panel) return;
+
+  // Toggle active class on log chips inside this panel
+  panel.querySelectorAll('.log-chip').forEach(chip => {
+    chip.classList.toggle('active', chip.dataset.service === serviceName);
+  });
+
+  // Filter service log blocks
+  panel.querySelectorAll('.log-service-block').forEach(block => {
+    if (serviceName === 'all' || block.dataset.service === serviceName) {
+      block.style.display = 'block';
+    } else {
+      block.style.display = 'none';
+    }
+  });
+};
 
 window.toggleLogs = function(event, id) {
   event.stopPropagation();

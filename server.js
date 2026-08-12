@@ -1145,87 +1145,89 @@ const handleGetServerMetrics = async (req, res) => {
     });
     const aliasMap = new Map((aliases || []).map(a => [a.hostname, a.custom_name]));
 
-    const userServers = [];
+    const serverMap = new Map();
 
+    // 1. Fetch latest metrics per hostname from DB for this user
+    const rows = await db.all(
+      `SELECT sm.hostname, sm.api_key_id, sm.cpu_percent, sm.memory_percent, sm.disk_percent, sm.collected_at as last_seen,
+              sm.nginx_status, sm.gunicorn_status, sm.pm2_status, sm.gunicorn_logs, sm.pm2_logs, sm.custom_services, sm.uptime_seconds, sm.ip_address
+       FROM server_metrics sm
+       INNER JOIN (
+         SELECT hostname, MAX(collected_at) as max_time
+         FROM server_metrics
+         WHERE user_id = ?
+         GROUP BY hostname
+       ) latest ON sm.hostname = latest.hostname AND sm.collected_at = latest.max_time
+       WHERE sm.user_id = ?
+       ORDER BY sm.collected_at DESC`,
+      [req.user.id, req.user.id]
+    ).catch((err) => {
+      console.error('Failed to query server_metrics DB:', err.message || err);
+      return [];
+    });
+
+    for (const row of rows) {
+      const collectedAt = row.last_seen || new Date().toISOString();
+      const host = row.hostname || 'Linux Server';
+      serverMap.set(host, {
+        user_id: req.user.id,
+        api_key_id: row.api_key_id || null,
+        key_id: row.api_key_id || null,
+        hostname: host,
+        display_name: aliasMap.get(host) || host,
+        cpu_percent: parseFloat(row.cpu_percent) || 0,
+        memory_percent: parseFloat(row.memory_percent) || 0,
+        disk_percent: parseFloat(row.disk_percent) || 0,
+        collected_at: collectedAt,
+        last_seen: collectedAt,
+        uptime_seconds: row.uptime_seconds || 3600,
+        uptime: row.uptime_seconds || 3600,
+        nginx_status: row.nginx_status || null,
+        gunicorn_status: row.gunicorn_status || null,
+        pm2_status: row.pm2_status || null,
+        gunicorn_logs: row.gunicorn_logs || null,
+        pm2_logs: row.pm2_logs || null,
+        custom_services: (() => {
+          if (!row.custom_services) return null;
+          if (typeof row.custom_services !== 'string') return row.custom_services;
+          try {
+            return JSON.parse(row.custom_services);
+          } catch (_) {
+            return null;
+          }
+        })(),
+        ip_address: row.ip_address || '',
+        services: [
+          { name: 'nginx', status: row.nginx_status || 'inactive' },
+          { name: 'pm2', status: row.pm2_status || 'inactive' },
+          { name: 'gunicorn', status: row.gunicorn_status || 'inactive' }
+        ]
+      });
+    }
+
+    // 2. Overlay live in-memory payloads for fresh active reporting
     for (const [key, payload] of serverAgentStore.entries()) {
       if (String(payload.user_id) === currentUserId) {
         const lastSeenMs = new Date(payload.last_seen || payload.collected_at || now).getTime();
         if (now - lastSeenMs < 60 * 60 * 1000) {
-          userServers.push({
+          const host = payload.hostname || 'Linux Server';
+          const existing = serverMap.get(host) || {};
+          serverMap.set(host, {
+            ...existing,
             ...payload,
-            key_id: payload.api_key_id || payload.key_id || null,
-            api_key_id: payload.api_key_id || payload.key_id || null,
-            display_name: aliasMap.get(payload.hostname) || payload.custom_name || payload.hostname,
-            collected_at: payload.collected_at || payload.last_seen || new Date().toISOString(),
-            last_seen: payload.collected_at || payload.last_seen || new Date().toISOString(),
-            uptime_seconds: payload.uptime_seconds || payload.uptime || 3600,
-            uptime: payload.uptime_seconds || payload.uptime || 3600
+            key_id: payload.api_key_id || payload.key_id || existing.key_id || null,
+            api_key_id: payload.api_key_id || payload.key_id || existing.api_key_id || null,
+            display_name: aliasMap.get(host) || payload.custom_name || existing.display_name || host,
+            collected_at: payload.collected_at || payload.last_seen || existing.collected_at || new Date().toISOString(),
+            last_seen: payload.collected_at || payload.last_seen || existing.last_seen || new Date().toISOString(),
+            uptime_seconds: payload.uptime_seconds || payload.uptime || existing.uptime_seconds || 3600,
+            uptime: payload.uptime_seconds || payload.uptime || existing.uptime || 3600
           });
         }
       }
     }
 
-    // Fallback: If memory store is empty, load latest metrics per hostname from DB for this user
-    if (userServers.length === 0) {
-      const rows = await db.all(
-        `SELECT sm.hostname, sm.api_key_id, sm.cpu_percent, sm.memory_percent, sm.disk_percent, sm.collected_at as last_seen,
-                sm.nginx_status, sm.gunicorn_status, sm.pm2_status, sm.gunicorn_logs, sm.pm2_logs, sm.custom_services, sm.uptime_seconds, sm.ip_address
-         FROM server_metrics sm
-         INNER JOIN (
-           SELECT hostname, MAX(collected_at) as max_time
-           FROM server_metrics
-           WHERE user_id = ?
-           GROUP BY hostname
-         ) latest ON sm.hostname = latest.hostname AND sm.collected_at = latest.max_time
-         WHERE sm.user_id = ?
-         ORDER BY sm.collected_at DESC`,
-        [req.user.id, req.user.id]
-      ).catch((err) => {
-        console.error('Failed to query server_metrics DB:', err);
-        return [];
-      });
-
-      for (const row of rows) {
-        const collectedAt = row.last_seen || new Date().toISOString();
-        userServers.push({
-          user_id: req.user.id,
-          api_key_id: row.api_key_id || null,
-          key_id: row.api_key_id || null,
-          hostname: row.hostname || 'Linux Server',
-          display_name: aliasMap.get(row.hostname) || row.hostname || 'Linux Server',
-          cpu_percent: parseFloat(row.cpu_percent) || 0,
-          memory_percent: parseFloat(row.memory_percent) || 0,
-          disk_percent: parseFloat(row.disk_percent) || 0,
-          collected_at: collectedAt,
-          last_seen: collectedAt,
-          uptime_seconds: row.uptime_seconds || 3600,
-          uptime: row.uptime_seconds || 3600,
-          nginx_status: row.nginx_status || null,
-          gunicorn_status: row.gunicorn_status || null,
-          pm2_status: row.pm2_status || null,
-          gunicorn_logs: row.gunicorn_logs || null,
-          pm2_logs: row.pm2_logs || null,
-          custom_services: (() => {
-            if (!row.custom_services) return null;
-            if (typeof row.custom_services !== 'string') return row.custom_services;
-            try {
-              return JSON.parse(row.custom_services);
-            } catch (_) {
-              return null;
-            }
-          })(),
-          ip_address: row.ip_address || '',
-          services: [
-            { name: 'nginx', status: row.nginx_status || 'inactive' },
-            { name: 'pm2', status: row.pm2_status || 'inactive' },
-            { name: 'gunicorn', status: row.gunicorn_status || 'inactive' },
-            { name: 'postgres', status: 'running' },
-            { name: 'mysql', status: 'running' },
-            { name: 'redis', status: 'running' }
-          ]
-        });
-      }
-    }
+    const userServers = Array.from(serverMap.values());
 
     if (req.path === '/api/agent/servers') {
       res.json(userServers);

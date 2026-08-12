@@ -143,22 +143,25 @@ async function loadServers() {
   try {
     const res = await fetch(`${API_URL}/api/agent/servers`, { headers: getHeaders() });
     if (res.status === 401) { window.location.href = '/'; return; }
-    const servers = await res.json();
+    const data = await res.json();
+    const servers = Array.isArray(data) ? data : (data && Array.isArray(data.servers) ? data.servers : []);
     const grid = document.getElementById('servers-grid');
     const chartsSection = document.getElementById('charts-section');
 
-    if (servers.length === 0) {
+    if (!grid) return;
+
+    if (!Array.isArray(servers) || servers.length === 0) {
       grid.innerHTML = `
         <div class="no-servers" style="grid-column: 1 / -1;">
           <div class="icon">🖥️</div>
           <h3>No servers reporting yet</h3>
           <p>Generate an API key above and install the agent on your server to see live metrics.</p>
         </div>`;
-      chartsSection.style.display = 'none';
+      if (chartsSection) chartsSection.style.display = 'none';
       return;
     }
 
-    chartsSection.style.display = 'block';
+    if (chartsSection) chartsSection.style.display = 'block';
 
     grid.innerHTML = servers.map((s, idx) => {
       const serverId = s.id || idx;
@@ -174,6 +177,10 @@ async function loadServers() {
       const displayName = escapeHtml(s.display_name || s.label || s.hostname || 'Linux Server');
       const hostNameStr = escapeHtml(s.hostname || 'Linux Server');
       const ipAddressStr = s.ip_address ? ` (${escapeHtml(s.ip_address)})` : '';
+
+      const cpuPct = parseFloat(s.cpu_percent) || 0;
+      const memPct = parseFloat(s.memory_percent) || 0;
+      const diskPct = parseFloat(s.disk_percent) || 0;
 
       let customServices = null;
       if (s.custom_services) {
@@ -268,18 +275,18 @@ async function loadServers() {
           <div class="metric-bars">
             <div class="metric-bar-row">
               <span class="label">CPU</span>
-              <div class="bar-track"><div class="bar-fill cpu" style="width: ${Math.min(s.cpu_percent || 0, 100)}%"></div></div>
-              <span class="value">${(s.cpu_percent || 0).toFixed(1)}%</span>
+              <div class="bar-track"><div class="bar-fill cpu" style="width: ${Math.min(cpuPct, 100)}%"></div></div>
+              <span class="value">${cpuPct.toFixed(1)}%</span>
             </div>
             <div class="metric-bar-row">
               <span class="label">Memory</span>
-              <div class="bar-track"><div class="bar-fill memory" style="width: ${Math.min(s.memory_percent || 0, 100)}%"></div></div>
-              <span class="value">${(s.memory_percent || 0).toFixed(1)}%</span>
+              <div class="bar-track"><div class="bar-fill memory" style="width: ${Math.min(memPct, 100)}%"></div></div>
+              <span class="value">${memPct.toFixed(1)}%</span>
             </div>
             <div class="metric-bar-row">
               <span class="label">Disk</span>
-              <div class="bar-track"><div class="bar-fill disk" style="width: ${Math.min(s.disk_percent || 0, 100)}%"></div></div>
-              <span class="value">${(s.disk_percent || 0).toFixed(0)}%</span>
+              <div class="bar-track"><div class="bar-fill disk" style="width: ${Math.min(diskPct, 100)}%"></div></div>
+              <span class="value">${diskPct.toFixed(0)}%</span>
             </div>
           </div>
           <div class="services-status" style="margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border-color); display: flex; flex-wrap: wrap; gap: 14px; font-size: 0.8em;">
@@ -346,6 +353,7 @@ async function loadServers() {
       });
     });
   } catch (err) {
+    console.error('Failed to load servers:', err);
     showToast('Failed to load servers', 'error');
   }
 }

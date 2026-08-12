@@ -706,6 +706,22 @@ async function initSchema() {
       UNIQUE(user_id, promo_code_id)
     );
   `);
+  // Safe column migration for server_metrics on existing production databases
+  const serverMetricsCols = [
+    'ALTER TABLE server_metrics ADD COLUMN IF NOT EXISTS api_key_id INTEGER',
+    'ALTER TABLE server_metrics ADD COLUMN IF NOT EXISTS custom_services TEXT',
+    'ALTER TABLE server_metrics ADD COLUMN IF NOT EXISTS ip_address TEXT',
+    'ALTER TABLE server_metrics ADD COLUMN IF NOT EXISTS gunicorn_logs TEXT',
+    'ALTER TABLE server_metrics ADD COLUMN IF NOT EXISTS pm2_logs TEXT',
+    'ALTER TABLE server_metrics ADD COLUMN IF NOT EXISTS nginx_status TEXT',
+    'ALTER TABLE server_metrics ADD COLUMN IF NOT EXISTS gunicorn_status TEXT',
+    'ALTER TABLE server_metrics ADD COLUMN IF NOT EXISTS pm2_status TEXT',
+    'ALTER TABLE server_metrics ADD COLUMN IF NOT EXISTS uptime_seconds INTEGER DEFAULT 0'
+  ];
+
+  for (const alterSql of serverMetricsCols) {
+    await dbInstance.exec(alterSql).catch(() => {});
+  }
 
   // Index creation (using standard PG syntax)
   await dbInstance.exec(`

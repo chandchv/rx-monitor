@@ -1177,9 +1177,13 @@ const handleGetServerMetrics = async (req, res) => {
            WHERE user_id = ?
            GROUP BY hostname
          ) latest ON sm.hostname = latest.hostname AND sm.collected_at = latest.max_time
+         WHERE sm.user_id = ?
          ORDER BY sm.collected_at DESC`,
-        [req.user.id]
-      ).catch(() => []);
+        [req.user.id, req.user.id]
+      ).catch((err) => {
+        console.error('Failed to query server_metrics DB:', err);
+        return [];
+      });
 
       for (const row of rows) {
         const collectedAt = row.last_seen || new Date().toISOString();

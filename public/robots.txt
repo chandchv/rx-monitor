@@ -3,7 +3,25 @@ Allow: /
 Allow: /articles
 Allow: /articles/*
 Allow: /sitemap.xml
+
+# Public static pages
+Allow: /faq.html
+Allow: /status.html
+Allow: /privacy.html
+Allow: /terms.html
+
+# Disallow private application & admin pages
 Disallow: /api/
 Disallow: /admin
+Disallow: /dashboard
+Disallow: /servers.html
+Disallow: /alerting.html
+Disallow: /dashboards.html
+Disallow: /incidents.html
+Disallow: /logs.html
+Disallow: /app-logs.html
+Disallow: /monitor-detail.html
+Disallow: /comparison.html
+Disallow: /delete-account.html
 
 Sitemap: https://uptimebunny.com/sitemap.xml
